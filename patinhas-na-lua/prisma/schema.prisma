@@ -17,22 +17,39 @@ model User {
   id        String   @id // Clerk ID
   email     String   @unique
   name      String?
-  phone     String?  // Telemóvel
-  nif       String?  // NIF for invoices
-  address   String?  // Morada
+  phone     String?
+  nif       String?
+  address   String?
   isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
+  
+  // LOYALTY SYSTEM (Controlled by Groomer or Auto-calculated)
+  loyaltyPoints Int      @default(0) // e.g. 9 points. At 10, gets coupon.
   
   appointments Appointment[]
   pets         Pet[]
 }
 
 model Pet {
-  id        String   @id @default(cuid())
-  name      String
-  breed     String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  id              String   @id @default(cuid())
+  name            String
+  species         String?  // "Cão", "Gato" (Added)
+  breed           String?
+  birthDate       DateTime? // Client requested Date instead of Age (Added)
+  gender          String?   // "M", "F" (Added)
+  weight          Float?    // In Kg (Added)
+  microchip       String?   // Optional String (better than Yes/No)
+  
+  // Permanent Health Flags (Client Request)
+  allergies       String?   @db.Text
+  skinIssues      String?   @db.Text
+  heartIssues     String?   @db.Text
+  medicalNotes    String?   @db.Text 
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  
+  appointments    Appointment[]
 }
 
 model Service {
@@ -47,18 +64,85 @@ model Service {
 model Appointment {
   id        String   @id @default(cuid())
   date      DateTime
-  status    String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  status    String   @default("PENDING") // PENDING, CONFIRMED, COMPLETED, CANCELLED
   
+  // --- FINANCIAL TRACKING (Income) ---
+  price         Decimal  // Final price charged
+  originalPrice Decimal? // Price before discount
+  discountNotes String?  // "Promoção 11ª Visita"
+  
+  isPaid        Boolean       @default(false)
+  paymentMethod PaymentMethod? // CASH, MBWAY, CARD
+  paidAt        DateTime?      // When did she receive the money?
+
+  // --- MEDICAL / BEHAVIOR ---
+  v7Updated          Boolean @default(false)
+  rabiesUpdated      Boolean @default(false)
+  kennelCoughUpdated Boolean @default(false)
+  internalDeworming  Boolean @default(false)
+  externalDeworming  Boolean @default(false)
+
+  socialPeople       SocialRating @default(UNKNOWN)
+  socialDogs         SocialRating @default(UNKNOWN)
+  fearDryer          Boolean      @default(false)
+  fearClippers       Boolean      @default(false)
+  fearBathing        Boolean      @default(false)
+  
+  stressLevel        StressLevel  @default(LOW)
+  groomerNotes       String?      @db.Text
+
+  // Relations
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  
+  petId     String
+  pet       Pet      @relation(fields: [petId], references: [id])
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id])
 }
 
+model Expense {
+  id          String   @id @default(cuid())
+  description String   // e.g. "Shampoo 5L", "Luz", "Internet"
+  amount      Decimal
+  date        DateTime @default(now())
+  
+  category    ExpenseCategory @default(PRODUCT)
+  
+  notes       String?  @db.Text
+}
+
 model Coupon {
   id        String   @id @default(cuid())
-  code      String   @unique // e.g., "PATINHAS10"
-  discount  Int      // Percentage off
+  code      String   @unique
+  discount  Int
   active    Boolean  @default(true)
+}
+
+enum PaymentMethod {
+  CASH
+  MBWAY
+  CARD
+  TRANSFER
+}
+
+enum ExpenseCategory {
+  PRODUCT     // Shampoos, perfumes
+  EQUIPMENT   // Scissors, tables
+  UTILITIES   // Water, Light, Internet
+  RENT        // Shop rent
+  TAXES       // Finanças
+  OTHER
+}
+
+enum SocialRating {
+  GOOD
+  MEDIUM
+  DIFFICULT
+  UNKNOWN
+}
+
+enum StressLevel {
+  LOW
+  MEDIUM
+  HIGH
 }
