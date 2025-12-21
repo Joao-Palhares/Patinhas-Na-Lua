@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id // Clerk ID
+  email     String   @unique
+  name      String?
+  phone     String?  // Telemóvel
+  nif       String?  // NIF for invoices
+  address   String?  // Morada
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  appointments Appointment[]
+  pets         Pet[]
+}
+
+model Pet {
+  id        String   @id @default(cuid())
+  name      String
+  breed     String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Full Groom", "Nail Clip"
+  price       Decimal
+  durationMin Int
+  
+  appointments Appointment[]
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  date      DateTime
+  status    String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
+}
+
+model Coupon {
+  id        String   @id @default(cuid())
+  code      String   @unique // e.g., "PATINHAS10"
+  discount  Int      // Percentage off
+  active    Boolean  @default(true)
+}
