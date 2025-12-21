@@ -33,14 +33,17 @@ model User {
 model Pet {
   id              String   @id @default(cuid())
   name            String
-  species         String?  // "Cão", "Gato" (Added)
+  species         Species  @default(DOG) // DOG, CAT, RABBIT
   breed           String?
-  birthDate       DateTime? // Client requested Date instead of Age (Added)
-  gender          String?   // "M", "F" (Added)
-  weight          Float?    // In Kg (Added)
-  microchip       String?   // Optional String (better than Yes/No)
+  birthDate       DateTime?
+  gender          String?
+  microchip       String?
   
-  // Permanent Health Flags (Client Request)
+  // FOR PRICING CALCULATIONS
+  sizeCategory    PetSize?    // <5kg, 5-10kg, etc.
+  coatType        CoatType?   // SHORT, MEDIUM, LONG
+  
+  // Health Flags
   allergies       String?   @db.Text
   skinIssues      String?   @db.Text
   heartIssues     String?   @db.Text
@@ -48,46 +51,64 @@ model Pet {
 
   userId          String
   user            User     @relation(fields: [userId], references: [id])
-  
   appointments    Appointment[]
 }
 
 model Service {
   id          String   @id @default(cuid())
-  name        String   // e.g., "Full Groom", "Nail Clip"
-  price       Decimal
-  durationMin Int
+  name        String   // e.g. "Banho + Tosquia Higiénica"
+  description String?  // e.g. "Includes nail trimming, ears..."
+  category    ServiceCategory // GROOMING, HYGIENE, EXOTIC, SPA
+  
+  // Does this service allow Add-ons? (Like Masks)
+  allowsAddOns Boolean @default(false)
+
+  // Link to the Price Matrix
+  options     ServiceOption[]
   
   appointments Appointment[]
+}
+
+model ServiceOption {
+  id          String   @id @default(cuid())
+  
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+  
+  // The Conditions
+  petSize     PetSize?   // If null, applies to all sizes (e.g. for Cats)
+  coatType    CoatType?  // If null, applies to all coats
+  
+  // The Result
+  price       Decimal
+  durationMin Int
+  durationMax Int?
 }
 
 model Appointment {
   id        String   @id @default(cuid())
   date      DateTime
-  status    String   @default("PENDING") // PENDING, CONFIRMED, COMPLETED, CANCELLED
+  status    String   @default("PENDING")
   
-  // --- FINANCIAL TRACKING (Income) ---
-  price         Decimal  // Final price charged
-  originalPrice Decimal? // Price before discount
-  discountNotes String?  // "Promoção 11ª Visita"
-  
+  // Financials
+  price         Decimal  
+  originalPrice Decimal? 
+  discountNotes String?
   isPaid        Boolean       @default(false)
-  paymentMethod PaymentMethod? // CASH, MBWAY, CARD
-  paidAt        DateTime?      // When did she receive the money?
+  paymentMethod PaymentMethod?
+  paidAt        DateTime?
 
-  // --- MEDICAL / BEHAVIOR ---
+  // Medical/Behavior (Same as before)
   v7Updated          Boolean @default(false)
   rabiesUpdated      Boolean @default(false)
   kennelCoughUpdated Boolean @default(false)
   internalDeworming  Boolean @default(false)
   externalDeworming  Boolean @default(false)
-
   socialPeople       SocialRating @default(UNKNOWN)
   socialDogs         SocialRating @default(UNKNOWN)
   fearDryer          Boolean      @default(false)
   fearClippers       Boolean      @default(false)
   fearBathing        Boolean      @default(false)
-  
   stressLevel        StressLevel  @default(LOW)
   groomerNotes       String?      @db.Text
 
@@ -96,8 +117,42 @@ model Appointment {
   user      User     @relation(fields: [userId], references: [id])
   petId     String
   pet       Pet      @relation(fields: [petId], references: [id])
+  
+  // Main Service
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id])
+
+  // NEW: Porosity Test Results / Treatments used
+  spaTreatment  String? // e.g., "Mascara de Hidratação"
+}
+
+enum Species {
+  DOG
+  CAT
+  RABBIT
+  OTHER
+}
+
+enum ServiceCategory {
+  GROOMING // Shaving, Cuts (1, 2, 4, 5, 12)
+  HYGIENE  // Nails, Ears, Higienic Shave (3, 7, 8, 9, 10, 11, 13)
+  EXOTIC   // Cats & Rabbits (6)
+  SPA      // Porosity, Masks (14)
+}
+
+enum PetSize {
+  TOY           // < 5kg
+  SMALL         // 5 - 10kg
+  MEDIUM        // 11 - 20kg
+  LARGE         // 21 - 30kg
+  XL            // 31 - 40kg
+  GIANT         // > 40kg
+}
+
+enum CoatType {
+  SHORT
+  MEDIUM
+  LONG
 }
 
 model Expense {
