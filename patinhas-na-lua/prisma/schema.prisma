@@ -23,6 +23,8 @@ model User {
   isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
   
+  invoices  Invoice[]
+
   // LOYALTY SYSTEM (Controlled by Groomer or Auto-calculated)
   loyaltyPoints Int      @default(0) // e.g. 9 points. At 10, gets coupon.
   
@@ -73,7 +75,7 @@ model ServiceOption {
   id          String   @id @default(cuid())
   
   serviceId   String
-  service     Service  @relation(fields: [serviceId], references: [id])
+  service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   
   // The Conditions
   petSize     PetSize?   // If null, applies to all sizes (e.g. for Cats)
@@ -83,6 +85,46 @@ model ServiceOption {
   price       Decimal
   durationMin Int
   durationMax Int?
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String?       @unique // Will be generated on Issue (e.g. FT 2025/1)
+  date          DateTime      @default(now())
+  
+  subtotal      Decimal
+  taxAmount     Decimal       @default(0)
+  totalAmount   Decimal
+  
+  status        InvoiceStatus @default(DRAFT)
+  
+  externalId    String?       // Moloni ID
+  pdfUrl        String?
+  
+  appointmentId String        @unique
+  appointment   Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+}
+
+model ExtraFee {
+  id          String                @id @default(cuid())
+  name        String                // "Taxa de Nós"
+  basePrice   Decimal
+  category    ExtraFeeCategory      @default(MANEJO)
+  appointments AppointmentExtraFee[]
+}
+
+model AppointmentExtraFee {
+  id            String      @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  extraFeeId    String
+  extraFee      ExtraFee    @relation(fields: [extraFeeId], references: [id])
+
+  quantity      Int         @default(1)
+  appliedPrice  Decimal
+  notes         String?
 }
 
 model Appointment {
@@ -97,6 +139,16 @@ model Appointment {
   isPaid        Boolean       @default(false)
   paymentMethod PaymentMethod?
   paidAt        DateTime?
+
+  // Operations (NEW)
+  actualStartTime DateTime? 
+  actualEndTime   DateTime? 
+  finishedAt      DateTime? 
+  collectedAt     DateTime? 
+  behaviorNotes   String?   @db.Text 
+
+  invoice         Invoice?
+  extraFees       AppointmentExtraFee[]
 
   // Medical/Behavior (Same as before)
   v7Updated          Boolean @default(false)
@@ -124,6 +176,7 @@ model Appointment {
 
   // NEW: Porosity Test Results / Treatments used
   spaTreatment  String? // e.g., "Mascara de Hidratação"
+
 }
 
 enum Species {
@@ -180,6 +233,20 @@ enum PaymentMethod {
   TRANSFER
 }
 
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+  PAID
+}
+
+enum ExtraFeeCategory {
+  MANEJO
+  PELO
+  LOGISTICA
+  OUTRO
+}
+
 enum ExpenseCategory {
   PRODUCT     // Shampoos, perfumes
   EQUIPMENT   // Scissors, tables
@@ -201,3 +268,5 @@ enum StressLevel {
   MEDIUM
   HIGH
 }
+
+

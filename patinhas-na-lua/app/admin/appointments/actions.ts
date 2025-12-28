@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { PaymentMethod } from "@prisma/client";
 
 // 1. Create Manual Appointment
 export async function createManualAppointment(formData: FormData) {
@@ -33,18 +34,36 @@ export async function createManualAppointment(formData: FormData) {
 export async function updateAppointmentStatus(formData: FormData) {
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
-  const isPaid = formData.get("isPaid") === "true"; // Checkbox logic
+
+  if (!status) return; // Prevent the crash
+
+  await db.appointment.update({
+    where: { id },
+    data: { status }
+  });
+  
+  revalidatePath("/admin/appointments");
+}
+
+// 2. REGISTER PAYMENT (New dedicated action)
+export async function registerPayment(formData: FormData) {
+  const id = formData.get("id") as string;
+  const amount = Number(formData.get("amount"));
+  const method = formData.get("method") as PaymentMethod;
 
   await db.appointment.update({
     where: { id },
     data: { 
-      status, 
-      isPaid: isPaid ? true : undefined, // Only update if true, or handle toggle logic
-      paidAt: isPaid ? new Date() : null
+      isPaid: true,
+      paidAt: new Date(),
+      price: amount,
+      paymentMethod: method,
+      status: "COMPLETED" // <--- ADD THIS LINE. Force status to Completed.
     }
   });
   
   revalidatePath("/admin/appointments");
+  revalidatePath("/admin/analytics"); // Update analytics too
 }
 
 // 3. Delete

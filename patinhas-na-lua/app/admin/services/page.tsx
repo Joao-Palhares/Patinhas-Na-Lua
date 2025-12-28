@@ -1,9 +1,11 @@
 import { db } from "@/lib/db";
-import { revalidatePath } from "next/cache";
 import { ServiceCategory, PetSize, CoatType } from "@prisma/client";
 import DeleteForm from "../components/delete-form";
+// 1. IMPORT THE ACTIONS (Do not define them again below)
+import { createService, addPriceOption, deleteService, deleteOption } from "./actions";
+import EditServiceModal from "./edit-service-modal";
+import EditOptionModal from "./edit-option-modal";
 
-// --- CONFIGURATION ---
 const CATEGORY_LABELS: Record<ServiceCategory, string> = {
   GROOMING: "Banhos e Tosquias",
   HYGIENE: "Higiene (Unhas/Ouvidos)",
@@ -21,81 +23,56 @@ const SIZE_LABELS: Record<PetSize, string> = {
 };
 
 const COAT_LABELS: Record<CoatType, string> = {
-  SHORT: "Pêlo Curto",
-  MEDIUM: "Pêlo Médio",
-  LONG: "Pêlo Comprido",
+  SHORT: "Pelo Curto",
+  MEDIUM: "Pelo Médio",
+  LONG: "Pelo Comprido",
+};
+
+// Sorting Priority
+const COAT_PRIORITY: Record<string, number> = {
+  "SHORT": 1,
+  "MEDIUM": 2,
+  "LONG": 3,
 };
 
 export default async function ServicesPage() {
   
-  const services = await db.service.findMany({
+  // 1. Fetch Raw Data
+  const rawServices = await db.service.findMany({
     include: { options: true },
     orderBy: { category: "asc" }
   });
 
-  // --- ACTIONS ---
-  async function createService(formData: FormData) {
-    "use server";
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
-    const category = formData.get("category") as ServiceCategory;
-    
-    // CORRECTED: No price/duration here anymore.
-    await db.service.create({
-      data: { 
-        name, 
-        description, 
-        category 
-      }
-    });
-    revalidatePath("/admin/services");
-  }
+  // 2. Transform & SORT Data
+  const services = rawServices.map(service => ({
+    ...service,
+    options: service.options
+      .map(opt => ({
+        ...opt,
+        price: opt.price.toNumber() // Convert Decimal to Number
+      }))
+      .sort((a, b) => {
+        // Sort by Coat Type first
+        const coatA = a.coatType ? COAT_PRIORITY[a.coatType] || 99 : 0;
+        const coatB = b.coatType ? COAT_PRIORITY[b.coatType] || 99 : 0;
+        
+        if (coatA !== coatB) return coatA - coatB;
 
-  async function addPriceOption(formData: FormData) {
-    "use server";
-    const serviceId = formData.get("serviceId") as string;
-    const size = formData.get("size") as PetSize | "ALL";
-    const coat = formData.get("coat") as CoatType | "ALL";
-    const price = Number(formData.get("price"));
-    
-    const durationMin = Number(formData.get("durationMin"));
-    const durationMax = Number(formData.get("durationMax"));
-
-    await db.serviceOption.create({
-      data: {
-        serviceId,
-        petSize: size === "ALL" ? null : size,
-        coatType: coat === "ALL" ? null : coat,
-        price,
-        durationMin,
-        durationMax: durationMax || null,
-      }
-    });
-    revalidatePath("/admin/services");
-  }
-
-  async function deleteService(formData: FormData) {
-    "use server";
-    const id = formData.get("id") as string;
-    await db.service.delete({ where: { id } });
-    revalidatePath("/admin/services");
-  }
-
-  async function deleteOption(formData: FormData) {
-    "use server";
-    const id = formData.get("id") as string;
-    await db.serviceOption.delete({ where: { id } });
-    revalidatePath("/admin/services");
-  }
+        // Then by Price
+        return a.price - b.price;
+      })
+  }));
 
   return (
     <div className="max-w-6xl mx-auto pb-20">
       <h1 className="text-3xl font-bold mb-8 text-slate-800">Gestão de Serviços</h1>
 
-      {/* --- FORM 1: CREATE NEW SERVICE --- */}
+      {/* --- CREATE SERVICE FORM --- */}
       <div className="bg-white p-6 rounded-xl shadow-md mb-8 border border-gray-200">
         <h2 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">1. Criar Título do Serviço</h2>
-        <p className="text-sm text-gray-500 mb-4">Crie o nome primeiro (ex: "Tosquia"). Depois adicione os preços para cada tamanho.</p>
+        <p className="text-sm text-gray-500 mb-4">Crie o nome primeiro. Depois adicione os preços.</p>
+        
+        {/* Use the IMPORTED action here */}
         <form action={createService} className="flex flex-col gap-4">
           
           <div className="flex flex-col md:flex-row gap-4">
@@ -139,26 +116,28 @@ export default async function ServicesPage() {
         </form>
       </div>
 
-      {/* --- LIST OF SERVICES --- */}
+      {/* --- LIST SERVICES --- */}
       <h2 className="text-xl font-bold mb-4 text-gray-800">Serviços e Preços</h2>
       <div className="space-y-6">
         {services.map((service) => (
           <div key={service.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            
             {/* Header */}
             <div className="bg-slate-100 p-4 border-b border-gray-200 flex justify-between items-start">
               <div>
-                <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                  {service.name} 
+                <div className="flex items-center gap-3">
+                  <h3 className="font-bold text-lg text-gray-800">{service.name}</h3>
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold uppercase tracking-wide">
                     {CATEGORY_LABELS[service.category]}
                   </span>
-                </h3>
+                  <EditServiceModal service={service} />
+                </div>
                 {service.description && (
                   <p className="text-sm text-gray-600 mt-1">{service.description}</p>
                 )}
               </div>
               
-              {/* --- 2. SAFE DELETE SERVICE BUTTON --- */}
+              {/* Imported delete action */}
               <DeleteForm 
                 id={service.id} 
                 action={deleteService} 
@@ -173,7 +152,7 @@ export default async function ServicesPage() {
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="py-2 px-3 text-gray-600 font-bold">Tamanho</th>
-                    <th className="py-2 px-3 text-gray-600 font-bold">Pêlo</th>
+                    <th className="py-2 px-3 text-gray-600 font-bold">Pelo</th>
                     <th className="py-2 px-3 text-gray-600 font-bold">Tempo (Min - Máx)</th>
                     <th className="py-2 px-3 text-gray-600 font-bold">Preço</th>
                     <th className="py-2 px-3"></th>
@@ -191,15 +170,20 @@ export default async function ServicesPage() {
                       <td className="py-2 px-3 text-gray-700">
                         {opt.durationMin} {opt.durationMax ? `- ${opt.durationMax}` : ""} min
                       </td>
-                      <td className="py-2 px-3 font-bold text-green-600 text-base">{Number(opt.price).toFixed(2)}€</td>
-                      <td className="py-2 px-3 text-right">
-                        {/* --- 2. SAFE DELETE SERVICE BUTTON --- */}
+                      <td className="py-2 px-3 font-bold text-green-600 text-base">
+                        {Number(opt.price).toFixed(2)}€
+                      </td>
+                      <td className="py-2 px-3 text-right flex items-center justify-end gap-2">
+                        
+                        <EditOptionModal option={opt} />
+
+                        {/* Imported delete option action */}
                         <DeleteForm 
-                          id={service.id} 
-                          action={deleteService} 
-                          className="text-red-500 text-xs hover:underline font-semibold"
+                          id={opt.id} 
+                          action={deleteOption} 
+                          className="text-red-400 hover:text-red-600 text-xs font-bold"
                         >
-                          Apagar Serviço
+                          X
                         </DeleteForm>
                       </td>
                     </tr>
@@ -207,7 +191,7 @@ export default async function ServicesPage() {
                   {service.options.length === 0 && (
                     <tr>
                       <td colSpan={5} className="text-center text-gray-400 py-4 italic">
-                        Sem preços. Adicione abaixo (Ex: Toy = 30€).
+                        Sem preços. Adicione abaixo.
                       </td>
                     </tr>
                   )}
@@ -217,6 +201,8 @@ export default async function ServicesPage() {
               {/* --- ADD PRICE FORM --- */}
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                 <p className="text-xs font-bold text-blue-500 uppercase mb-3">2. Adicionar Regra de Preço</p>
+                
+                {/* Imported add price action */}
                 <form action={addPriceOption} className="flex flex-wrap gap-3 items-end">
                   <input type="hidden" name="serviceId" value={service.id} />
                   
@@ -224,52 +210,34 @@ export default async function ServicesPage() {
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Tamanho</label>
                     <select name="size" className="block border border-gray-300 p-2 rounded text-sm w-36 text-gray-900 bg-white">
                       <option value="ALL">Qualquer Tamanho</option>
-                      {Object.values(PetSize).map(s => (
-                        <option key={s} value={s}>{SIZE_LABELS[s]}</option>
+                      {Object.entries(SIZE_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
                       ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Pêlo</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Pelo</label>
                     <select name="coat" className="block border border-gray-300 p-2 rounded text-sm w-36 text-gray-900 bg-white">
-                      <option value="ALL">Qualquer Pêlo</option>
-                      {Object.values(CoatType).map(c => (
-                        <option key={c} value={c}>{COAT_LABELS[c]}</option>
+                      <option value="ALL">Qualquer pelo</option>
+                      {Object.entries(COAT_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
                       ))}
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Mín (m)</label>
-                    <input 
-                      name="durationMin" 
-                      type="number" 
-                      required 
-                      placeholder="60" 
-                      className="block border border-gray-300 p-2 rounded text-sm w-20 text-gray-900 bg-white" 
-                    />
+                    <input name="durationMin" type="number" required placeholder="60" className="block border border-gray-300 p-2 rounded text-sm w-20 text-gray-900 bg-white" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Máx (m)</label>
-                    <input 
-                      name="durationMax" 
-                      type="number" 
-                      placeholder="90" 
-                      className="block border border-gray-300 p-2 rounded text-sm w-20 text-gray-900 bg-white" 
-                    />
+                    <input name="durationMax" type="number" placeholder="90" className="block border border-gray-300 p-2 rounded text-sm w-20 text-gray-900 bg-white" />
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Preço (€)</label>
-                    <input 
-                      name="price" 
-                      type="number" 
-                      step="0.01" 
-                      required 
-                      placeholder="35.00" 
-                      className="block border border-gray-300 p-2 rounded text-sm w-24 text-gray-900 bg-white" 
-                    />
+                    <input name="price" type="number" step="0.01" required placeholder="35.00" className="block border border-gray-300 p-2 rounded text-sm w-24 text-gray-900 bg-white" />
                   </div>
 
                   <button className="bg-green-600 text-white font-bold text-sm px-4 py-2 rounded h-auto hover:bg-green-700 shadow-sm">

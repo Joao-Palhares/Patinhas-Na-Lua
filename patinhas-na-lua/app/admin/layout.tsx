@@ -46,6 +46,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/analytics" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
             <span>📈</span> Relatórios & Lucro
           </Link>
+          <Link href="/admin/fees" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
+            <span>🏷️</span> Taxas Extras
+          </Link>
+          <Link href="/admin/invoices" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
+            <span>🧾</span> Faturas
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-slate-800">

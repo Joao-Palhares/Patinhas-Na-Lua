@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { Species } from "@prisma/client";
+import { Species, PetSize, CoatType } from "@prisma/client";
 
 export async function createPetAction(formData: FormData) {
   const userId = formData.get("userId") as string;
@@ -10,6 +10,9 @@ export async function createPetAction(formData: FormData) {
   const species = formData.get("species") as Species;
   const breed = formData.get("breed") as string;
   const gender = formData.get("gender") as string;
+
+  const sizeCategory = formData.get("sizeCategory") as PetSize;
+  const coatType = formData.get("coatType") as CoatType;
   
   // Optional fields
   const microchip = formData.get("microchip") as string;
@@ -23,6 +26,9 @@ export async function createPetAction(formData: FormData) {
       species,
       breed,
       gender,
+      sizeCategory: sizeCategory || null,
+      coatType: coatType || null,
+
       microchip,
       medicalNotes,
       birthDate: birthDateString ? new Date(birthDateString) : null,
@@ -32,4 +38,5 @@ export async function createPetAction(formData: FormData) {
   // Refresh both the list and the details page
   revalidatePath("/admin/clients");
   revalidatePath(`/admin/clients/${userId}`);
+  revalidatePath("/dashboard/pets");
 }
