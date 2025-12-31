@@ -19,6 +19,7 @@ export default function AdminMobileNav() {
         { href: "/admin/coupons", icon: "🎟️", label: "Prémios & Cupões" },
         { href: "/admin/fees", icon: "🏷️", label: "Taxas Extras" },
         { href: "/admin/invoices", icon: "🧾", label: "Faturas" },
+        { href: "/admin/settings", icon: "⚙️", label: "Configuração" },
     ];
 
     return (

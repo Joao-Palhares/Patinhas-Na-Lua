@@ -56,6 +56,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/coupons" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
             <span>🎟️</span> Prémios & Cupões
           </Link>
+          <Link href="/admin/settings" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
+            <span>⚙️</span> Configuração
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-slate-800 space-y-2">

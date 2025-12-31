@@ -15,6 +15,11 @@ export async function submitBooking(formData: FormData) {
   const price = Number(formData.get("price"));
   const couponCode = formData.get("couponCode") as string; // NEW
 
+  // Locations
+  const locationType = formData.get("locationType") as "SALON" | "MOBILE" || "SALON";
+  const mobileAddress = formData.get("mobileAddress") as string;
+  const travelFee = Number(formData.get("travelFee") || 0);
+
   const finalDate = new Date(`${date}T${time}:00`);
   let finalPrice = price;
   let usedCouponId: string | null = null;
@@ -47,9 +52,14 @@ export async function submitBooking(formData: FormData) {
       petId,
       serviceId,
       date: finalDate,
-      price: finalPrice, // Use discounted price
+      price: finalPrice, // Use discounted price (Base Service Price)
       status: "PENDING",
       isPaid: false,
+
+      // Location
+      locationType,
+      mobileAddress,
+      travelFee: travelFee,
     },
     include: {
       user: true,

@@ -5,8 +5,23 @@ import { submitBooking, getAvailableSlots } from "./actions";
 import { Pet, Service, ServiceOption } from "@prisma/client";
 
 // Adjust type to match what we passed from the page (price is number)
+// Adjust type to match what we passed from the page (price is number)
 type ServiceWithOptions = Omit<Service, "createdAt" | "updatedAt"> & {
   options: (Omit<ServiceOption, "price"> & { price: number })[]
+};
+
+import dynamic from 'next/dynamic';
+const LocationPicker = dynamic(() => import('@/app/components/location-picker'), {
+  ssr: false,
+  loading: () => <div className="h-96 bg-slate-100 rounded-2xl animate-pulse flex items-center justify-center text-slate-400">A carregar mapa...</div>
+});
+import { BusinessSettings } from "@prisma/client";
+import { getBusinessSettings } from "@/app/admin/settings/actions";
+
+type SerializedBusinessSettings = Omit<BusinessSettings, 'zone1Fee' | 'zone2Fee' | 'zone3Fee'> & {
+  zone1Fee: number;
+  zone2Fee: number;
+  zone3Fee: number;
 };
 
 interface Props {
@@ -33,6 +48,18 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
+  // LOCATIONS
+  const [locationType, setLocationType] = useState<"SALON" | "MOBILE">("SALON");
+  const [mobileAddress, setMobileAddress] = useState("");
+  const [travelFee, setTravelFee] = useState(0);
+  const [isAddressValid, setIsAddressValid] = useState(false);
+  const [settings, setSettings] = useState<SerializedBusinessSettings | null>(null);
+
+  useEffect(() => {
+    // Fetch settings on mount
+    getBusinessSettings().then(setSettings);
+  }, []);
+
   const [wantsNif, setWantsNif] = useState(false);
 
   // 1. FIND SELECTED DATA
@@ -47,8 +74,10 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
       return services.filter(s => s.category !== "EXOTIC");
     }
 
-    if (selectedPet.species === "CAT" || selectedPet.species === "RABBIT") {
-      return services.filter(s => s.category === "EXOTIC");
+
+    // Filter by Location Availability
+    if (locationType === "MOBILE") {
+      return services.filter(s => s.isMobileAvailable);
     }
 
     return services;
@@ -150,15 +179,17 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
 
       {/* HEADER STEPS */}
-      <div className="bg-slate-50 p-4 border-b flex justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
+      <div className="bg-slate-50 p-4 border-b flex justify-between text-xs font-bold text-gray-400 uppercase tracking-wider overflow-x-auto">
         <span className={step >= 1 ? "text-blue-600" : ""}>1. Animal</span>
-        <span className={step >= 2 ? "text-blue-600" : ""}>2. Serviço</span>
-        <span className={step >= 3 ? "text-blue-600" : ""}>3. Horário</span>
-        <span className={step >= 4 ? "text-blue-600" : ""}>4. Fim</span>
+        <span className={step >= 2 ? "text-blue-600" : ""}>2. Local</span>
+        <span className={step >= 3 ? "text-blue-600" : ""}>3. Serviço</span>
+        <span className={step >= 4 ? "text-blue-600" : ""}>4. Horário</span>
+        <span className={step >= 5 ? "text-blue-600" : ""}>5. Fim</span>
       </div>
 
       <div className="p-8">
         <form action={submitBooking}>
+          {/* HIDDEN FIELDS */}
           <input type="hidden" name="userId" value={user.id} />
           <input type="hidden" name="petId" value={selectedPetId} />
           <input type="hidden" name="serviceId" value={selectedServiceId} />
@@ -166,6 +197,10 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
           <input type="hidden" name="time" value={time} />
           <input type="hidden" name="date" value={date} />
           <input type="hidden" name="couponCode" value={discount > 0 ? couponCode : ""} />
+
+          <input type="hidden" name="locationType" value={locationType} />
+          <input type="hidden" name="mobileAddress" value={mobileAddress} />
+          <input type="hidden" name="travelFee" value={travelFee} />
 
           {/* STEP 1: SELECT PET */}
           {step === 1 && (
@@ -200,8 +235,72 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
             </div>
           )}
 
-          {/* STEP 2: SELECT SERVICE (FIXED SCROLL) */}
+          {/* STEP 2: LOCATION (NEW) */}
           {step === 2 && (
+            <div className="space-y-6 animate-in slide-in-from-right duration-300">
+              <h2 className="text-xl font-bold text-gray-800">Onde será o serviço? 🏠</h2>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div
+                  onClick={() => { setLocationType("SALON"); setTravelFee(0); }}
+                  className={`p-6 rounded-2xl border-2 cursor-pointer transition text-center ${locationType === "SALON" ? "border-blue-600 bg-blue-50" : "border-gray-100 hover:border-gray-200"}`}
+                >
+                  <div className="text-4xl mb-2">🏢</div>
+                  <h3 className="font-bold text-gray-800">No Salon</h3>
+                  <p className="text-xs text-gray-500">Tondela</p>
+                </div>
+
+                <div
+                  onClick={() => setLocationType("MOBILE")}
+                  className={`p-6 rounded-2xl border-2 cursor-pointer transition text-center ${locationType === "MOBILE" ? "border-blue-600 bg-blue-50" : "border-gray-100 hover:border-gray-200"}`}
+                >
+                  <div className="text-4xl mb-2">🚐</div>
+                  <h3 className="font-bold text-gray-800">Ao Domicílio</h3>
+                  <p className="text-xs text-gray-500">Vamos até si!</p>
+                </div>
+              </div>
+
+              {locationType === "MOBILE" && (
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  {settings && <LocationPicker
+                    settings={settings}
+                    onLocationSelect={(data) => {
+                      setMobileAddress(data.address || "");
+                      setTravelFee(data.fee);
+                      setIsAddressValid(data.valid);
+                    }}
+                  />}
+
+                  {mobileAddress && (
+                    <div className={`mt-4 p-4 rounded-xl border ${isAddressValid ? "bg-green-100 border-green-200 text-green-800" : "bg-red-100 border-red-200 text-red-800"}`}>
+                      <p className="text-xs font-bold uppercase mb-1">Morada Selecionada:</p>
+                      <p className="font-bold">{mobileAddress}</p>
+                      {!isAddressValid ? (
+                        <p className="text-sm mt-2 font-bold">⚠️ Serviço indisponível nesta área (Muito longe).</p>
+                      ) : (
+                        <p className="text-sm mt-2 font-bold">✅ Taxa de Deslocação: {travelFee}€</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-4">
+                <button type="button" onClick={() => setStep(1)} className="px-4 py-3 rounded-xl border font-bold text-gray-600">Voltar</button>
+                <button
+                  type="button"
+                  disabled={locationType === "MOBILE" && (!mobileAddress || !isAddressValid)}
+                  onClick={() => setStep(3)}
+                  className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+                >
+                  Continuar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: SELECT SERVICE (Was 2) */}
+          {step === 3 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-gray-800">O que vamos fazer hoje? ✂️</h2>
 
@@ -228,11 +327,11 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
               </div>
 
               <div className="flex gap-3 mt-4">
-                <button type="button" onClick={() => setStep(1)} className="px-4 py-3 rounded-xl border font-bold text-gray-600">Voltar</button>
+                <button type="button" onClick={() => setStep(2)} className="px-4 py-3 rounded-xl border font-bold text-gray-600">Voltar</button>
                 <button
                   type="button"
                   disabled={!selectedServiceId}
-                  onClick={() => setStep(3)}
+                  onClick={() => setStep(4)}
                   className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
                 >
                   Continuar
@@ -241,8 +340,8 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
             </div>
           )}
 
-          {/* STEP 3: DATE & TIME (FIXED SCROLL) */}
-          {step === 3 && (
+          {/* STEP 4: DATE & TIME (Was 3) */}
+          {step === 4 && (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-gray-800">Escolha o Horário 📅</h2>
 
@@ -326,11 +425,11 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
 
               {/* Buttons */}
               <div className="flex gap-3 mt-4">
-                <button type="button" onClick={() => setStep(2)} className="px-4 py-3 rounded-xl border font-bold text-gray-600">Voltar</button>
+                <button type="button" onClick={() => setStep(3)} className="px-4 py-3 rounded-xl border font-bold text-gray-600">Voltar</button>
                 <button
                   type="button"
                   disabled={!date || !time}
-                  onClick={() => setStep(4)}
+                  onClick={() => setStep(5)}
                   className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50 shadow-lg"
                 >
                   Ver Resumo
@@ -339,8 +438,8 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
             </div>
           )}
 
-          {/* STEP 4: CONFIRMATION */}
-          {step === 4 && (
+          {/* STEP 5: CONFIRMATION (Was 4) */}
+          {step === 5 && (
             <div className="space-y-6">
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-gray-800">Tudo pronto? 📝</h2>
@@ -370,6 +469,9 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
                     <div>
                       <p className="text-xs font-bold text-blue-400 uppercase tracking-wider">Serviço</p>
                       <p className="font-bold text-gray-700">{selectedService?.name}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {locationType === "MOBILE" ? `🏠 ${mobileAddress}` : "🏢 Salon"}
+                      </p>
                     </div>
                   </div>
 
@@ -435,16 +537,20 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
 
 
                   {/* TOTAL */}
-                  <div className="pt-2 flex justify-between items-center">
-                    <span className="text-gray-500 font-bold">Total a Pagar</span>
+                  <div className="pt-2 flex justify-between items-center border-t border-blue-200 pt-4 mt-4">
+                    <div className="text-sm text-gray-500">
+                      <p>Serviço: {priceDetails?.price.toFixed(2)}€</p>
+                      {travelFee > 0 && <p>Deslocação: {travelFee.toFixed(2)}€</p>}
+                      {discount > 0 && <p className="text-green-600">Desconto: -{(priceDetails?.price || 0) * discount / 100}€</p>}
+                    </div>
                     <div className="text-right">
                       {discount > 0 && (
                         <span className="block text-xs text-gray-400 line-through decoration-red-500">
-                          {priceDetails?.price.toFixed(2)}€
+                          {(priceDetails!.price + travelFee).toFixed(2)}€
                         </span>
                       )}
                       <span className={`text-3xl font-black ${discount > 0 ? "text-green-600" : "text-blue-600"}`}>
-                        {calculateFinalPrice(priceDetails?.price || 0).toFixed(2)}€
+                        {(calculateFinalPrice(priceDetails?.price || 0) + travelFee).toFixed(2)}€
                       </span>
                     </div>
                   </div>
@@ -452,7 +558,7 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
               </div>
 
               <div className="flex gap-3">
-                <button type="button" onClick={() => setStep(3)} className="px-6 py-3 rounded-xl border-2 border-gray-200 font-bold text-gray-600 hover:bg-gray-50">Voltar</button>
+                <button type="button" onClick={() => setStep(4)} className="px-6 py-3 rounded-xl border-2 border-gray-200 font-bold text-gray-600 hover:bg-gray-50">Voltar</button>
                 <button
                   type="submit"
                   className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-xl transform hover:scale-[1.02] transition"

@@ -65,6 +65,7 @@ model Service {
   
   // Does this service allow Add-ons? (Like Masks)
   allowsAddOns Boolean @default(false)
+  isMobileAvailable Boolean @default(false) // NEW: Available for mobile service
 
   // Link to the Price Matrix
   options     ServiceOption[]
@@ -140,6 +141,11 @@ model Appointment {
   isPaid        Boolean       @default(false)
   paymentMethod PaymentMethod?
   paidAt        DateTime?
+
+  // Location / Mobile Service
+  locationType  LocationType  @default(SALON)
+  mobileAddress String?       // Address if MOBILE
+  travelFee     Decimal       @default(0) // Separate fee for travel
 
   // Operations (NEW)
   actualStartTime DateTime? 
@@ -277,3 +283,31 @@ enum StressLevel {
 }
 
 
+
+enum LocationType {
+  SALON
+  MOBILE
+}
+
+model BusinessSettings {
+  id              String   @id @default("default") // Singleton pattern usually, or just use 1st row
+  
+  // Base Location (Salon)
+  baseLatitude    Float    @default(40.5489) // Tondela approx
+  baseLongitude   Float    @default(-8.0815) // Tondela approx
+  baseAddress     String?
+
+  // Zone 1
+  zone1RadiusKm   Float    @default(5)
+  zone1Fee        Decimal  @default(0)
+
+  // Zone 2
+  zone2RadiusKm   Float    @default(10)
+  zone2Fee        Decimal  @default(10)
+
+  // Zone 3 / Limit
+  zone3Fee        Decimal  @default(15) // Fee for area between Zone 2 and Max Radius
+  maxRadiusKm     Float    @default(20)
+
+  updatedAt       DateTime @updatedAt
+}
