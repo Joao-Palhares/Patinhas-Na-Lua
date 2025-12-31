@@ -36,6 +36,41 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
     }
   };
 
+  // COUPON STATE
+  const [couponCode, setCouponCode] = useState("");
+  const [analyzingCoupon, setAnalyzingCoupon] = useState(false);
+  const [couponResult, setCouponResult] = useState<{ valid: boolean; message?: string; discount?: number } | null>(null);
+
+  const checkCoupon = async () => {
+    setAnalyzingCoupon(true);
+    setCouponResult(null);
+    try {
+      const { validateCoupon } = await import("@/app/dashboard/book/actions");
+      const res = await validateCoupon(couponCode);
+
+      if (res.valid) {
+        setCouponResult({ valid: true, discount: res.discount });
+        // Apply discount logic immediately? 
+        // Logic: If 100%, set basePrice to 0? Or just subtract from total?
+        // Prompt says "if he wants". So if valid, we AUTOMATICALLY apply it?
+        // Let's adjust the base price or show it as a specific discount line item?
+        // Simplest: If discount is 100% (Reward), set basePrice to 0.
+        if (res.discount === 100) {
+          setBasePrice(0);
+        } else {
+          // For percent off
+          setBasePrice(prev => prev - (prev * ((res.discount || 0) / 100)));
+        }
+      } else {
+        setCouponResult({ valid: false, message: res.message });
+      }
+    } catch (e) {
+      setCouponResult({ valid: false, message: "Erro ao validar." });
+    } finally {
+      setAnalyzingCoupon(false);
+    }
+  };
+
   const handleRemoveFee = (index: number) => {
     const newFees = [...selectedFees];
     newFees.splice(index, 1);
@@ -45,9 +80,9 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
   const saveProgress = async () => {
     setLoading(true);
     await saveBillingDraft(
-      appointment.id, 
-      basePrice, 
-      selectedFees.map(f => ({ id: f.id, price: f.price })), 
+      appointment.id,
+      basePrice,
+      selectedFees.map(f => ({ id: f.id, price: f.price })),
       notes
     );
     setLoading(false);
@@ -65,11 +100,11 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold border transition whitespace-nowrap
-          ${isDraft 
-            ? "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200" 
+          ${isDraft
+            ? "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200"
             : "bg-green-100 text-green-800 border-green-300 hover:bg-green-200"
           }`}
       >
@@ -79,7 +114,7 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            
+
             <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
               <h3 className="font-bold text-lg">Finalizar Serviço - {appointment.pet.name}</h3>
               <div className="flex gap-2">
@@ -92,15 +127,15 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 bg-slate-50">
-              
+
               {/* STEP 1: REVIEW */}
               {step === 1 && (
                 <div className="space-y-6">
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Preço Base ({appointment.service.name})</label>
-                    <input 
-                      type="number" 
-                      value={basePrice} 
+                    <input
+                      type="number"
+                      value={basePrice}
                       onChange={(e) => setBasePrice(Number(e.target.value))}
                       className="w-full border-2 border-gray-300 p-3 rounded-lg font-black text-2xl text-gray-900 bg-white focus:border-blue-500 outline-none"
                     />
@@ -109,32 +144,32 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Taxas Extra</label>
                     <div className="flex gap-2 mb-3">
-                      <select 
-                        id="feeSelect" 
+                      <select
+                        id="feeSelect"
                         className="border-2 border-gray-300 p-2 rounded-lg text-sm flex-1 bg-white text-gray-900 font-medium"
                       >
                         <option value="">Selecionar Taxa...</option>
                         {extraFeeOptions.map((f: any) => <option key={f.id} value={f.id}>{f.name} (+{f.basePrice}€)</option>)}
                       </select>
-                      <button 
+                      <button
                         onClick={() => {
                           const select = document.getElementById('feeSelect') as HTMLSelectElement;
-                          if(select.value) handleAddFee(select.value);
+                          if (select.value) handleAddFee(select.value);
                         }}
                         className="bg-blue-600 text-white px-4 rounded-lg font-bold text-lg hover:bg-blue-700"
                       >
                         +
                       </button>
                     </div>
-                    
+
                     <div className="space-y-2">
                       {selectedFees.map((fee, idx) => (
                         <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
                           <span className="font-bold text-gray-700">{fee.name}</span>
                           <div className="flex items-center gap-2">
-                            <input 
-                              type="number" 
-                              value={fee.price} 
+                            <input
+                              type="number"
+                              value={fee.price}
                               onChange={(e) => {
                                 const newFees = [...selectedFees];
                                 newFees[idx].price = Number(e.target.value);
@@ -149,10 +184,36 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
                     </div>
                   </div>
 
+                  {/* COUPON SECTION */}
+                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                    <label className="block text-xs font-bold text-orange-700 uppercase mb-2">Aplicar Cupão / Voucher</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="CODE-123"
+                        className="flex-1 border-2 border-orange-200 p-2 rounded-lg text-sm bg-white font-mono uppercase"
+                      />
+                      <button
+                        onClick={checkCoupon}
+                        disabled={analyzingCoupon || !couponCode}
+                        className="bg-black text-white px-3 py-2 rounded-lg text-xs font-bold"
+                      >
+                        {analyzingCoupon ? "..." : "Verificar"}
+                      </button>
+                    </div>
+                    {couponResult && (
+                      <div className={`mt-2 text-xs font-bold p-2 rounded ${couponResult.valid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
+                        {couponResult.message || (couponResult.discount === 100 ? "Oferta Total Aplicada!" : `Desconto de ${couponResult.discount}% Aplicado`)}
+                      </div>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Notas Internas</label>
-                    <textarea 
-                      value={notes} 
+                    <textarea
+                      value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       className="w-full border-2 border-gray-300 p-3 rounded-lg h-24 bg-white text-gray-900 focus:border-blue-500 outline-none"
                       placeholder="Comportamento, observações..."
@@ -167,8 +228,8 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
                   <h4 className="text-xl font-bold text-gray-800 mb-6">Dados Fiscais</h4>
                   <div className="max-w-xs mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                     <label className="block text-left text-xs font-bold text-gray-500 mb-2 uppercase">NIF do Cliente</label>
-                    <input 
-                      value={nif} 
+                    <input
+                      value={nif}
                       onChange={(e) => setNif(e.target.value)}
                       placeholder="999999990"
                       className="w-full border-2 border-blue-200 p-4 rounded-xl text-center text-3xl font-mono font-bold text-gray-900 tracking-widest bg-blue-50 focus:bg-white transition"
@@ -185,15 +246,15 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
                     <div className="text-sm text-gray-500 font-bold uppercase mb-1">Total a Receber</div>
                     <div className="text-5xl font-black text-green-600 tracking-tight">{total.toFixed(2)}€</div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     {['CASH', 'MBWAY', 'CARD', 'TRANSFER'].map((m) => (
-                      <button 
+                      <button
                         key={m}
                         onClick={() => setPaymentMethod(m as PaymentMethod)}
                         className={`p-4 rounded-xl border-2 font-bold transition flex flex-col items-center gap-2
-                          ${paymentMethod === m 
-                            ? "border-green-500 bg-green-50 text-green-800 shadow-md transform scale-105" 
+                          ${paymentMethod === m
+                            ? "border-green-500 bg-green-50 text-green-800 shadow-md transform scale-105"
                             : "border-gray-200 bg-white text-gray-600 hover:border-blue-300"
                           }`}
                       >
@@ -243,7 +304,7 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
               )}
 
               {step < 4 ? (
-                <button 
+                <button
                   onClick={async () => {
                     if (step === 1) await saveProgress();
                     setStep(step + 1);
@@ -254,7 +315,7 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
                   {loading ? "A guardar..." : "Próximo →"}
                 </button>
               ) : (
-                <button 
+                <button
                   onClick={handleFinish}
                   disabled={loading}
                   className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 disabled:opacity-50 transition shadow-lg flex items-center gap-2"

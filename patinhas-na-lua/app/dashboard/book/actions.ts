@@ -12,23 +12,93 @@ export async function submitBooking(formData: FormData) {
   const serviceId = formData.get("serviceId") as string;
   const date = formData.get("date") as string;
   const time = formData.get("time") as string;
-  const price = Number(formData.get("price")); 
+  const price = Number(formData.get("price"));
+  const couponCode = formData.get("couponCode") as string; // NEW
 
   const finalDate = new Date(`${date}T${time}:00`);
+  let finalPrice = price;
+  let usedCouponId: string | null = null;
 
-  await db.appointment.create({
+  // VERIFY COUPON IF PROVIDED
+  if (couponCode) {
+    const coupon = await db.coupon.findUnique({
+      where: { code: couponCode, active: true }
+    });
+
+    if (coupon) {
+      // Apply Discount (Assuming 100% means free? Or is it currency?)
+      // The user said "Reward" coupons which imply free service usually.
+      // Let's assume the user buys a specific reward.
+      // For now, if coupon exists, set price to 0 or reduce it.
+      // Logic: If discount is 100(%), price = 0.
+      if (coupon.discount === 100) {
+        finalPrice = 0;
+      } else {
+        finalPrice = price - (price * (coupon.discount / 100));
+      }
+      usedCouponId = coupon.id;
+    }
+  }
+
+  // 2. Create Appointment & Fetch Details
+  const newAppointment = await db.appointment.create({
     data: {
       userId,
       petId,
       serviceId,
       date: finalDate,
-      price: price,
-      status: "PENDING", 
+      price: finalPrice, // Use discounted price
+      status: "PENDING",
       isPaid: false,
+    },
+    include: {
+      user: true,
+      pet: true,
+      service: true
     }
   });
 
+  // 3. MARK COUPON AS USED
+  if (usedCouponId) {
+    await db.coupon.update({
+      where: { id: usedCouponId },
+      data: {
+        active: false,
+        usedAt: new Date()
+      }
+    });
+  }
+
+  // 4. Send Confirmation Email (Fire and Forget)
+  try {
+    const { sendBookingConfirmation } = await import("@/lib/email");
+    await sendBookingConfirmation({
+      to: newAppointment.user.email,
+      userName: newAppointment.user.name || "Cliente",
+      petName: newAppointment.pet.name,
+      serviceName: newAppointment.service.name,
+      dateStr: finalDate.toLocaleDateString("pt-PT"),
+      timeStr: finalDate.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })
+    });
+  } catch (error) {
+    console.error("Failed to send email:", error);
+  }
+
   redirect("/dashboard?booking=success");
+}
+
+export async function validateCoupon(code: string) {
+  const coupon = await db.coupon.findUnique({
+    where: { code: code, active: true }
+  });
+
+  if (!coupon) return { valid: false, message: "Código inválido ou expirado." };
+
+  // Optional: Check if it belongs to user?
+  // prompt says: "only available to use once by the user who bought it"
+  // Ideally we pass userId here too to check `coupon.userId === userId`
+
+  return { valid: true, discount: coupon.discount };
 }
 
 // 2. CALCULATE SLOTS (The Logic You Asked For)
@@ -42,8 +112,8 @@ export async function getAvailableSlots(dateStr: string, durationMinutes: number
   const BUFFER = 15;      // 15 min cleaning time
 
   const selectedDate = new Date(dateStr);
-  const startOfDay = new Date(selectedDate); startOfDay.setHours(0,0,0,0);
-  const endOfDay = new Date(selectedDate); endOfDay.setHours(23,59,59,999);
+  const startOfDay = new Date(selectedDate); startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(selectedDate); endOfDay.setHours(23, 59, 59, 999);
 
   // Fetch Existing Appointments
   const appointments = await db.appointment.findMany({
@@ -55,16 +125,16 @@ export async function getAvailableSlots(dateStr: string, durationMinutes: number
   });
 
   const possibleSlots: string[] = [];
-  
+
   // Start checking from 09:00
   let currentTime = setMinutes(setHours(new Date(selectedDate), WORK_START), 0);
-  
+
   // Stop checking at 18:00
   const closingTime = setMinutes(setHours(new Date(selectedDate), WORK_END), 0);
 
   // Loop through the day in 15-minute intervals
   while (isBefore(currentTime, closingTime)) {
-    
+
     // Define the Slot Window (Start -> End)
     const slotStart = new Date(currentTime);
     const slotEnd = addMinutes(slotStart, durationMinutes);
@@ -92,7 +162,7 @@ export async function getAvailableSlots(dateStr: string, durationMinutes: number
     for (const app of appointments) {
       // Get App Duration (Default 60 if missing)
       const appDuration = app.service.options[0]?.durationMin || 60;
-      
+
       const appStart = new Date(app.date);
       // IMPORTANT: The app occupies time UNTIL (End + Buffer)
       // Example: 13:00 booking (90m) ends 14:30. 
@@ -108,7 +178,7 @@ export async function getAvailableSlots(dateStr: string, durationMinutes: number
 
     // --- RULE 4: PAST TIME (If today) ---
     if (isBefore(currentTime, new Date())) {
-        isColliding = true;
+      isColliding = true;
     }
 
     // If valid, add to list

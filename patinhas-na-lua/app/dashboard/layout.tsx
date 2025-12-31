@@ -1,4 +1,5 @@
 import { UserButton } from "@clerk/nextjs";
+import UserButtonWrapper from "../components/user-button-wrapper";
 import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
@@ -21,7 +22,7 @@ export default async function DashboardLayout({
       {/* --- PERSISTENT NAVBAR --- */}
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          
+
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2 group">
             <span className="text-2xl group-hover:scale-110 transition">🌙</span>
@@ -37,16 +38,13 @@ export default async function DashboardLayout({
               Meus Pets
             </Link>
             <Link href="/dashboard/book" className="hover:text-blue-600 transition">
-                Agendar
-            </Link>
-            <Link href="/dashboard/profile" className="hover:text-blue-600 transition">
-                Perfil
+              Agendar
             </Link>
             {/* If Admin, show Admin Link */}
             {dbUser.isAdmin && (
-               <Link href="/admin/appointments" className="text-purple-600 font-bold hover:text-purple-800">
-                 Área Admin
-               </Link>
+              <Link href="/admin/appointments" className="text-purple-600 font-bold hover:text-purple-800">
+                Área Admin
+              </Link>
             )}
           </div>
 
@@ -57,9 +55,9 @@ export default async function DashboardLayout({
                 + Agendar
               </button>
             </Link>
-            <UserButton afterSignOutUrl="/" />
+            <UserButtonWrapper dbUser={dbUser} />
           </div>
-            
+
         </div>
       </nav>
 

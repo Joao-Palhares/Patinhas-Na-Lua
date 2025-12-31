@@ -30,6 +30,7 @@ model User {
   
   appointments Appointment[]
   pets         Pet[]
+  coupons      Coupon[]
 }
 
 model Pet {
@@ -222,8 +223,14 @@ model Expense {
 model Coupon {
   id        String   @id @default(cuid())
   code      String   @unique
-  discount  Int
+  discount  Int      // Percentage (e.g. 100) or Fixed Amount? usually % based on context.
   active    Boolean  @default(true)
+  
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+  usedAt    DateTime?
 }
 
 enum PaymentMethod {

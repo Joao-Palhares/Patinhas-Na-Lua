@@ -6,6 +6,12 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Patinhas na Lua',
   description: 'Serviços de Grooming e Agendamentos',
+  manifest: '/manifest.webmanifest', // Next.js auto-generates this from manifest.ts
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: "Patinhas App",
+  },
 }
 
 export default function RootLayout({

@@ -41,7 +41,7 @@ export async function updateAppointmentStatus(formData: FormData) {
     where: { id },
     data: { status }
   });
-  
+
   revalidatePath("/admin/appointments");
 }
 
@@ -53,7 +53,7 @@ export async function registerPayment(formData: FormData) {
 
   await db.appointment.update({
     where: { id },
-    data: { 
+    data: {
       isPaid: true,
       paidAt: new Date(),
       price: amount,
@@ -61,7 +61,7 @@ export async function registerPayment(formData: FormData) {
       status: "COMPLETED" // <--- ADD THIS LINE. Force status to Completed.
     }
   });
-  
+
   revalidatePath("/admin/appointments");
   revalidatePath("/admin/analytics"); // Update analytics too
 }
@@ -71,4 +71,23 @@ export async function deleteAppointment(formData: FormData) {
   const id = formData.get("id") as string;
   await db.appointment.delete({ where: { id } });
   revalidatePath("/admin/appointments");
+}
+
+// 4. Send Test Email
+export async function sendTestEmailAction(email: string) {
+  try {
+    const { sendBookingConfirmation } = await import("@/lib/email");
+    await sendBookingConfirmation({
+      to: email,
+      userName: "Teste Admin",
+      petName: "Rex (Teste)",
+      serviceName: "Banho de Teste",
+      dateStr: new Date().toLocaleDateString("pt-PT"),
+      timeStr: "12:00"
+    });
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { success: false, error: "Falha ao enviar email" };
+  }
 }

@@ -14,7 +14,7 @@ const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
 };
 
 export default async function ExpensesPage() {
-  
+
   // Fetch expenses ordered by newest first
   const expenses = await db.expense.findMany({
     orderBy: { date: "desc" }
@@ -30,10 +30,10 @@ export default async function ExpensesPage() {
     const amount = Number(formData.get("amount"));
     const category = formData.get("category") as ExpenseCategory;
     const notes = formData.get("notes") as string;
-    
+
     // Default to today if date is not picked? Or let user pick.
     // Let's assume 'now' for simplicity, or add a date picker later.
-    
+
     await db.expense.create({
       data: { description, amount, category, notes }
     });
@@ -57,41 +57,74 @@ export default async function ExpensesPage() {
         </div>
       </div>
 
+      <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Análise de Gastos</h2>
+        <div className="h-64 flex items-end gap-2">
+          {/* SIMPLE CSS BAR CHART (No Recharts needed for simplicity) */}
+          {Object.values(ExpenseCategory).map(cat => {
+            const catTotal = expenses.filter(e => e.category === cat).reduce((a, b) => a + Number(b.amount), 0);
+            const percentage = totalSpent > 0 ? (catTotal / totalSpent) * 100 : 0;
+
+            // Get a short label from the Portuguese map
+            // e.g. "Produtos (Shampoos...)" -> "Produtos"
+            const shortLabel = CATEGORY_LABELS[cat].split(' ')[0].slice(0, 4);
+
+            return (
+              <div key={cat} className="flex-1 flex flex-col justify-end items-center group h-full">
+                <div className="relative w-full flex items-end justify-center h-[85%]">
+                  <div
+                    className="w-4/5 bg-red-400 rounded-t-md transition-all duration-500 group-hover:bg-red-500 relative"
+                    style={{ height: `${percentage === 0 ? 1 : percentage}%` }}
+                  >
+                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-600 opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                      {catTotal.toFixed(0)}€
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-gray-500 mt-2 uppercase truncate w-full text-center h-[15%]" title={CATEGORY_LABELS[cat]}>
+                  {shortLabel}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* LEFT: FORM */}
         <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-fit">
           <h2 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Registrar Despesa</h2>
           <form action={createExpense} className="flex flex-col gap-4">
-            
+
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Descrição</label>
-              <input 
-                name="description" 
-                required 
-                placeholder="ex: 5L Shampoo Lavanda" 
-                className="w-full border border-gray-300 p-2.5 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500" 
+              <input
+                name="description"
+                required
+                placeholder="ex: 5L Shampoo Lavanda"
+                className="w-full border border-gray-300 p-2.5 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="block text-sm font-bold text-gray-700 mb-1">Valor (€)</label>
-                <input 
-                  name="amount" 
-                  type="number" 
-                  step="0.01" 
-                  required 
-                  placeholder="0.00" 
-                  className="w-full border border-gray-300 p-2.5 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500" 
+                <input
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  required
+                  placeholder="0.00"
+                  className="w-full border border-gray-300 p-2.5 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Categoria</label>
-              <select 
-                name="category" 
+              <select
+                name="category"
                 className="w-full border border-gray-300 p-2.5 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
               >
                 {Object.values(ExpenseCategory).map((c) => (
@@ -102,10 +135,10 @@ export default async function ExpensesPage() {
 
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Notas (Opcional)</label>
-              <textarea 
-                name="notes" 
-                rows={2} 
-                className="w-full border border-gray-300 p-2.5 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500" 
+              <textarea
+                name="notes"
+                rows={2}
+                className="w-full border border-gray-300 p-2.5 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -118,7 +151,7 @@ export default async function ExpensesPage() {
         {/* RIGHT: LIST */}
         <div className="lg:col-span-2 space-y-4">
           <h2 className="text-xl font-bold text-gray-800">Histórico</h2>
-          
+
           {expenses.length === 0 ? (
             <p className="text-gray-500 italic">Nenhuma despesa registrada.</p>
           ) : (
@@ -140,13 +173,13 @@ export default async function ExpensesPage() {
                 <div className="text-right">
                   <p className="text-xl font-bold text-red-600">-{Number(expense.amount).toFixed(2)}€</p>
                   {/* --- SAFE DELETE EXPENSE BUTTON --- */}
-                    <DeleteForm 
-                        id={expense.id} 
-                        action={deleteExpense}
-                        className="text-xs text-red-400 hover:text-red-600 hover:underline mt-1"
-                    >
-                        Apagar
-                    </DeleteForm>
+                  <DeleteForm
+                    id={expense.id}
+                    action={deleteExpense}
+                    className="text-xs text-red-400 hover:text-red-600 hover:underline mt-1"
+                  >
+                    Apagar
+                  </DeleteForm>
                 </div>
               </div>
             ))
