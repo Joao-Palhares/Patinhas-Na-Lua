@@ -13,8 +13,15 @@ export default async function DashboardLayout({
   const user = await currentUser();
   if (!user) redirect("/");
 
+  console.log("--- DEBUG LOGIN ---");
+  console.log("Clerk User ID:", user.id);
+
   // Optional: Check if user exists in DB to prevent errors
   const dbUser = await db.user.findUnique({ where: { id: user.id } });
+
+  console.log("DB User Found:", !!dbUser);
+  console.log("-------------------");
+
   if (!dbUser) redirect("/onboarding");
 
   return (

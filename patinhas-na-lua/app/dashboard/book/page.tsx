@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import BookingWizard from "./booking-wizard";
 import Link from "next/link";
 
-export default async function BookingPage(props: { 
-  searchParams: Promise<{ date?: string }> 
+export default async function BookingPage(props: {
+  searchParams: Promise<{ date?: string }>
 }) {
   const searchParams = await props.searchParams;
   const initialDate = searchParams?.date || "";
@@ -36,6 +36,25 @@ export default async function BookingPage(props: {
     }))
   }));
 
+  // 3. Fetch Schedule Config
+  const workingDays = await db.$queryRaw<any[]>`
+      SELECT "dayOfWeek", "isClosed" FROM "WorkingDay"
+  `;
+  const closedDays = workingDays.filter(d => d.isClosed).map(d => d.dayOfWeek);
+  const finalClosedDays = workingDays.length > 0 ? closedDays : [0, 6];
+
+  // 4. Fetch Absences
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const futureAbsences = await db.$queryRaw<any[]>`
+      SELECT "startDate", "endDate", "reason" FROM "Absence" WHERE "endDate" >= ${today}
+  `;
+  const absenceRanges = futureAbsences.map(a => ({
+    from: new Date(a.startDate),
+    to: new Date(a.endDate),
+    reason: a.reason
+  }));
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       <nav className="bg-white shadow-sm p-4 mb-8">
@@ -54,16 +73,18 @@ export default async function BookingPage(props: {
               <button className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg">Adicionar Pet Agora</button>
             </Link>
           </div>
-         ) : (
-          <BookingWizard 
-            user={{ 
-              id: dbUser.id, 
+        ) : (
+          <BookingWizard
+            user={{
+              id: dbUser.id,
               name: dbUser.name,
-              nif: dbUser.nif // <--- ADD THIS LINE
-            }} 
+              nif: dbUser.nif
+            }}
             pets={dbUser.pets}
             services={services}
-            initialDate={initialDate} 
+            initialDate={initialDate}
+            closedDays={finalClosedDays}
+            absenceRanges={absenceRanges}
           />
         )}
       </div>

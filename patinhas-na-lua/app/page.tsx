@@ -29,6 +29,19 @@ export default async function LandingPage() {
     }))
   }));
 
+  // FETCH SCHEDULE
+  const workingDays = await db.$queryRaw<any[]>`SELECT "dayOfWeek", "isClosed" FROM "WorkingDay"`;
+  const closedDays = workingDays.filter(d => d.isClosed).map(d => d.dayOfWeek);
+  const finalClosedDays = workingDays.length > 0 ? closedDays : [0, 6];
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const futureAbsences = await db.$queryRaw<any[]>`SELECT "startDate", "endDate" FROM "Absence" WHERE "endDate" >= ${today}`;
+  const absenceRanges = futureAbsences.map(a => ({
+    from: new Date(a.startDate),
+    to: new Date(a.endDate)
+  }));
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100">
 
@@ -158,7 +171,11 @@ export default async function LandingPage() {
 
             <div className="bg-white p-2 md:p-8 rounded-3xl shadow-xl border border-gray-100 mb-8">
               {/* PASSING THE PROP HERE */}
-              <BookingCalendar isLoggedIn={!!user} />
+              <BookingCalendar
+                isLoggedIn={!!user}
+                closedDays={finalClosedDays}
+                absenceRanges={absenceRanges}
+              />
             </div>
           </div>
         </section>

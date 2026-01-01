@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import AdminMobileNav from "./components/admin-mobile-nav";
+import AdminNotifications from "./components/admin-notifications";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -13,6 +14,29 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!dbUser?.isAdmin) {
     redirect("/dashboard");
   }
+
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const startOfTomorrow = new Date(tomorrow); startOfTomorrow.setHours(0, 0, 0, 0);
+  const endOfTomorrow = new Date(tomorrow); endOfTomorrow.setHours(23, 59, 59, 999);
+
+  const nextDayAppointments = await db.appointment.findMany({
+    where: {
+      date: { gte: startOfTomorrow, lte: endOfTomorrow },
+      status: { not: "CANCELLED" }
+    },
+    include: { pet: true, service: true, user: true },
+    orderBy: { date: "asc" }
+  });
+
+  const appointmentsSafe = nextDayAppointments.map(app => ({
+    id: app.id,
+    date: app.date,
+    pet: { name: app.pet.name },
+    service: { name: app.service.name },
+    user: { name: app.user.name }
+  }));
 
   return (
     // 1. h-screen locks the app to the window height
@@ -59,6 +83,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/settings" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
             <span>⚙️</span> Configuração
           </Link>
+          <Link href="/admin/vacations" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
+            <span>🏖️</span> Férias
+          </Link>
+
+          <AdminNotifications appointments={appointmentsSafe} />
         </nav>
 
         <div className="p-4 border-t border-slate-800 space-y-2">
@@ -76,7 +105,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
 
         {/* MOBILE NAVIGATION (Top Bar + Sidebar) */}
-        <AdminMobileNav />
+        <AdminMobileNav>
+          <div className="border-t border-slate-700 mt-2 pt-2">
+            <AdminNotifications appointments={appointmentsSafe} />
+          </div>
+        </AdminMobileNav>
 
         {/* PAGE CONTENT */}
         <main className="flex-1 overflow-y-auto bg-slate-100 p-4 md:p-8">

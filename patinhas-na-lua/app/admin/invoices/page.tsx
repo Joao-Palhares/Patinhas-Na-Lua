@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import InvoiceModal from "./invoice-modal";
 
 export default async function InvoicesPage() {
-  
+
   // 1. Fetch all Issued invoices with nested relations
   const rawInvoices = await db.invoice.findMany({
     where: {
@@ -28,11 +28,14 @@ export default async function InvoicesPage() {
     subtotal: inv.subtotal.toNumber(),
     taxAmount: inv.taxAmount.toNumber(),
     totalAmount: inv.totalAmount.toNumber(),
-    
+
     // Deep Clean Appointment
     appointment: {
       ...inv.appointment,
-      price: inv.appointment.price.toNumber(), // Base Price
+      price: inv.appointment.price.toNumber(),
+      travelFee: (inv.appointment as any).travelFee?.toNumber() || 0,
+      originalPrice: inv.appointment.originalPrice ? inv.appointment.originalPrice.toNumber() : null,
+
       // Deep Clean Extra Fees
       extraFees: inv.appointment.extraFees.map(fee => ({
         ...fee,

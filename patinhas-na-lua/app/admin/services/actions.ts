@@ -9,14 +9,16 @@ export async function createService(formData: FormData) {
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const category = formData.get("category") as ServiceCategory;
-  
+  const isMobileAvailable = formData.get("isMobileAvailable") === "on";
+
   // FIX: Removed 'price' and 'durationMin' because they don't exist on Service anymore
   await db.service.create({
-    data: { 
-      name, 
-      description, 
-      category 
-    }
+    data: {
+      name,
+      description,
+      category,
+      isMobileAvailable
+    } as any
   });
   revalidatePath("/admin/services");
 }
@@ -48,10 +50,12 @@ export async function updateService(formData: FormData) {
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const category = formData.get("category") as ServiceCategory;
+  const isMobileAvailable = formData.get("isMobileAvailable") === "on";
 
   await db.service.update({
     where: { id },
-    data: { name, description, category }
+    // Cast to any to bypass outdated local Prisma types
+    data: { name, description, category, isMobileAvailable } as any
   });
   revalidatePath("/admin/services");
 }

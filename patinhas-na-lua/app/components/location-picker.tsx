@@ -145,7 +145,7 @@ export default function LocationPicker({ settings, onLocationSelect }: LocationP
         <div className="space-y-4">
             {/* SEARCH BAR */}
             {/* SEARCH BAR - Changed to div to avoid nested forms in Wizard */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 relative z-10">
                 <input
                     type="text"
                     value={searchTerm}

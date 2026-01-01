@@ -2,24 +2,28 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { getAvailableSlots } from "../../dashboard/book/actions"; 
+import { getAvailableSlots } from "../../dashboard/book/actions";
 import { SignInButton, SignUpButton } from "@clerk/nextjs"; // <--- IMPORT THIS
 
 interface Props {
   isLoggedIn: boolean;
+  closedDays?: number[];
+  absenceRanges?: { from: Date; to: Date }[];
 }
 
-export default function BookingCalendar({ isLoggedIn }: Props) {
+export default function BookingCalendar({ isLoggedIn, closedDays, absenceRanges }: Props) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [availabilityMap, setAvailabilityMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
+  const activeClosedDays = closedDays || [0, 6];
+
   // --- (Keep your existing Helpers & useEffect logic exactly the same) ---
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = new Date(year, month, 1).getDay(); 
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
   const monthName = currentDate.toLocaleString('pt-PT', { month: 'long', year: 'numeric' });
 
   const changeMonth = (offset: number) => {
@@ -37,7 +41,12 @@ export default function BookingCalendar({ isLoggedIn }: Props) {
         const dayOfWeek = dateObj.getDay();
         const todayReset = new Date();
         todayReset.setHours(0, 0, 0, 0);
-        if (dateObj < todayReset || dayOfWeek === 0 || dayOfWeek === 6) continue; 
+
+        // Check if Closed Day (Config) OR specific Absence
+        const isClosed = activeClosedDays.includes(dayOfWeek);
+        const isAbsent = absenceRanges?.some(range => dateObj >= range.from && dateObj <= range.to);
+
+        if (dateObj < todayReset || isClosed || isAbsent) continue;
 
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         dateKeys.push(dateStr);
@@ -51,20 +60,24 @@ export default function BookingCalendar({ isLoggedIn }: Props) {
       } catch (error) { console.error(error); } finally { setLoading(false); }
     };
     fetchMonthAvailability();
-  }, [currentDate, year, month, daysInMonth]);
+  }, [currentDate, year, month, daysInMonth, activeClosedDays, absenceRanges]);
 
   const getDayStatus = (day: number) => {
     const checkDate = new Date(year, month, day);
     const now = new Date();
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const todayReset = new Date(now); 
-    todayReset.setHours(0,0,0,0);
+    const todayReset = new Date(now);
+    todayReset.setHours(0, 0, 0, 0);
     const isToday = checkDate.getTime() === todayReset.getTime();
     const isPast = checkDate < todayReset;
-    const dayOfWeek = checkDate.getDay(); 
+    const dayOfWeek = checkDate.getDay();
+
+    // Dynamic Checks
+    const isClosed = activeClosedDays.includes(dayOfWeek);
+    const isAbsent = absenceRanges?.some(range => checkDate >= range.from && checkDate <= range.to);
 
     if (isPast) return { status: "disabled", color: "bg-gray-100 text-gray-300 border-gray-100", clickable: false };
-    if (dayOfWeek === 0 || dayOfWeek === 6) return { status: "weekend", color: "bg-gray-100 text-gray-400 border-gray-200", clickable: false };
+    if (isClosed || isAbsent) return { status: "weekend", color: "bg-gray-100 text-gray-400 border-gray-200", clickable: false };
     if (isToday && now.getHours() >= 18) return { status: "closed-time", color: "bg-red-50 text-red-400 border-red-200", clickable: false };
     if (loading && availabilityMap[dateStr] === undefined) return { status: "loading", color: "bg-white text-gray-300 border-gray-100 animate-pulse", clickable: false };
 
@@ -125,8 +138,8 @@ export default function BookingCalendar({ isLoggedIn }: Props) {
       {showLoginModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center relative animate-in zoom-in-95 duration-200">
-            
-            <button 
+
+            <button
               onClick={() => setShowLoginModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-900"
             >
@@ -156,7 +169,7 @@ export default function BookingCalendar({ isLoggedIn }: Props) {
                 </button>
               </SignInButton>
             </div>
-            
+
           </div>
         </div>
       )}

@@ -115,13 +115,55 @@ export async function validateCoupon(code: string) {
 export async function getAvailableSlots(dateStr: string, durationMinutes: number) {
   "use server";
 
-  const WORK_START = 9;  // 09:00
-  const WORK_END = 18;   // 18:00
+  // CONSTANTS (Defaults)
   const LUNCH_START = 12; // 12:00
   const LUNCH_END = 13;   // 13:00
   const BUFFER = 15;      // 15 min cleaning time
 
   const selectedDate = new Date(dateStr);
+
+  // 1. CHECK ABSENCES (Vacation)
+  // Use Raw SQL because Prisma Client types are stale & property is missing at runtime
+  const absences = await db.$queryRaw<any[]>`
+    SELECT * FROM "Absence" 
+    WHERE "startDate" <= ${selectedDate} AND "endDate" >= ${selectedDate}
+    LIMIT 1
+  `;
+
+  if (absences && absences.length > 0) return []; // On Vacation!
+
+  // 2. CHECK WORKING HOURS
+  const dayOfWeek = selectedDate.getDay(); // 0 (Sun) - 6 (Sat)
+
+  const workingDays = await db.$queryRaw<any[]>`
+    SELECT "id", "dayOfWeek", "startTime", "endTime", "breakStartTime", "breakEndTime", "isClosed"
+    FROM "WorkingDay" 
+    WHERE "dayOfWeek" = ${dayOfWeek} 
+    LIMIT 1
+  `;
+  let workingDay = workingDays[0];
+
+  // Default Standard Logic if not configured in DB yet
+  if (!workingDay) {
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    if (isWeekend) return []; // Default Closed on Weekends
+
+    // Default Weekdays: 09:00 - 18:00
+    workingDay = { startTime: "09:00", endTime: "18:00", isClosed: false };
+  }
+
+  if (workingDay.isClosed) return []; // Closed that day
+
+  // Parse start/end times
+  const [startH, startM] = workingDay.startTime.split(":").map(Number);
+  const [endH, endM] = workingDay.endTime.split(":").map(Number);
+
+  // Parse Break Times (Defaults to 12:00-13:00 if missing in DB, though schema default handles it)
+  const breakStartStr = workingDay.breakStartTime || "12:00";
+  const breakEndStr = workingDay.breakEndTime || "13:00";
+  const [bStartH, bStartM] = breakStartStr.split(":").map(Number);
+  const [bEndH, bEndM] = breakEndStr.split(":").map(Number);
+
   const startOfDay = new Date(selectedDate); startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(selectedDate); endOfDay.setHours(23, 59, 59, 999);
 
@@ -136,34 +178,37 @@ export async function getAvailableSlots(dateStr: string, durationMinutes: number
 
   const possibleSlots: string[] = [];
 
-  // Start checking from 09:00
-  let currentTime = setMinutes(setHours(new Date(selectedDate), WORK_START), 0);
+  // Start checking from config Start Time
+  let currentTime = setMinutes(setHours(new Date(selectedDate), startH), startM);
 
-  // Stop checking at 18:00
-  const closingTime = setMinutes(setHours(new Date(selectedDate), WORK_END), 0);
+  // Stop checking at config End Time
+  const closingTime = setMinutes(setHours(new Date(selectedDate), endH), endM);
 
   // Loop through the day in 15-minute intervals
   while (isBefore(currentTime, closingTime)) {
 
     // Define the Slot Window (Start -> End)
+    // Note: slotEnd is exclusive of the break usually, but if slot spans break it's invalid.
     const slotStart = new Date(currentTime);
     const slotEnd = addMinutes(slotStart, durationMinutes);
 
-    // --- RULE 1: LUNCH BREAK (12-13) ---
-    // A booking cannot START inside lunch, nor END inside lunch, nor SPAN across lunch
-    // Simplest check: If Slot End > 12:00 AND Slot Start < 13:00, it clashes.
-    const lunchStart = setMinutes(setHours(new Date(selectedDate), LUNCH_START), 0);
-    const lunchEnd = setMinutes(setHours(new Date(selectedDate), LUNCH_END), 0);
+    // --- RULE 1: BREAK TIME (Dynamic) ---
+    // Clashes if slot overlaps with [BreakStart, BreakEnd]
+    const lunchStart = setMinutes(setHours(new Date(selectedDate), bStartH), bStartM);
+    const lunchEnd = setMinutes(setHours(new Date(selectedDate), bEndH), bEndM);
 
-    if (isAfter(slotEnd, lunchStart) && isBefore(slotStart, lunchEnd)) {
+    // Check if slot overlaps break
+    // Overlap condition: (StartA < EndB) and (EndA > StartB)
+    if (isBefore(slotStart, lunchEnd) && isAfter(slotEnd, lunchStart)) {
       // Skip this slot
       currentTime = addMinutes(currentTime, 15);
       continue;
     }
 
     // --- RULE 2: CLOSING TIME ---
+    // Slot must end BEFORE or AT closing time
     if (isAfter(slotEnd, closingTime)) {
-      break; // Stop completely, day is done
+      break;
     }
 
     // --- RULE 3: EXISTING APPOINTMENTS (Collision + Buffer) ---
@@ -175,8 +220,6 @@ export async function getAvailableSlots(dateStr: string, durationMinutes: number
 
       const appStart = new Date(app.date);
       // IMPORTANT: The app occupies time UNTIL (End + Buffer)
-      // Example: 13:00 booking (90m) ends 14:30. 
-      // Buffer makes it busy until 14:45.
       const appBusyUntil = addMinutes(appStart, appDuration + BUFFER);
 
       // Check Overlap: (StartA < EndB) and (EndA > StartB)

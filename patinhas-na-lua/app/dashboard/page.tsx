@@ -2,6 +2,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import CancelButton from "./cancel-button";
 
 // 1. DEFINE THE MAPPING HERE
 const SPECIES_ICON_MAP: Record<string, string> = {
@@ -138,8 +139,10 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
+
+
                 {dbUser.appointments.map(app => (
-                  <div key={app.id} className="flex gap-4 border-l-4 border-green-500 bg-green-50 p-3 rounded-r-lg">
+                  <div key={app.id} className="flex gap-4 border-l-4 border-green-500 bg-green-50 p-3 rounded-r-lg items-center">
                     <div className="text-center min-w-[50px]">
                       <span className="block text-lg font-bold text-green-700">
                         {app.date.getDate()}
@@ -154,6 +157,7 @@ export default async function DashboardPage() {
                         {app.date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} • {app.pet.name}
                       </p>
                     </div>
+                    <CancelButton id={app.id} />
                   </div>
                 ))}
               </div>

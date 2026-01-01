@@ -26,6 +26,31 @@ export default async function AdminCouponsPage() {
         take: 10
     });
 
+    // Ensure Table Exists (Migration Hack)
+    await db.$executeRaw`
+       CREATE TABLE IF NOT EXISTS "LoyaltyReward" (
+          "id" TEXT NOT NULL PRIMARY KEY,
+          "pointsCost" INTEGER NOT NULL,
+          "serviceId" TEXT NOT NULL,
+          "isActive" BOOLEAN NOT NULL DEFAULT true,
+          FOREIGN KEY ("serviceId") REFERENCES "Service"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+       );
+    `;
+
+    const rewards = await db.$queryRaw<any[]>`
+        SELECT 
+            r."id", 
+            r."pointsCost", 
+            r."serviceId", 
+            r."isActive", 
+            r."discountPercentage", 
+            r."maxDiscountAmount",
+            s.name as "serviceName"
+        FROM "LoyaltyReward" r
+        JOIN "Service" s ON r."serviceId" = s."id"
+        ORDER BY r."pointsCost" ASC
+    `;
+
     return (
         <div className="space-y-8 pb-20">
             <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -137,10 +162,11 @@ export default async function AdminCouponsPage() {
                                                 </span>
                                             ) : (
                                                 <div className="flex gap-1 justify-end mt-1">
-                                                    {/* Indicators of what they can buy */}
-                                                    {user.loyaltyPoints >= 300 && <span title="Limpeza Completa" className="text-xs">🏆</span>}
-                                                    {user.loyaltyPoints >= 150 && <span title="Escovagem" className="text-xs">🧼</span>}
-                                                    {user.loyaltyPoints >= 70 && <span title="Corte Unhas" className="text-xs">🎁</span>}
+                                                    {rewards.filter(r => user.loyaltyPoints >= r.pointsCost).map(r => (
+                                                        <span key={r.id} title={r.serviceName} className="text-xs bg-purple-100 text-purple-700 px-1 rounded font-bold cursor-help">
+                                                            {r.pointsCost}pts
+                                                        </span>
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>

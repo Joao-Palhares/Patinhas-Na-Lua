@@ -311,3 +311,20 @@ model BusinessSettings {
 
   updatedAt       DateTime @updatedAt
 }
+
+model WorkingDay {
+  id        String   @id @default(cuid())
+  dayOfWeek Int      @unique // 0=Sunday, 1=Monday...
+  startTime String   @default("09:00")
+  endTime   String   @default("18:00")
+  breakStartTime String @default("12:00")
+  breakEndTime   String @default("13:00")
+  isClosed  Boolean  @default(false)
+}
+
+model Absence {
+  id        String   @id @default(cuid())
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+}

@@ -14,6 +14,28 @@ export default async function RewardsPage() {
 
     if (!dbUser) redirect("/onboarding");
 
+    // Fetch Rewards
+    const rewards = await db.$queryRaw<any[]>`
+        SELECT 
+            r."id", 
+            r."pointsCost", 
+            r."serviceId", 
+            r."isActive", 
+            r."discountPercentage", 
+            r."maxDiscountAmount",
+            s.name as "serviceName", 
+            s.category as "serviceCategory"
+        FROM "LoyaltyReward" r
+        JOIN "Service" s ON r."serviceId" = s."id"
+        WHERE r."isActive" = true
+        ORDER BY r."pointsCost" ASC
+    `;
+
+    const rewardsSafe = rewards.map(r => ({
+        ...r,
+        maxDiscountAmount: r.maxDiscountAmount ? Number(r.maxDiscountAmount) : null
+    }));
+
     return (
         <div className="min-h-screen bg-slate-50 pb-20">
 
@@ -55,7 +77,7 @@ export default async function RewardsPage() {
 
             {/* CONTENT */}
             <div className="max-w-4xl mx-auto px-4 -mt-16 relative z-20">
-                <RewardsClient userPoints={dbUser.loyaltyPoints} />
+                <RewardsClient userPoints={dbUser.loyaltyPoints} rewards={rewardsSafe} />
             </div>
 
         </div>

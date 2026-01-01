@@ -42,6 +42,7 @@ export default async function AppointmentsPage(props: {
   const appointments = rawAppointments.map(app => ({
     ...app,
     price: app.price.toNumber(),
+    travelFee: app.travelFee.toNumber(),
     // Convert Invoice Decimals
     invoice: app.invoice ? {
       ...app.invoice,
@@ -161,6 +162,19 @@ export default async function AppointmentsPage(props: {
 
               {/* ACTIONS */}
               <div className="flex items-center gap-2 w-full md:w-auto justify-center">
+
+                {/* GOOGLE MAPS ROUTE (MOBILE) */}
+                {app.locationType === 'MOBILE' && app.mobileAddress && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(app.mobileAddress)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-lg transition"
+                    title={`Iniciar Rota para: ${app.mobileAddress}`}
+                  >
+                    📍
+                  </a>
+                )}
 
                 {/* WHATSAPP BUTTON (QR CODE MODAL) */}
                 <WhatsAppModal

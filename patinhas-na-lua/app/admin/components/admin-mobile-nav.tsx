@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function AdminMobileNav() {
+export default function AdminMobileNav({ children }: { children?: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
 
@@ -20,6 +20,7 @@ export default function AdminMobileNav() {
         { href: "/admin/fees", icon: "🏷️", label: "Taxas Extras" },
         { href: "/admin/invoices", icon: "🧾", label: "Faturas" },
         { href: "/admin/settings", icon: "⚙️", label: "Configuração" },
+        { href: "/admin/vacations", icon: "🏖️", label: "Férias" },
     ];
 
     return (
@@ -71,6 +72,7 @@ export default function AdminMobileNav() {
                             </Link>
                         );
                     })}
+                    {children}
                 </nav>
 
                 <div className="absolute bottom-0 left-0 w-full p-4 border-t border-slate-800 bg-slate-900">

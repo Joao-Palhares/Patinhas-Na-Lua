@@ -7,7 +7,8 @@ import { Pet, Service, ServiceOption } from "@prisma/client";
 // Adjust type to match what we passed from the page (price is number)
 // Adjust type to match what we passed from the page (price is number)
 type ServiceWithOptions = Omit<Service, "createdAt" | "updatedAt"> & {
-  options: (Omit<ServiceOption, "price"> & { price: number })[]
+  options: (Omit<ServiceOption, "price"> & { price: number })[];
+  isMobileAvailable: boolean;
 };
 
 import dynamic from 'next/dynamic';
@@ -15,7 +16,21 @@ const LocationPicker = dynamic(() => import('@/app/components/location-picker'),
   ssr: false,
   loading: () => <div className="h-96 bg-slate-100 rounded-2xl animate-pulse flex items-center justify-center text-slate-400">A carregar mapa...</div>
 });
-import { BusinessSettings } from "@prisma/client";
+// import { BusinessSettings } from "@prisma/client";
+// Manual definition to avoid "Module has no exported member" if client isn't regenerated
+interface BusinessSettings {
+  id: string;
+  baseLatitude: number;
+  baseLongitude: number;
+  baseAddress: string | null;
+  zone1RadiusKm: number;
+  zone1Fee: any; // Decimal from Prisma
+  zone2RadiusKm: number;
+  zone2Fee: any; // Decimal from Prisma
+  zone3Fee: any; // Decimal from Prisma
+  maxRadiusKm: number;
+  updatedAt: Date;
+}
 import { getBusinessSettings } from "@/app/admin/settings/actions";
 
 type SerializedBusinessSettings = Omit<BusinessSettings, 'zone1Fee' | 'zone2Fee' | 'zone3Fee'> & {
@@ -25,10 +40,12 @@ type SerializedBusinessSettings = Omit<BusinessSettings, 'zone1Fee' | 'zone2Fee'
 };
 
 interface Props {
-  user: { id: string; name: string | null; nif?: string | null; };
-  pets: Pet[];
+  user: { id: string; name: string | null; nif: string | null };
+  pets: any[];
   services: ServiceWithOptions[];
-  initialDate?: string;
+  initialDate: string;
+  closedDays?: number[];
+  absenceRanges?: { from: Date; to: Date; reason?: string }[];
 }
 
 const SPECIES_ICON_MAP: Record<string, string> = {
@@ -38,7 +55,7 @@ const SPECIES_ICON_MAP: Record<string, string> = {
   OTHER: "🐾"
 };
 
-export default function BookingWizard({ user, pets, services, initialDate }: Props) {
+export default function BookingWizard({ user, pets, services, initialDate, closedDays, absenceRanges }: Props) {
   const [step, setStep] = useState(1);
   const [selectedPetId, setSelectedPetId] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
@@ -67,21 +84,24 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
   const selectedService = services.find(s => s.id === selectedServiceId);
 
   // --- FILTER SERVICES BASED ON PET SPECIES ---
+  // --- FILTER SERVICES BASED ON PET SPECIES & LOCATION ---
   const filteredServices = useMemo(() => {
     if (!selectedPet) return services;
 
+    let result = services;
+
+    // 1. Filter by Species (Example: Dogs don't see Exotic services widely, usually)
     if (selectedPet.species === "DOG") {
-      return services.filter(s => s.category !== "EXOTIC");
+      result = result.filter(s => s.category !== "EXOTIC");
     }
 
-
-    // Filter by Location Availability
+    // 2. Filter by Location Availability
     if (locationType === "MOBILE") {
-      return services.filter(s => s.isMobileAvailable);
+      result = result.filter(s => s.isMobileAvailable);
     }
 
-    return services;
-  }, [selectedPet, services]);
+    return result;
+  }, [selectedPet, services, locationType]);
 
   // --- RESET SERVICE IF PET CHANGES ---
   useEffect(() => {
@@ -164,7 +184,7 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
 
   // --- FETCH SLOTS ---
   useEffect(() => {
-    if (step === 3 && date && priceDetails) {
+    if (step === 4 && date && priceDetails) {
       setLoadingSlots(true);
       const duration = priceDetails.durationMax || priceDetails.durationMin || 60;
 
@@ -246,8 +266,8 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
                   className={`p-6 rounded-2xl border-2 cursor-pointer transition text-center ${locationType === "SALON" ? "border-blue-600 bg-blue-50" : "border-gray-100 hover:border-gray-200"}`}
                 >
                   <div className="text-4xl mb-2">🏢</div>
-                  <h3 className="font-bold text-gray-800">No Salon</h3>
-                  <p className="text-xs text-gray-500">Tondela</p>
+                  <h3 className="font-bold text-gray-800">No Salão</h3>
+                  <p className="text-xs text-gray-500">Medas</p>
                 </div>
 
                 <div
@@ -376,7 +396,29 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
                     min={new Date().toISOString().split("T")[0]}
                     value={date}
                     onChange={(e) => {
-                      setDate(e.target.value);
+                      const val = e.target.value;
+                      if (!val) { setDate(""); return; }
+
+                      const selectedDate = new Date(val);
+                      selectedDate.setHours(0, 0, 0, 0);
+
+                      const conflict = absenceRanges?.find(range => {
+                        const start = new Date(range.from);
+                        start.setHours(0, 0, 0, 0);
+                        const end = new Date(range.to);
+                        end.setHours(23, 59, 59, 999);
+                        return selectedDate >= start && selectedDate <= end;
+                      });
+
+                      if (conflict) {
+                        const reasonMsg = conflict.reason ? ` (${conflict.reason})` : "";
+                        alert(`⚠️ Estamos fechados nesta data${reasonMsg}. Por favor selecione outro dia.`);
+                        e.target.value = "";
+                        setDate("");
+                        return;
+                      }
+
+                      setDate(val);
                       setTime("");
                     }}
                     className="w-full border-2 border-gray-200 p-3 rounded-xl focus:border-blue-500 outline-none text-lg font-medium"
@@ -559,12 +601,7 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
 
               <div className="flex gap-3">
                 <button type="button" onClick={() => setStep(4)} className="px-6 py-3 rounded-xl border-2 border-gray-200 font-bold text-gray-600 hover:bg-gray-50">Voltar</button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-xl transform hover:scale-[1.02] transition"
-                >
-                  Confirmar Agendamento
-                </button>
+                <SubmitButton />
               </div>
             </div>
           )}
@@ -572,5 +609,20 @@ export default function BookingWizard({ user, pets, services, initialDate }: Pro
         </form>
       </div>
     </div>
+  );
+}
+
+import { useFormStatus } from "react-dom";
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-xl transform hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {pending ? "A Agendar..." : "Confirmar Agendamento"}
+    </button>
   );
 }
