@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { updateUserAction } from "@/app/actions";
+import { updateUserProfile } from "@/app/dashboard/profile/actions";
 import { User } from "@prisma/client";
 
 interface CustomProfileFormProps {
@@ -16,12 +16,11 @@ export default function CustomProfileForm({ initialData }: CustomProfileFormProp
     setIsLoading(true);
     setMessage(null);
 
-    const result = await updateUserAction(formData);
-    
-    if (result?.error) {
-      setMessage({ type: "error", text: result.error });
-    } else if (result?.success) {
-      setMessage({ type: "success", text: result.success });
+    try {
+      await updateUserProfile(formData);
+      setMessage({ type: "success", text: "Dados atualizados com sucesso!" });
+    } catch (e) {
+      setMessage({ type: "error", text: "Erro ao atualizar dados." });
     }
 
     setIsLoading(false);

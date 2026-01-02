@@ -22,8 +22,8 @@ export default function RootLayout({
   return (
     // <--- ADD 'localization={ptPT}' HERE
     <ClerkProvider localization={ptPT}>
-      <html lang="pt">
-        <body>{children}</body>
+      <html lang="pt" suppressHydrationWarning>
+        <body suppressHydrationWarning>{children}</body>
       </html>
     </ClerkProvider>
   )

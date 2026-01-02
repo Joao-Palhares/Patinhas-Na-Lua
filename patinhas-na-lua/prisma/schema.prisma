@@ -40,6 +40,10 @@ model User {
 
   // PUSH NOTIFICATIONS
   pushSubscriptions PushSubscription[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([name])
 }
 
 model PushSubscription {
@@ -211,6 +215,9 @@ model Appointment {
   // REVIEWS & MEDIA
   review            Review?
   images            AppointmentImage[]
+
+  @@index([date])
+  @@index([status])
 }
 
 model Review {

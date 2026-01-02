@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { getAvailableSlots } from "../../dashboard/book/actions";
+import { getAvailableSlots, getMonthAvailability } from "../../dashboard/book/actions";
 import { SignInButton, SignUpButton } from "@clerk/nextjs"; // <--- IMPORT THIS
 
 interface Props {
@@ -34,33 +34,17 @@ export default function BookingCalendar({ isLoggedIn, closedDays, absenceRanges 
   useEffect(() => {
     const fetchMonthAvailability = async () => {
       setLoading(true);
-      const promises = [];
-      const dateKeys: string[] = [];
-      for (let d = 1; d <= daysInMonth; d++) {
-        const dateObj = new Date(year, month, d);
-        const dayOfWeek = dateObj.getDay();
-        const todayReset = new Date();
-        todayReset.setHours(0, 0, 0, 0);
-
-        // Check if Closed Day (Config) OR specific Absence
-        const isClosed = activeClosedDays.includes(dayOfWeek);
-        const isAbsent = absenceRanges?.some(range => dateObj >= range.from && dateObj <= range.to);
-
-        if (dateObj < todayReset || isClosed || isAbsent) continue;
-
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        dateKeys.push(dateStr);
-        promises.push(getAvailableSlots(dateStr, 60));
-      }
       try {
-        const results = await Promise.all(promises);
-        const newMap: Record<string, number> = {};
-        results.forEach((slots, index) => newMap[dateKeys[index]] = slots.length);
-        setAvailabilityMap(newMap);
-      } catch (error) { console.error(error); } finally { setLoading(false); }
+        const data = await getMonthAvailability(year, month);
+        setAvailabilityMap(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchMonthAvailability();
-  }, [currentDate, year, month, daysInMonth, activeClosedDays, absenceRanges]);
+  }, [currentDate, year, month]); // Removing derived props from dependency array to reduce re-renders if passing new refs
 
   const getDayStatus = (day: number) => {
     const checkDate = new Date(year, month, day);
