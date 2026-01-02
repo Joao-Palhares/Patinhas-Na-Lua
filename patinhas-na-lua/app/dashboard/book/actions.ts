@@ -3,7 +3,8 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addMinutes, format, isBefore, isAfter, setHours, setMinutes, parseISO } from "date-fns";
+import { addMinutes, format, isBefore, isAfter, setHours, setMinutes, parseISO, addWeeks } from "date-fns";
+import * as crypto from "crypto";
 
 // 1. SUBMIT BOOKING
 export async function submitBooking(formData: FormData) {
@@ -13,83 +14,123 @@ export async function submitBooking(formData: FormData) {
   const date = formData.get("date") as string;
   const time = formData.get("time") as string;
   const price = Number(formData.get("price"));
-  const couponCode = formData.get("couponCode") as string; // NEW
+  const couponCode = formData.get("couponCode") as string;
+
+  // RECURRENCE
+  const isRecurring = formData.get("isRecurring") === "true";
 
   // Locations
   const locationType = formData.get("locationType") as "SALON" | "MOBILE" || "SALON";
   const mobileAddress = formData.get("mobileAddress") as string;
   const travelFee = Number(formData.get("travelFee") || 0);
 
-  const finalDate = new Date(`${date}T${time}:00`);
-  let finalPrice = price;
-  let usedCouponId: string | null = null;
+  const baseDate = new Date(`${date}T${time}:00`);
+  let recurrenceGroupId = isRecurring ? crypto.randomUUID() : null;
 
-  // VERIFY COUPON IF PROVIDED
+  // Process Logic
+  // We determine Discount Logic ONCE (applied to all if recurring? or just first? Let's apply to ALL for Referrals, but Coupon only first?
+  // Simpler: Apply to ALL. If it's a fixed amount coupon (e.g. 10 EUR), we might lose money. 
+  // But our coupons are Percentage based in Schema (Int). So it's fine.
+
+  let discountPercent = 0;
+  let usedCouponId: string | null = null;
+  let referralIdToLink: string | null = null;
+  let discountNotes = couponCode ? `Código: ${couponCode}` : null;
+
   if (couponCode) {
     const coupon = await db.coupon.findUnique({
       where: { code: couponCode, active: true }
     });
 
     if (coupon) {
-      // Apply Discount (Assuming 100% means free? Or is it currency?)
-      // The user said "Reward" coupons which imply free service usually.
-      // Let's assume the user buys a specific reward.
-      // For now, if coupon exists, set price to 0 or reduce it.
-      // Logic: If discount is 100(%), price = 0.
-      if (coupon.discount === 100) {
-        finalPrice = 0;
-      } else {
-        finalPrice = price - (price * (coupon.discount / 100));
-      }
+      discountPercent = coupon.discount;
       usedCouponId = coupon.id;
+    } else {
+      const referrer = await db.user.findUnique({ where: { referralCode: couponCode } });
+      if (referrer) {
+        discountPercent = 5;
+        referralIdToLink = referrer.id;
+      }
     }
   }
 
-  // 2. Create Appointment & Fetch Details
-  const newAppointment = await db.appointment.create({
-    data: {
-      userId,
-      petId,
-      serviceId,
-      date: finalDate,
-      price: finalPrice, // Use discounted price (Base Service Price)
-      status: "PENDING",
-      isPaid: false,
+  // LINK REFERRAL (Once)
+  if (referralIdToLink && referralIdToLink !== userId) {
+    await db.user.update({
+      where: { id: userId },
+      data: { referredById: referralIdToLink }
+    }).catch(() => { });
+  }
 
-      // Location
-      locationType,
-      mobileAddress,
-      travelFee: travelFee,
-    },
-    include: {
-      user: true,
-      pet: true,
-      service: true
-    }
-  });
-
-  // 3. MARK COUPON AS USED
+  // MARK COUPON USED (Once)
   if (usedCouponId) {
     await db.coupon.update({
       where: { id: usedCouponId },
-      data: {
-        active: false,
-        usedAt: new Date()
-      }
+      data: { active: false, usedAt: new Date() }
     });
   }
 
-  // 4. Send Confirmation Email (Fire and Forget)
-  try {
-    const { sendBookingConfirmation } = await import("@/lib/email");
-    await sendBookingConfirmation({
-      to: newAppointment.user.email,
-      userName: newAppointment.user.name || "Cliente",
-      petName: newAppointment.pet.name,
-      serviceName: newAppointment.service.name,
-      dateStr: finalDate.toLocaleDateString("pt-PT"),
-      timeStr: finalDate.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })
+  // CREATE APPOINTMENTS (Loop)
+  const count = isRecurring ? 6 : 1;
+  let firstAppointmentId = "";
+  let finalPriceFirst = 0;
+
+  for (let i = 0; i < count; i++) {
+    const appointmentDate = addWeeks(baseDate, i * 4);
+
+    // Calculate Price for this instance
+    let finalPrice = price;
+    if (discountPercent === 100) {
+      finalPrice = 0;
+    } else if (discountPercent > 0) {
+      finalPrice = price - (price * (discountPercent / 100));
+    }
+
+    if (i === 0) finalPriceFirst = finalPrice;
+
+    const newApp = await db.appointment.create({
+      data: {
+        userId,
+        petId,
+        serviceId,
+        date: appointmentDate,
+        price: finalPrice,
+        originalPrice: price,
+        discountNotes,
+        status: "PENDING",
+        isPaid: false,
+
+        locationType,
+        mobileAddress,
+        travelFee,
+
+        isRecurring: isRecurring,
+        recurrenceGroupId: recurrenceGroupId
+      }
     });
+
+    if (i === 0) firstAppointmentId = newApp.id;
+  }
+
+  // 4. Send Confirmation Email (Only for the first one)
+  try {
+    // Re-fetch included data for email
+    const firstApp = await db.appointment.findUnique({
+      where: { id: firstAppointmentId },
+      include: { user: true, pet: true, service: true }
+    });
+
+    if (firstApp) {
+      const { sendBookingConfirmation } = await import("@/lib/email");
+      await sendBookingConfirmation({
+        to: firstApp.user.email,
+        userName: firstApp.user.name || "Cliente",
+        petName: firstApp.pet.name,
+        serviceName: firstApp.service.name + (isRecurring ? " (Série de 6 meses)" : ""),
+        dateStr: firstApp.date.toLocaleDateString("pt-PT"),
+        timeStr: firstApp.date.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })
+      });
+    }
   } catch (error) {
     console.error("Failed to send email:", error);
   }
@@ -98,17 +139,25 @@ export async function submitBooking(formData: FormData) {
 }
 
 export async function validateCoupon(code: string) {
+  // 1. Check Standard Coupons (Main Priority)
   const coupon = await db.coupon.findUnique({
     where: { code: code, active: true }
   });
 
-  if (!coupon) return { valid: false, message: "Código inválido ou expirado." };
+  if (coupon) {
+    return { valid: true, discount: coupon.discount, type: "COUPON", id: coupon.id };
+  }
 
-  // Optional: Check if it belongs to user?
-  // prompt says: "only available to use once by the user who bought it"
-  // Ideally we pass userId here too to check `coupon.userId === userId`
+  // 2. Check Referral Codes (Secondary Priority)
+  const referrer = await db.user.findFirst({
+    where: { referralCode: code }
+  });
 
-  return { valid: true, discount: coupon.discount };
+  if (referrer) {
+    return { valid: true, discount: 5, type: "REFERRAL", id: referrer.id };
+  }
+
+  return { valid: false, message: "Código inválido ou expirado." };
 }
 
 // 2. CALCULATE SLOTS (The Logic You Asked For)

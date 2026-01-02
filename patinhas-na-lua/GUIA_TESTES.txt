@@ -1,0 +1,124 @@
+GUIA DE TESTES COMPLETO - PATINHAS NA LUA (QA MANUAL)
+===================================================
+Data: 01 Janeiro 2026
+Objetivo: Validar todas as funcionalidades após Reset da Base de Dados.
+
+PRÉ-REQUISITOS:
+1. Uma conta de ADMIN (ex: o seu email principal).
+2. Uma conta de CLIENTE TESTE (use um email secundário ou abra uma janela Anónima/Incógnita).
+
+---------------------------------------------------
+PARTE 1: CONFIGURAÇÃO INICIAL (ADMIN)
+*Objetivo: Garantir que a loja "existe" e tem produtos para vender.*
+
+1. Login de Admin
+   - Aceda a /admin.
+   - [ ] Verifique se entra na Dashboard Admin (Gráficos de Faturação, Agendamentos).
+
+2. Configurar Serviços (CRÍTICO - Base de Dados está Limpa/Seed)
+   - Vá a "Definições" > "Serviços" (ou aba Serviços).
+   - [ ] Verifique se os serviços do Seed (Banho, Tosquia) aparecem.
+   - [ ] Ação: Crie um NOVO serviço (ex: "Teste Spa").
+   - [ ] Ação: Edite um preço de um serviço existente (ex: Banho Cão Pequeno para 25€).
+   - [ ] Ação: Apague o serviço de teste.
+
+3. Configurar Horário e Loja
+   - Vá a "Definições" > "Empresa" (ou Horários).
+   - [ ] Verifique se o horário está correto (Seg-Sex 09-18).
+   - [ ] Ação: Marque um dia como "Fechado" (ex: Próxima Terça) para testar bloqueio de agenda.
+
+4. Criar Recompensas (Loyalty)
+   - Vá a "Definições" > "Recompensas".
+   - [ ] Ação: Crie uma recompensa "Banho Grátis" por 100 pontos.
+
+---------------------------------------------------
+PARTE 2: A JORNADA DO NOVO CLIENTE (FRONTEND)
+*Objetivo: Testar a experiência de quem paga.*
+*Nota: Use Janela Anónima para simular outro utilizador.*
+
+1. Onboarding
+   - Tente fazer Login com um novo email.
+   - [ ] Verifique se é redirecionado para /onboarding.
+   - [ ] Preencha: Nome, NIF, Telemóvel (testar 9 dígitos), Morada.
+   - [ ] Submit -> Deve ir para /dashboard.
+
+2. Criar Animal (Obrigatório para agendar)
+   - Na Dashboard, clique "Gerir Meus Animais" ou "Adicionar Pet".
+   - [ ] Crie um CÃO (Bobby). Preencha raça, peso (Pequeno), pelo (Curto).
+   - [ ] Crie um GATO (Miau).
+   - [ ] Verifique se aparecem na lista.
+
+3. Agendamento Simples
+   - Clique "Agendar Nova Visita".
+   - Passo 1: Escolha o Bobby (Cão).
+   - Passo 2: Escolha Local (Salão).
+   - Passo 3: Escolha Serviço (Banho).
+   - Passo 4 (Data):
+     - [ ] Verifique se dias passados estão bloqueados.
+     - [ ] Verifique se o dia que fechou no Admin (Parte 1.3) está bloqueado.
+     - [ ] Escolha um dia válido.
+     - [ ] Escolha uma hora (ex: 10:00).
+   - Passo 5 (Resumo):
+     - [ ] Verifique o preço (Deve bater certo com a Tabela configurada).
+     - [ ] Marque "Pedir NIF".
+   - Submit -> Sucesso.
+
+---------------------------------------------------
+PARTE 3: O MOTOR DE VENDAS (NOVAS FEATURES)
+*Objetivo: Testar Referrals, Reviews e Recorrência.*
+
+1. O Sistema de Referências (Member-Get-Member)
+   - User A (Seu Cliente Teste):
+     - Na Dashboard, veja o cartão roxo "Convida Amigos".
+     - [ ] Clique "Criar Código". (ex: BOBBY1234). Copie.
+   - User B (Janela Anónima 2 ou outro browser):
+     - Inicie um agendamento novo.
+     - No Resumo, insira o código BOBBY1234.
+     - [ ] VALIDAR: O preço baixou 5%? Apareceu mensagem de sucesso?
+     - Conclua a marcação.
+
+2. Agendamento Recorrente (Garantia de Receita)
+   - Volte ao User A. Inicie marcação para o Cão.
+   - Na escolha de Horário:
+     - [ ] Marque a checkbox "Repetir a cada 4 semanas".
+   - Conclua.
+   - [ ] VALIDAR: Vá a "Próximas Visitas". Devem aparecer 6 agendamentos futuros (um por mês).
+
+---------------------------------------------------
+PARTE 4: OPERAÇÃO DIÁRIA (ADMIN)
+*Objetivo: Gerir a agenda e fazer dinheiro.*
+
+1. Gerir Agendamentos
+   - Vá a /admin/appointments.
+   - [ ] Verifique se o agendamento do User A, User B e os Recorrentes aparecem.
+   - Clique no agendamento do User B (o que usou Referral).
+
+2. Completar e Pagar
+   - Clique "Registar Pagamento".
+   - Valor: 20€ (exemplo). Método: Numerário.
+   - Estado: Mudar para COMPLETED.
+   - Salvar.
+
+3. Validar Recompensa de Referral
+   - [ ] Volte ao User A (Quem convidou).
+   - [ ] Dashboard -> Loyalty Card. Os pontos aumentaram (+10)? (Isto só acontece se o User B tiver completado a visita).
+
+---------------------------------------------------
+PARTE 5: PÓS-VENDA (REVIEWS)
+*Objetivo: Testar o ciclo de feedback.*
+
+1. Deixar Review
+   - O User B acabou de ter a visita "Completed".
+   - Atualize a Dashboard do User B.
+   - [ ] Aparece o cartão Dourado "Como correu a visita?"?
+   - [ ] Dê 5 estrelas e escreva "Adorei!". Enviar.
+   - [ ] O cartão desapareceu?
+
+---------------------------------------------------
+RESUMO DE ERROS COMUNS A PROCURAR:
+- Preços a aparecerem como 0€ ou NaN (Erro na configuração do ServiçoOptions).
+- Horas indisponíveis quando deviam estar livres (Erro na lógica de Slots).
+- Crash ao tentar abrir "Meus Animais" se não tiver animais (Erro de Array vazio).
+- Admin não conseguir ver detalhes do cliente.
+
+Se passar todos estes pontos, a aplicação está 100% pronta para produção.

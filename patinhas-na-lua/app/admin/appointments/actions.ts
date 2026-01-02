@@ -4,6 +4,42 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { PaymentMethod } from "@prisma/client";
 
+// HELPER: PROCESS REFERRAL REWARD
+// Give 10 points to referrer if this is the user's FIRST completed appointment
+async function processReferralReward(userId: string) {
+  // 1. Check if user was referred
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { referredById: true }
+  });
+
+  if (!user || !user.referredById) return;
+
+  // 2. Check if this is the FIRST completed appointment
+  // We count how many completed appointments exist. 
+  // If we just marked one as completed, the count is >= 1.
+  // We want to know if there were ANY *before* this action (or if this is the only one).
+
+  const completedCount = await db.appointment.count({
+    where: {
+      userId: userId,
+      status: "COMPLETED"
+    }
+  });
+
+  // If this is the FIRST one (Count is 1), reward the referrer.
+  // Note: This relies on "processReferralReward" being called AFTER the status update.
+  if (completedCount === 1) {
+    await db.user.update({
+      where: { id: user.referredById },
+      data: {
+        loyaltyPoints: { increment: 10 }
+      }
+    });
+    console.log(`[Referral] Rewarded referrer ${user.referredById} with 10 points.`);
+  }
+}
+
 // 1. Create Manual Appointment
 export async function createManualAppointment(formData: FormData) {
   const userId = formData.get("userId") as string;
@@ -37,10 +73,15 @@ export async function updateAppointmentStatus(formData: FormData) {
 
   if (!status) return; // Prevent the crash
 
-  await db.appointment.update({
+  const appointment = await db.appointment.update({
     where: { id },
-    data: { status }
+    data: { status },
+    select: { userId: true } // Need this for referral check
   });
+
+  if (status === "COMPLETED") {
+    await processReferralReward(appointment.userId);
+  }
 
   revalidatePath("/admin/appointments");
 }
@@ -51,16 +92,19 @@ export async function registerPayment(formData: FormData) {
   const amount = Number(formData.get("amount"));
   const method = formData.get("method") as PaymentMethod;
 
-  await db.appointment.update({
+  const appointment = await db.appointment.update({
     where: { id },
     data: {
       isPaid: true,
       paidAt: new Date(),
       price: amount,
       paymentMethod: method,
-      status: "COMPLETED" // <--- ADD THIS LINE. Force status to Completed.
-    }
+      status: "COMPLETED"
+    },
+    select: { userId: true }
   });
+
+  await processReferralReward(appointment.userId);
 
   revalidatePath("/admin/appointments");
   revalidatePath("/admin/analytics"); // Update analytics too

@@ -4,19 +4,18 @@ import { useState, useMemo, useEffect } from "react";
 import { submitBooking, getAvailableSlots } from "./actions";
 import { Pet, Service, ServiceOption } from "@prisma/client";
 
-// Adjust type to match what we passed from the page (price is number)
+import dynamic from 'next/dynamic';
+const LocationPicker = dynamic(() => import('@/app/components/location-picker'), {
+  ssr: false,
+  loading: () => <div className="h-96 bg-slate-100 rounded-2xl animate-pulse flex items-center justify-center text-slate-400">A carregar mapa...</div>
+});
+
 // Adjust type to match what we passed from the page (price is number)
 type ServiceWithOptions = Omit<Service, "createdAt" | "updatedAt"> & {
   options: (Omit<ServiceOption, "price"> & { price: number })[];
   isMobileAvailable: boolean;
 };
 
-import dynamic from 'next/dynamic';
-const LocationPicker = dynamic(() => import('@/app/components/location-picker'), {
-  ssr: false,
-  loading: () => <div className="h-96 bg-slate-100 rounded-2xl animate-pulse flex items-center justify-center text-slate-400">A carregar mapa...</div>
-});
-// import { BusinessSettings } from "@prisma/client";
 // Manual definition to avoid "Module has no exported member" if client isn't regenerated
 interface BusinessSettings {
   id: string;
@@ -24,10 +23,10 @@ interface BusinessSettings {
   baseLongitude: number;
   baseAddress: string | null;
   zone1RadiusKm: number;
-  zone1Fee: any; // Decimal from Prisma
+  zone1Fee: any;
   zone2RadiusKm: number;
-  zone2Fee: any; // Decimal from Prisma
-  zone3Fee: any; // Decimal from Prisma
+  zone2Fee: any;
+  zone3Fee: any;
   maxRadiusKm: number;
   updatedAt: Date;
 }
@@ -72,6 +71,9 @@ export default function BookingWizard({ user, pets, services, initialDate, close
   const [isAddressValid, setIsAddressValid] = useState(false);
   const [settings, setSettings] = useState<SerializedBusinessSettings | null>(null);
 
+  // RECURRENCE
+  const [isRecurring, setIsRecurring] = useState(false);
+
   useEffect(() => {
     // Fetch settings on mount
     getBusinessSettings().then(setSettings);
@@ -83,14 +85,13 @@ export default function BookingWizard({ user, pets, services, initialDate, close
   const selectedPet = pets.find(p => p.id === selectedPetId);
   const selectedService = services.find(s => s.id === selectedServiceId);
 
-  // --- FILTER SERVICES BASED ON PET SPECIES ---
   // --- FILTER SERVICES BASED ON PET SPECIES & LOCATION ---
   const filteredServices = useMemo(() => {
     if (!selectedPet) return services;
 
     let result = services;
 
-    // 1. Filter by Species (Example: Dogs don't see Exotic services widely, usually)
+    // 1. Filter by Species
     if (selectedPet.species === "DOG") {
       result = result.filter(s => s.category !== "EXOTIC");
     }
@@ -132,12 +133,9 @@ export default function BookingWizard({ user, pets, services, initialDate, close
       );
     }
 
-    // 4. FALLBACK FOR CATS/RABBITS (If no specific match, take the first generic option or just the first one)
+    // FALLBACK
     if (!option && selectedPet.species !== "DOG") {
-      // Try to find one with null/null first
       option = selectedService.options.find(opt => opt.petSize === null && opt.coatType === null);
-
-      // If still nothing, just take the first one available (Flat rate assumption)
       if (!option && selectedService.options.length > 0) {
         option = selectedService.options[0];
       }
@@ -150,7 +148,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
   const [couponCode, setCouponCode] = useState("");
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [couponMessage, setCouponMessage] = useState("");
-  const [discount, setDiscount] = useState(0); // Percentage or Fixed amount? We treat as % usually, but let's handle strictly.
+  const [discount, setDiscount] = useState(0);
 
   // --- HANDLER ---
   const handleValidateCoupon = async () => {
@@ -159,7 +157,6 @@ export default function BookingWizard({ user, pets, services, initialDate, close
     setDiscount(0);
 
     try {
-      // Dynamic Import to avoid circular dep issues if any, or just clean separation
       const { validateCoupon } = await import("./actions");
       const res = await validateCoupon(couponCode);
 
@@ -217,10 +214,10 @@ export default function BookingWizard({ user, pets, services, initialDate, close
           <input type="hidden" name="time" value={time} />
           <input type="hidden" name="date" value={date} />
           <input type="hidden" name="couponCode" value={discount > 0 ? couponCode : ""} />
-
           <input type="hidden" name="locationType" value={locationType} />
           <input type="hidden" name="mobileAddress" value={mobileAddress} />
           <input type="hidden" name="travelFee" value={travelFee} />
+          <input type="hidden" name="isRecurring" value={isRecurring ? "true" : "false"} />
 
           {/* STEP 1: SELECT PET */}
           {step === 1 && (
@@ -255,7 +252,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
             </div>
           )}
 
-          {/* STEP 2: LOCATION (NEW) */}
+          {/* STEP 2: LOCATION */}
           {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
               <h2 className="text-xl font-bold text-gray-800">Onde será o serviço? 🏠</h2>
@@ -319,12 +316,11 @@ export default function BookingWizard({ user, pets, services, initialDate, close
             </div>
           )}
 
-          {/* STEP 3: SELECT SERVICE (Was 2) */}
+          {/* STEP 3: SERVICE */}
           {step === 3 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-gray-800">O que vamos fazer hoje? ✂️</h2>
 
-              {/* FIXED HEIGHT CONTAINER WITH SCROLL */}
               <div className="border-2 border-gray-100 rounded-xl p-2 bg-gray-50">
                 <div className="h-80 overflow-y-auto pr-2 space-y-2">
 
@@ -360,12 +356,11 @@ export default function BookingWizard({ user, pets, services, initialDate, close
             </div>
           )}
 
-          {/* STEP 4: DATE & TIME (Was 3) */}
+          {/* STEP 4: DATE & TIME */}
           {step === 4 && (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-gray-800">Escolha o Horário 📅</h2>
 
-              {/* Price Banner */}
               <div className="bg-green-50 p-4 rounded-xl border border-green-200 flex items-center justify-between">
                 <div>
                   <p className="text-sm text-green-800 font-bold uppercase">Orçamento Estimado</p>
@@ -383,10 +378,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                 </div>
               </div>
 
-              {/* MAIN SELECTION GRID - Added items-start to prevent stretching */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-
-                {/* LEFT: DATE PICKER */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Data</label>
                   <input
@@ -425,7 +417,6 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                   />
                 </div>
 
-                {/* RIGHT: TIME SLOTS */}
                 <div className="flex flex-col">
                   <label className="block text-sm font-bold text-gray-700 mb-2">
                     Horários Disponíveis
@@ -438,13 +429,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                       {!date ? "Selecione uma data primeiro." : "Sem vagas disponíveis."}
                     </div>
                   ) : (
-                    /* Background Container */
                     <div className="bg-gray-50 rounded-xl border-2 border-gray-100 p-2">
-                      {/* 
-                            SCROLLABLE BOX: 
-                            - Changed max-h-[350px] to h-80 (fixed height)
-                            - This matches your Step 2 logic which is working 
-                        */}
                       <div className="flex flex-col gap-2 overflow-y-auto h-80 pr-2 custom-scrollbar">
                         {availableSlots.map((slot) => (
                           <button
@@ -462,10 +447,30 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                       </div>
                     </div>
                   )}
+
+                  {/* RECURRENCE OPTION */}
+                  <div className="mt-6 bg-purple-50 p-4 rounded-xl border border-purple-100 flex items-start gap-3 shadow-sm">
+                    <input
+                      type="checkbox"
+                      id="recurrence"
+                      checked={isRecurring}
+                      onChange={(e) => setIsRecurring(e.target.checked)}
+                      className="mt-1 w-5 h-5 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
+                    />
+                    <div>
+                      <label htmlFor="recurrence" className="block text-sm font-bold text-purple-900 cursor-pointer">
+                        Repetir a cada 4 semanas? (Recomendado)
+                      </label>
+                      <p className="text-xs text-purple-700 mt-1">
+                        Garante o lugar do {selectedPet?.name} e evita filas de espera.
+                        Agendamos automaticamente para os próximos 6 meses.
+                      </p>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
-              {/* Buttons */}
               <div className="flex gap-3 mt-4">
                 <button type="button" onClick={() => setStep(3)} className="px-4 py-3 rounded-xl border font-bold text-gray-600">Voltar</button>
                 <button
@@ -480,7 +485,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
             </div>
           )}
 
-          {/* STEP 5: CONFIRMATION (Was 4) */}
+          {/* STEP 5: CONFIRMATION */}
           {step === 5 && (
             <div className="space-y-6">
               <div className="text-center">
@@ -488,13 +493,10 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                 <p className="text-gray-500 text-sm">Confirme os detalhes abaixo</p>
               </div>
 
-              {/* TICKET CARD */}
               <div className="bg-blue-50 border-2 border-blue-100 rounded-xl overflow-hidden p-6 relative">
-                {/* Dashed Line Effect */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-blue-200"></div>
 
                 <div className="space-y-4">
-                  {/* ... client info ... */}
                   <div className="flex justify-between items-end border-b border-blue-200 pb-3">
                     <div>
                       <p className="text-xs font-bold text-blue-400 uppercase tracking-wider">Cliente</p>
@@ -506,7 +508,6 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                     </div>
                   </div>
 
-                  {/* ... service ... */}
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-xs font-bold text-blue-400 uppercase tracking-wider">Serviço</p>
@@ -517,17 +518,20 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                     </div>
                   </div>
 
-                  {/* ... date ... */}
                   <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-blue-100">
                     <div>
                       <p className="text-xs font-bold text-gray-400 uppercase">Data e Hora</p>
                       <p className="font-bold text-gray-800 text-lg">
                         {new Date(date).toLocaleDateString('pt-PT')} <span className="text-blue-500">às {time}</span>
                       </p>
+                      {isRecurring && (
+                        <p className="text-xs font-bold text-purple-600 mt-1">
+                          🔄 Repete a cada 4 semanas (6x)
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  {/* ... NIF ... */}
                   <div
                     onClick={() => setWantsNif(!wantsNif)}
                     className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${wantsNif
@@ -551,7 +555,6 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                     </div>
                   </div>
 
-                  {/* COUPON INPUT */}
                   <div className="bg-slate-50 p-3 rounded-lg border border-gray-200">
                     <div className="flex gap-2">
                       <input
@@ -578,7 +581,6 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                   </div>
 
 
-                  {/* TOTAL */}
                   <div className="pt-2 flex justify-between items-center border-t border-blue-200 pt-4 mt-4">
                     <div className="text-sm text-gray-500">
                       <p>Serviço: {priceDetails?.price.toFixed(2)}€</p>

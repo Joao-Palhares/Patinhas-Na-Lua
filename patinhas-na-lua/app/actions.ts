@@ -16,6 +16,7 @@ export async function completeOnboarding(formData: FormData) {
   const nif = formData.get("nif") as string;
   const address = formData.get("address") as string;
   const name = formData.get("name") as string;
+  const incomingReferralCode = (formData.get("referralCode") as string)?.toUpperCase().trim();
 
   // --- SERVER SIDE VERIFICATIONS ---
 
@@ -31,7 +32,52 @@ export async function completeOnboarding(formData: FormData) {
     throw new Error("NIF inválido. Deve ter 9 dígitos.");
   }
 
+  // 3. Validate Incoming Referral Code (If provided)
+  let referredById = null;
+  if (incomingReferralCode) {
+    // Check if code exists
+    const referrer = await db.user.findUnique({
+      where: { referralCode: incomingReferralCode }
+    });
+
+    if (!referrer) {
+      throw new Error(`O código de convite "${incomingReferralCode}" não existe.`);
+    }
+
+    // Prevent self-referral (though rare in onboarding, safer to check)
+    if (referrer.id === user.id) {
+      throw new Error("Não podes usar o teu próprio código.");
+    }
+
+    referredById = referrer.id;
+  }
+
   // ---------------------------------
+
+  // 4. Generate A UNIQUE Referral Code for THIS new user (Auto-Generate)
+  // Logic: First 3 letters of name + 4 random digits. Check uniqueness loop.
+  let newReferralCode = "";
+  let isUnique = false;
+  const namePrefix = name.replace(/[^a-zA-Z]/g, "").slice(0, 3).toUpperCase() || "PAT";
+
+  // Safety loop (max 5 tries) to find a unique code
+  for (let i = 0; i < 5; i++) {
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString();
+    const candidateCode = `${namePrefix}${randomSuffix}`;
+
+    const existing = await db.user.findUnique({ where: { referralCode: candidateCode } });
+    if (!existing) {
+      newReferralCode = candidateCode;
+      isUnique = true;
+      break;
+    }
+  }
+
+  if (!isUnique) {
+    // Fallback if super unlucky: use a timestamp suffix
+    newReferralCode = `PAT${Date.now().toString().slice(-6)}`;
+  }
+
 
   // FIX: Use upsert to prevent "Unique constraint failed on email"
   // This handles cases where the user might already exist in the DB (e.g. from a previous failed attempt or manual entry)
@@ -52,6 +98,8 @@ export async function completeOnboarding(formData: FormData) {
       phone: phone,
       nif: nif,
       address: address,
+      referralCode: newReferralCode, // <--- Auto Set Code
+      referredById: referredById     // <--- Link to Referrer (if any)
     },
   });
 

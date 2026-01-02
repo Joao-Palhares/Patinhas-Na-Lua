@@ -31,6 +31,26 @@ model User {
   appointments Appointment[]
   pets         Pet[]
   coupons      Coupon[]
+
+  // REFERRAL SYSTEM
+  referralCode String?  @unique // Unique code for this user to share (e.g. "R-1234")
+  referredById String?
+  referredBy   User?    @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals    User[]   @relation("UserReferrals")
+
+  // PUSH NOTIFICATIONS
+  pushSubscriptions PushSubscription[]
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String
+  p256dh    String
+  auth      String
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
 
 model Pet {
@@ -183,7 +203,44 @@ model Appointment {
 
   // NEW: Porosity Test Results / Treatments used
   spaTreatment  String? // e.g., "Mascara de Hidratação"
+  
+  // RECURRING SYSTEM
+  recurrenceGroupId String? // All appointments in a chain share this ID
+  isRecurring       Boolean @default(false)
 
+  // REVIEWS & MEDIA
+  review            Review?
+  images            AppointmentImage[]
+}
+
+model Review {
+  id            String      @id @default(cuid())
+  rating        Int         // 1-5
+  comment       String?     @db.Text
+  isPublic      Boolean     @default(false) // Admin must approve
+  
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime    @default(now())
+}
+
+model AppointmentImage {
+  id            String      @id @default(cuid())
+  url           String
+  description   String?
+  type          ImageType   @default(RESULT) // BEFORE, RESULT
+  
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime    @default(now())
+}
+
+enum ImageType {
+  BEFORE
+  RESULT
+  VACCINATION
 }
 
 enum Species {
@@ -281,8 +338,6 @@ enum StressLevel {
   MEDIUM
   HIGH
 }
-
-
 
 enum LocationType {
   SALON

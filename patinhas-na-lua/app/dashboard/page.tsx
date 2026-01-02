@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import CancelButton from "./cancel-button";
+import { ReferralCard } from "./components/referral-card";
+import { ReviewPrompt } from "./components/review-prompt";
 
 // 1. DEFINE THE MAPPING HERE
 const SPECIES_ICON_MAP: Record<string, string> = {
@@ -21,6 +23,7 @@ export default async function DashboardPage() {
     where: { id: user.id },
     include: {
       pets: true,
+      _count: { select: { referrals: true } },
       appointments: {
         where: { status: { not: "CANCELLED" }, date: { gte: new Date() } },
         orderBy: { date: "asc" },
@@ -31,11 +34,31 @@ export default async function DashboardPage() {
 
   if (!dbUser) redirect("/onboarding");
 
+  // 2. CHECK FOR PENDING REVIEWS (New Feature)
+  const pendingReview = await db.appointment.findFirst({
+    where: {
+      userId: user.id,
+      status: "COMPLETED",
+      review: null
+    },
+    orderBy: { date: "desc" },
+    include: { pet: true, service: true }
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
 
       {/* MAIN CONTENT */}
       <main className="max-w-6xl mx-auto px-4 mt-8">
+
+        {/* PENDING REVIEW PROMPT */}
+        {pendingReview && (
+          <ReviewPrompt
+            appointmentId={pendingReview.id}
+            petName={pendingReview.pet.name}
+            serviceName={pendingReview.service.name}
+          />
+        )}
 
         {/* WELCOME BANNER */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white shadow-lg mb-8">
@@ -52,7 +75,14 @@ export default async function DashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-          {/* CARD 1: LOYALTY CARD (NEW) */}
+          {/* CARD 1.5: REFERRAL SYSTEM (NEW) */}
+          <div className="md:col-span-2">
+            <ReferralCard
+              existingCode={dbUser.referralCode}
+              referralCount={dbUser._count.referrals}
+            />
+          </div>
+
           {/* CARD 1: LOYALTY CARD (NEW) */}
           <Link href="/dashboard/rewards">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden h-full group transition hover:shadow-md">

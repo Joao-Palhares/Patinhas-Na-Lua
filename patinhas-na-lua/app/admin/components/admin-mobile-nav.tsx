@@ -21,6 +21,7 @@ export default function AdminMobileNav({ children }: { children?: React.ReactNod
         { href: "/admin/invoices", icon: "🧾", label: "Faturas" },
         { href: "/admin/settings", icon: "⚙️", label: "Configuração" },
         { href: "/admin/vacations", icon: "🏖️", label: "Férias" },
+        { href: "/admin/marketing", icon: "✨", label: "Estúdio Criativo (Novo)" },
     ];
 
     return (

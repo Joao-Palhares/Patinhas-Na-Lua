@@ -1,0 +1,198 @@
+
+# 🕵️ MASTER TEST PLAN: Patinhas na Lua (Full System Audit) - COMPLETO
+Data: 2026-01-01
+Status: PÓS-RESET DA BASE DE DADOS
+
+Este documento contém o guião EXAUSTIVO para validar **cada ecrã** e **cada funcionalidade**.
+
+================================================================================
+🟢 FASE 1: LANDING PAGE & AUTENTICAÇÃO (Visitante)
+================================================================================
+
+### 1.1. Landing Page (`/`)
+- [ ] **Carregamento:** A página carrega em < 2 segundos?
+- [ ] **Hero Section:**
+    - [ ] Texto principal "Mime o seu melhor amigo" visível e correto.
+    - [ ] Imagem de fundo/vídeo carrega corretamente.
+- [ ] **Botão CTA (Call to Action):**
+    - [ ] Botão "Agendar Agora" visível.
+    - [ ] Clicar no botão se **NÃO LOGADO** -> Redireciona para `/sign-in`.
+    - [ ] Clicar no botão se **JÁ LOGADO** -> Redireciona para `/dashboard`.
+- [ ] **Footer:**
+    - [ ] Links de redes sociais funcionam (se existirem).
+    - [ ] Copyright atualizado.
+
+### 1.2. Registo & Login (`/sign-up`, `/sign-in`) - Via Clerk
+- [ ] **Registo (Sign Up):**
+    - [ ] Tentar registar com email inválido (ex: `teste`). Erro aparece?
+    - [ ] Registar com sucesso (ex: `teste+qa1@gmail.com`).
+    - [ ] Verificar se redireciona para `/onboarding` (primeira vez).
+- [ ] **Login (Sign In):**
+    - [ ] Login com credenciais erradas -> Erro visual?
+    - [ ] Login com credenciais certas -> Entra?
+    - [ ] Login com Google (Sso) -> Funciona?
+- [ ] **Recuperação de Password:**
+    - [ ] Clicar em "Forgot Password". Recebe email?
+
+### 1.3. Onboarding (`/onboarding`)
+*Processo obrigatório para novos users sem perfil na BD.*
+- [ ] **Validação de Campos:**
+    - [ ] Tentar submeter formulário vazio. Erros a vermelho aparecem?
+    - [ ] Tentar NIF inválido (ex: `123`).
+    - [ ] Tentar Telefone inválido (ex: `abc`).
+- [ ] **Fluxo de Sucesso:**
+    - [ ] Preencher Nome, NIF (9 dígitos), Tlm (9 dígitos), Morada.
+    - [ ] Clicar "Continuar".
+    - [ ] Redireciona para `/dashboard`?
+    - [ ] **BD:** O utilizador foi criado na tabela `User`?
+
+================================================================================
+🔵 FASE 2: DASHBOARD DO CLIENTE (Área Privada)
+================================================================================
+
+### 2.1. Dashboard Home (`/dashboard`)
+- [ ] **Header:** Mostra o Avatar do user no canto?
+- [ ] **Banner:** "Bem-vindo de volta" personalizado?
+- [ ] **Review Prompt (Condicional):**
+    - [ ] Se tiver consulta concluída pendente de review -> Aparece cartão Dourado?
+    - [ ] Se não tiver -> Não aparece.
+    - [ ] Testar submissão de review (5 estrelas). Cartão desaparece?
+- [ ] **Referral Card (Roxo):**
+    - [ ] Botão "Gerar Código" (se não tiver).
+    - [ ] Código visível (ex: `JOAO123`)?
+    - [ ] Contador de amigos convidados começa a 0?
+    - [ ] Botão "Copiar" -> Notificação Toast "Copiado!"?
+- [ ] **Loyalty Card (Azul):**
+    - [ ] Mostra pontos corretos?
+    - [ ] Clicar -> Vai para `/dashboard/rewards`?
+
+### 2.2. Gestão de Animais (`/dashboard/pets`)
+- [ ] **Listagem Vazia:** Mensagem amigável se 0 pets.
+- [ ] **Adicionar Pet:**
+    - [ ] Modal abre?
+    - [ ] Preencher dados.
+    - [ ] Testar CÃO vs GATO (Espécies).
+    - [ ] Testar upload de FOTO. Imagem aparece na preview?
+    - [ ] Salvar. Pet aparece na lista imediatamente (sem F5)?
+- [ ] **Editar Pet:**
+    - [ ] Mudar peso de "Pequeno" para "Grande". (Importante para preço).
+    - [ ] Salvar. Alteração persiste?
+- [ ] **Remover Pet:**
+    - [ ] Clicar remover. Pede confirmação?
+    - [ ] Confirmar. Pet desaparece?
+
+### 2.3. O "Coração": Agendamento (`/dashboard/book`) -- TESTE PROFUNDO
+- [ ] **Navegação (Steps):** Barra de progresso (1, 2, 3, 4, 5) atualiza?
+- [ ] **Passo 1: Seleção de Pet**
+    - [ ] Mostra os pets criados?
+    - [ ] Selecionar Pet -> Avança auto ou habilita botão?
+- [ ] **Passo 2: Localização**
+    - [ ] Selecionar "Salão" -> Taxa deve ser 0.
+    - [ ] Selecionar "Domicílio":
+        - [ ] Mapa carrega?
+        - [ ] Clicar no mapa (Zona Verde) -> Taxa calculada (ex: 5€)?
+        - [ ] Clicar longe (Zona Vermelha) -> Erro "Fora de zona"?
+        - [ ] Escrever morada manual na barra -> Funciona?
+- [ ] **Passo 3: Serviços**
+    - [ ] A lista filtra corretamente? (ex: Se escolhi GATO, não deve mostrar tosquia de CÃO).
+    - [ ] Selecionar serviço.
+- [ ] **Passo 4: Data & Hora (Calendário)**
+    - [ ] Dias passados bloqueados (cinzentos)?
+    - [ ] Dias fechados (Domingo ou Feriados configurados) bloqueados?
+    - [ ] **Slots:**
+        - [ ] Clicar num dia. As horas aparecem?
+        - [ ] As horas respeitam o almoço (12:30-14:00)?
+        - [ ] As horas respeitam a duração do serviço? (ex: Se serviço é 2h, não mostra 17:30 se fecha às 18:00).
+    - [ ] **Recorrência (Feature Growth):**
+        - [ ] Ativar "Repetir a cada 4 semanas".
+        - [ ] Verificar texto explicativo.
+- [ ] **Passo 5: Resumo (Checkout)**
+    - [ ] **Cálculo:** Preço Serviço + Taxa Domicílio está correto?
+    - [ ] **Cupão/Referral:**
+        - [ ] Inserir código inválido. Erro?
+        - [ ] Inserir código de amigo (`AMIGO123`). Sucesso?
+        - [ ] Desconto (5%) calculado certo?
+    - [ ] **NIF:** Checkbox "Na fatura" funciona?
+- [ ] **Submissão:**
+    - [ ] Clicar "Agendar". Loading state?
+    - [ ] Sucesso -> Redireciona? Email de confirmação enviado (Log console)?
+    - [ ] Se recorrente -> Criou 6 agendamentos?
+
+### 2.4. Histórico (`/dashboard/history`)
+- [ ] Filtros: "Agendados", "Concluídos", "Cancelados" funcionam?
+- [ ] Botão "Cancelar" em agendamento futuro:
+    - [ ] Funciona?
+    - [ ] Atualiza status para CANCELLED?
+
+### 2.5. Loyalty Rewards (`/dashboard/rewards`)
+- [ ] Saldo visível?
+- [ ] Lista de prémios.
+- [ ] Prémios bloqueados (cinzentos) se saldo insuficiente?
+- [ ] Prémios ativos se saldo ok?
+- [ ] Clicar "Usar" -> Gera QR Code?
+
+### 2.6. Perfil (`/dashboard/profile`)
+- [ ] Editar dados pessoais (Telefone, Morada).
+- [ ] Salvar. Persiste?
+
+================================================================================
+🔴 FASE 3: BACKOFFICE DE GESTÃO (Área Admin)
+================================================================================
+
+### 3.1. Dashboard Admin (`/admin`)
+- [ ] **Métricas:** Valores > 0?
+- [ ] **Gráficos:** Renderizam sem erros?
+
+### 3.2. Agenda (`/admin/appointments`) -- GESTÃO DIÁRIA
+- [ ] **Calendário/Lista:**
+    - [ ] O agendamento criado no passo 2.3 aparece aqui?
+    - [ ] Detalhes (Pet, Cliente, Serviço) estão certos?
+- [ ] **Mudança de Estado:**
+    - [ ] "Confirmar" -> Muda cor/estado?
+    - [ ] "Iniciar" (Check-in) -> Funciona?
+- [ ] **Pagamento & Conclusão (Checkout):**
+    - [ ] Botão "Registar Pagamento".
+    - [ ] Selecionar Método (Numerário/MBWay).
+    - [ ] Valor editável (para gorjetas/extras)?
+    - [ ] Confirmar -> Estado passa a COMPLETED?
+    - [ ] Gerou Fatura (Rascunho)?
+
+### 3.3. Clientes (`/admin/clients`)
+- [ ] **Listagem:** Paginação funciona?
+- [ ] **Pesquisa:** Buscar pelo nome do "Cliente Teste".
+- [ ] **Ficha Cliente:**
+    - [ ] Ver histórico de visitas desse cliente.
+    - [ ] Ver total gasto (LTV)?
+
+### 3.4. Serviços (`/admin/services`)
+- [ ] **CRUD:**
+    - [ ] Criar Serviço "Teste".
+    - [ ] Adicionar Opção de Preço (Tamanho S, Pelo Curto = 10€).
+    - [ ] Editar Serviço.
+    - [ ] Apagar Serviço. (Cuidado com integridade referencial).
+
+### 3.5. Definições (`/admin/settings`)
+- [ ] **Horários:**
+    - [ ] Alterar hora de abertura.
+    - [ ] Adicionar dia de Férias (Ausência).
+- [ ] **Global:** Mudar morada base da empresa.
+
+### 3.6. Scanner (`/admin/scan`)
+- [ ] Aceder via telemóvel. Câmara abre?
+- [ ] Ler QR Code gerado no passo 2.5.
+- [ ] Valida o prémio? Desconta os pontos ao cliente?
+
+================================================================================
+🧪 CENÁRIOS DE ERRO & LIMITES (QA AVANÇADO)
+================================================================================
+
+1.  **Concorrência:** Abrir dois browsers. Tentar reservar a MESMA hora ao MESMO tempo. O segundo deve falhar.
+2.  **Referral Loop:** Tentar usar o *próprio* código de convite. O sistema deve impedir (Autoreferência é proibida).
+3.  **Cancelamento Tardio:** Tentar cancelar consulta que é "hoje". O sistema permite? (Definição de política).
+4.  **XSS na Review:** Tentar escrever `<script>alert('oi')</script>` no comentário da review. O sistema deve sanitizar.
+5.  **Admin Protection:** Tentar aceder a `/admin` com user normal. Deve dar "Unauthorized" ou Redirect home.
+
+---
+
+**FIM DO GUIÃO.**
+Se todos os testes passarem, o software está aprovado para entrar em produção.

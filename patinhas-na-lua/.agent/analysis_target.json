@@ -1,0 +1,53 @@
+[
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\(auth)\\sign-up\\[[...sign-up]]\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\(auth)\\sign-in\\[[...sign-in]]\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\dashboard\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\dashboard\\book\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\dashboard\\history\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\dashboard\\pets\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\dashboard\\rewards\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\dashboard\\profile\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\admin\\appointments\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\admin\\clients\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\admin\\services\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\admin\\settings\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\admin\\analytics\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\admin\\invoices\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\admin\\scan\\page.tsx"
+    },
+    {
+        "path": "c:\\Users\\jonip\\patinhas-na-lua\\patinhas-na-lua\\app\\onboarding\\page.tsx"
+    }
+]
