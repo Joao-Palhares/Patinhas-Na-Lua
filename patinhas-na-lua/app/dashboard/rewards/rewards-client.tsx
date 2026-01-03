@@ -26,11 +26,8 @@ export default function RewardsClient({ userPoints, rewards }: Props) {
         if (!confirm(`Tem a certeza que quer trocar ${cost} patinhas por "${title}"?`)) return;
 
         setLoadingId(rewardId);
-        // pass rewardId instead of just cost/title if actions allows, but action handles generic redeem?
-        // Current action: redeemReward(cost, title).
-        // It blindly subtracts points and creates a generic coupon.
-        // It assumes "title" is the coupon description.
-        const res = await redeemReward(cost, title);
+        // Correctly pass rewardId to the server action
+        const res = await redeemReward(rewardId);
 
         if (res.success && res.code) {
             setClaimedCode(res.code);
@@ -52,11 +49,12 @@ export default function RewardsClient({ userPoints, rewards }: Props) {
     // --- PROGRESS CALCULATION ---
     // Make it relative to the Max Cost reward
     const maxCost = rewards.length > 0 ? rewards[rewards.length - 1].pointsCost : 300;
-    const progressPercent = Math.min(100, (userPoints / maxCost) * 100);
 
+    // Safety check for maxCost to avoid division by zero
+    const safeMaxCost = maxCost > 0 ? maxCost : 300;
+    const progressPercent = Math.min(100, (userPoints / safeMaxCost) * 100);
 
     if (claimedCode) {
-        // ... existing code ...
         return (
             <div className="max-w-md mx-auto mt-20 text-center p-8 bg-white rounded-2xl shadow-xl border-2 border-green-100 animate-in zoom-in duration-300">
                 <div className="text-6xl mb-4 animate-bounce">🎉</div>
@@ -77,23 +75,26 @@ export default function RewardsClient({ userPoints, rewards }: Props) {
         );
     }
 
+    // Grid columns logic: min 3, or length if less than 3 (but at least 1)
+    const gridCols = `grid-cols-1 md:grid-cols-${Math.max(1, Math.min(3, rewards.length))}`;
+
     return (
         <div className="relative pt-8">
 
             {/* --- REWARDS GRID --- */}
-            <div className={`grid grid-cols-1 md:grid-cols-${Math.min(3, rewards.length || 1)} gap-8 relative mt-20`}>
+            <div className={`grid ${gridCols} gap-8 relative mt-20`}>
 
                 {/* TRACK LINE (Behind everything) */}
                 <div className="hidden md:block absolute top-[-2rem] left-[10%] right-[10%] h-3 bg-gray-200 rounded-full z-0"></div>
                 <div
                     className="hidden md:block absolute top-[-2rem] left-[10%] h-3 bg-gradient-to-r from-orange-400 to-yellow-500 rounded-full z-0 transition-all duration-1000 ease-out"
-                    style={{ width: `${Math.min(80, (userPoints / maxCost) * 80)}%` }}
+                    style={{ width: `${Math.min(80, (userPoints / safeMaxCost) * 80)}%` }}
                 ></div>
 
                 {/* PAW AVATAR */}
                 <div
                     className="hidden md:flex absolute top-[-2rem] w-10 h-10 bg-white border-4 border-orange-500 rounded-full items-center justify-center -translate-y-1/2 z-10 shadow-lg text-lg transition-all duration-1000"
-                    style={{ left: `${10 + Math.min(80, (userPoints / maxCost) * 80)}%` }}
+                    style={{ left: `${10 + Math.min(80, (userPoints / safeMaxCost) * 80)}%` }}
                 >
                     🐾
                     <div className="absolute -top-10 bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded whitespace-nowrap">
@@ -107,10 +108,13 @@ export default function RewardsClient({ userPoints, rewards }: Props) {
                     const unlocked = userPoints >= cost;
                     const isNextGoal = !unlocked && (index === 0 || userPoints >= rewards[index - 1].pointsCost);
 
-                    const title = reward.serviceName + (reward.discountPercentage < 100 ? ` (-${100 - reward.discountPercentage}%)` : "");
-                    const desc = reward.discountPercentage < 100
-                        ? `Desconto de ${100 - reward.discountPercentage}% neste serviço.`
-                        : "Serviço completo gratuito.";
+                    // LOGIC: DiscountPercentage is % OFF. 100 = Free. 20 = 20% Off.
+                    const isFree = reward.discountPercentage === 100;
+                    const title = reward.serviceName + (isFree ? " (Grátis)" : ` (-${reward.discountPercentage}%)`);
+
+                    const desc = isFree
+                        ? "Serviço completo gratuito. Aproveite!"
+                        : `Desconto de ${reward.discountPercentage}% neste serviço.`;
 
                     return (
                         <div key={reward.id} className="relative flex flex-col md:block">

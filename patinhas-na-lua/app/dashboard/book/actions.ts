@@ -27,11 +27,6 @@ export async function submitBooking(formData: FormData) {
   const baseDate = new Date(`${date}T${time}:00`);
   let recurrenceGroupId = isRecurring ? crypto.randomUUID() : null;
 
-  // Process Logic
-  // We determine Discount Logic ONCE (applied to all if recurring? or just first? Let's apply to ALL for Referrals, but Coupon only first?
-  // Simpler: Apply to ALL. If it's a fixed amount coupon (e.g. 10 EUR), we might lose money. 
-  // But our coupons are Percentage based in Schema (Int). So it's fine.
-
   let discountPercent = 0;
   let usedCouponId: string | null = null;
   let referralIdToLink: string | null = null;
@@ -75,7 +70,6 @@ export async function submitBooking(formData: FormData) {
   // CREATE APPOINTMENTS (Loop)
   const count = isRecurring ? 6 : 1;
   let firstAppointmentId = "";
-  let finalPriceFirst = 0;
 
   for (let i = 0; i < count; i++) {
     const appointmentDate = addWeeks(baseDate, i * 4);
@@ -165,8 +159,6 @@ export async function getAvailableSlots(dateStr: string, durationMinutes: number
   "use server";
 
   // CONSTANTS (Defaults)
-  const LUNCH_START = 12; // 12:00
-  const LUNCH_END = 13;   // 13:00
   const BUFFER = 15;      // 15 min cleaning time
 
   const selectedDate = new Date(dateStr);
@@ -203,13 +195,27 @@ export async function getAvailableSlots(dateStr: string, durationMinutes: number
 
   if (workingDay.isClosed) return []; // Closed that day
 
-  // Parse start/end times
-  const [startH, startM] = workingDay.startTime.split(":").map(Number);
-  const [endH, endM] = workingDay.endTime.split(":").map(Number);
+  // Parse start/end times with safety check
+  const startStr = workingDay.startTime || "09:00";
+  const endStr = workingDay.endTime || "18:00";
 
-  // Parse Break Times (Defaults to 12:00-13:00 if missing in DB, though schema default handles it)
-  const breakStartStr = workingDay.breakStartTime || "12:00";
-  const breakEndStr = workingDay.breakEndTime || "13:00";
+  const [startH, startM] = startStr.split(":").map(Number);
+  const [endH, endM] = endStr.split(":").map(Number);
+
+  // Parse Break Times (Robust Inputs)
+  // Logic: If user clears break times, we respect it (No Break).
+  let breakStartStr = workingDay.breakStartTime;
+  let breakEndStr = workingDay.breakEndTime;
+
+  if (!breakStartStr || breakStartStr === "") {
+    // No break defined -> Set break to be same as end time (effectively no break)
+    breakStartStr = endStr;
+    breakEndStr = endStr;
+  } else if (!breakEndStr || breakEndStr === "") {
+    // Break starts but has no end -> End immediately
+    breakEndStr = breakStartStr;
+  }
+
   const [bStartH, bStartM] = breakStartStr.split(":").map(Number);
   const [bEndH, bEndM] = breakEndStr.split(":").map(Number);
 
@@ -248,10 +254,13 @@ export async function getAvailableSlots(dateStr: string, durationMinutes: number
 
     // Check if slot overlaps break
     // Overlap condition: (StartA < EndB) and (EndA > StartB)
-    if (isBefore(slotStart, lunchEnd) && isAfter(slotEnd, lunchStart)) {
-      // Skip this slot
-      currentTime = addMinutes(currentTime, 15);
-      continue;
+    // Also ignore zero-length breaks (lunchStart === lunchEnd)
+    if (lunchStart.getTime() !== lunchEnd.getTime()) {
+      if (isBefore(slotStart, lunchEnd) && isAfter(slotEnd, lunchStart)) {
+        // Skip this slot
+        currentTime = addMinutes(currentTime, 15);
+        continue;
+      }
     }
 
     // --- RULE 2: CLOSING TIME ---

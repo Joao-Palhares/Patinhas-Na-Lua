@@ -90,6 +90,7 @@ model Service {
   // Does this service allow Add-ons? (Like Masks)
   allowsAddOns Boolean @default(false)
   isMobileAvailable Boolean @default(false) // NEW: Available for mobile service
+  isActive         Boolean @default(true)   // NEW: For Soft Deletes
 
   // Link to the Price Matrix
   options     ServiceOption[]

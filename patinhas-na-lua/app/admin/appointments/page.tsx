@@ -2,7 +2,6 @@ import { db } from "@/lib/db";
 import NewAppointmentModal from "./new-appointment-modal";
 import DeleteForm from "../components/delete-form";
 import { deleteAppointment } from "./actions";
-// 1. Remove AppointmentStatus, Import BillingWizard
 import BillingWizard from "./billing-wizard";
 import WhatsAppModal from "../components/whatsapp-modal";
 import TestEmailButton from "../components/test-email-button";
@@ -138,6 +137,12 @@ export default async function AppointmentsPage(props: {
 
               {/* DETAILS */}
               <div className="flex-1 w-full text-center md:text-left space-y-2">
+                <div className="mb-1">
+                  {app.status === "PENDING" && <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded border border-gray-200 uppercase">⌛ Pendente</span>}
+                  {app.status === "CONFIRMED" && <span className="text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded border border-blue-200 uppercase">✅ Confirmado</span>}
+                  {app.status === "CANCELLED" && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded border border-red-200 uppercase">❌ Cancelado</span>}
+                  {app.status === "COMPLETED" && <span className="text-[10px] font-bold bg-green-100 text-green-600 px-2 py-1 rounded border border-green-200 uppercase">🏁 Concluído</span>}
+                </div>
                 <h3 className="text-lg font-bold text-gray-800">
                   {app.pet.name} <span className="text-sm font-normal text-gray-500">({app.user.name})</span>
                 </h3>

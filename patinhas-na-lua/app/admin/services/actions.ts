@@ -83,7 +83,18 @@ export async function updateServiceOption(formData: FormData) {
 
 export async function deleteService(formData: FormData) {
   const id = formData.get("id") as string;
-  await db.service.delete({ where: { id } });
+  try {
+    // Attempt Hard Delete first (Cleanest)
+    await db.service.delete({ where: { id } });
+  } catch (error) {
+    // Fallback: Soft Delete (Archive)
+    // This allows removing services even if they have old appointments linked
+    console.log("Hard delete failed (FK constraints). Switching to Soft Delete.");
+    await db.service.update({
+      where: { id },
+      data: { isActive: false } as any // Using 'any' as quickfix for type lag
+    });
+  }
   revalidatePath("/admin/services");
 }
 

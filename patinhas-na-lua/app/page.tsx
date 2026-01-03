@@ -17,6 +17,8 @@ export default async function LandingPage() {
   }
 
   const rawServices = await db.service.findMany({
+    // Filter active services for the public landing page!
+    where: { isActive: true } as any, // Cast to 'any' until Prisma re-generates
     include: { options: true },
     orderBy: { category: 'asc' }
   });
@@ -185,7 +187,10 @@ export default async function LandingPage() {
       <footer className="bg-white border-t border-gray-100 py-12 text-center">
         <p className="text-2xl mb-2">🌙</p>
         <p className="text-sm font-bold text-gray-900">Patinhas na Lua</p>
-        <p className="text-xs text-gray-400 mt-2">© 2025. Todos os direitos reservados.</p>
+        <div className="flex gap-4 justify-center text-xs text-gray-400 mt-2">
+          <p>© 2025. Todos os direitos reservados.</p>
+          <Link href="/terms" className="hover:underline">Termos e Condições</Link>
+        </div>
       </footer>
     </div>
   );

@@ -99,6 +99,14 @@ export default function BookingWizard({ user, pets, services, initialDate, close
     // 2. Filter by Location Availability
     if (locationType === "MOBILE") {
       result = result.filter(s => s.isMobileAvailable);
+
+      // RULE: Dogs > 20kg cannot have "Main Services" (Bath/Grooming) on Mobile
+      // "LARGE" starts at 21kg.
+      const bigSizes = ["LARGE", "XL", "GIANT"];
+      if (bigSizes.includes(selectedPet.sizeCategory)) {
+        // Exclude Grooming (Bath + Cuts)
+        result = result.filter(s => s.category !== "GROOMING");
+      }
     }
 
     return result;
@@ -337,7 +345,11 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                   ))}
 
                   {filteredServices.length === 0 && (
-                    <p className="text-center text-gray-500 italic p-4">Não existem serviços disponíveis para este tipo de animal.</p>
+                    <p className="text-center text-gray-500 italic p-4">
+                      {locationType === "MOBILE"
+                        ? "Não existem serviços ao domicílio disponíveis para este tamanho/animal."
+                        : "Não existem serviços disponíveis para este tipo de animal."}
+                    </p>
                   )}
                 </div>
               </div>

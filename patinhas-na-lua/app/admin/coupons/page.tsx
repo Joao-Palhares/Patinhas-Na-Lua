@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { format } from "date-fns";
 import Link from "next/link";
+import CreateCouponModal from "./create-coupon-modal";
 
 export default async function AdminCouponsPage() {
 
@@ -26,7 +27,13 @@ export default async function AdminCouponsPage() {
         take: 10
     });
 
-    // Ensure Table Exists (Migration Hack)
+    // 4. Fetch All Users (For Manual Coupon Creation)
+    const allUsers = await db.user.findMany({
+        select: { id: true, name: true, email: true },
+        orderBy: { name: "asc" }
+    });
+
+    // Ensure Table Exists (Migration Hack - Keeping this just in case)
     await db.$executeRaw`
        CREATE TABLE IF NOT EXISTS "LoyaltyReward" (
           "id" TEXT NOT NULL PRIMARY KEY,
@@ -37,6 +44,7 @@ export default async function AdminCouponsPage() {
        );
     `;
 
+    // Fetch Rewards for reference in Loyalty Insights
     const rewards = await db.$queryRaw<any[]>`
         SELECT 
             r."id", 
@@ -53,16 +61,19 @@ export default async function AdminCouponsPage() {
 
     return (
         <div className="space-y-8 pb-20">
-            <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-gray-800">Gestão de Prémios 🎟️</h1>
                     <p className="text-gray-500">Controlo de cupões emitidos e fidelização.</p>
                 </div>
-                <Link href="/admin/scan">
-                    <button className="bg-slate-900 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-slate-800 transition flex items-center gap-2 transform hover:scale-105 active:scale-95">
-                        <span className="text-xl">📷</span> <span className="hidden md:inline">Ler QR Code</span>
-                    </button>
-                </Link>
+                <div className="flex items-center gap-3">
+                    <Link href="/admin/scan">
+                        <button className="bg-slate-900 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-slate-800 transition flex items-center gap-2 transform hover:scale-105 active:scale-95">
+                            <span className="text-xl">📷</span> <span className="hidden md:inline">Ler QR Code</span>
+                        </button>
+                    </Link>
+                    <CreateCouponModal users={allUsers} />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -90,7 +101,7 @@ export default async function AdminCouponsPage() {
                                                 </span>
                                             </div>
                                             <p className="text-sm text-gray-500 mt-1">
-                                                Cliente: <span className="font-bold text-gray-700">{coupon.user?.name || "Desconhecido"}</span>
+                                                Cliente: <span className="font-bold text-gray-700">{coupon.user?.name || "Qualquer Utilizador"}</span>
                                             </p>
                                         </div>
                                         <div className="text-right text-xs text-gray-400">
@@ -162,7 +173,7 @@ export default async function AdminCouponsPage() {
                                                 </span>
                                             ) : (
                                                 <div className="flex gap-1 justify-end mt-1">
-                                                    {rewards.filter(r => user.loyaltyPoints >= r.pointsCost).map(r => (
+                                                    {rewards && rewards.filter(r => user.loyaltyPoints >= r.pointsCost).map(r => (
                                                         <span key={r.id} title={r.serviceName} className="text-xs bg-purple-100 text-purple-700 px-1 rounded font-bold cursor-help">
                                                             {r.pointsCost}pts
                                                         </span>

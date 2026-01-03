@@ -44,8 +44,9 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
   // 1. Fetch Raw Data
   const rawServices = await db.service.findMany({
     where: {
-      name: { contains: query, mode: "insensitive" }
-    },
+      name: { contains: query, mode: "insensitive" },
+      isActive: true, // Only show active services (Soft Delete)
+    } as any, // Cast to any to bypass outdated types
     include: { options: true },
     orderBy: { name: "asc" } // Changed from category to name
   });
@@ -53,12 +54,12 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
   // 2. Transform & SORT Data
   const services = rawServices.map(service => ({
     ...service,
-    options: service.options
-      .map(opt => ({
+    options: (service as any).options
+      .map((opt: any) => ({
         ...opt,
-        price: opt.price.toNumber() // Convert Decimal to Number
+        price: Number(opt.price) // Convert Decimal to Number
       }))
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         // Sort by Coat Type first
         const coatA = a.coatType ? COAT_PRIORITY[a.coatType] || 99 : 0;
         const coatB = b.coatType ? COAT_PRIORITY[b.coatType] || 99 : 0;
@@ -140,7 +141,7 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
       <h2 className="text-xl font-bold mb-4 text-gray-800">Serviços e Preços</h2>
       <SearchServices />
       <div className="space-y-6">
-        {services.map((service) => (
+        {services.map((service: any) => (
           <div key={service.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
 
             {/* Header */}
@@ -149,7 +150,7 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
                 <div className="flex items-center gap-3">
                   <h3 className="font-bold text-lg text-gray-800">{service.name}</h3>
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold uppercase tracking-wide">
-                    {CATEGORY_LABELS[service.category]}
+                    {CATEGORY_LABELS[service.category as ServiceCategory]}
                   </span>
                   <EditServiceModal service={service} />
                 </div>
@@ -180,13 +181,13 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {service.options.map((opt) => (
+                  {service.options.map((opt: any) => (
                     <tr key={opt.id} className="hover:bg-gray-50">
                       <td className="py-2 px-3 text-gray-700 font-medium">
-                        {opt.petSize ? SIZE_LABELS[opt.petSize] : "Todos"}
+                        {opt.petSize ? SIZE_LABELS[opt.petSize as PetSize] : "Todos"}
                       </td>
                       <td className="py-2 px-3 text-gray-700">
-                        {opt.coatType ? COAT_LABELS[opt.coatType] : "Todos"}
+                        {opt.coatType ? COAT_LABELS[opt.coatType as CoatType] : "Todos"}
                       </td>
                       <td className="py-2 px-3 text-gray-700">
                         {opt.durationMin} {opt.durationMax ? `- ${opt.durationMax}` : ""} min

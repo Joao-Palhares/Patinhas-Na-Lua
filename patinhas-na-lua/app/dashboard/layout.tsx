@@ -70,6 +70,14 @@ export default async function DashboardLayout({
 
       {/* --- PAGE CONTENT --- */}
       {children}
+
+      <footer className="py-8 text-center text-xs text-gray-400 mt-auto">
+        <div className="flex justify-center gap-4 mb-2">
+          <Link href="/terms" className="hover:underline">Termos e Condições</Link>
+          <Link href="/privacy" className="hover:underline">Política de Privacidade</Link>
+        </div>
+        <p>© 2025 Patinhas na Lua</p>
+      </footer>
     </div>
   );
 }

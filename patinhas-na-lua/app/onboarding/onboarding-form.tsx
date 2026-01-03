@@ -1,7 +1,10 @@
 "use client";
 
 import { completeOnboarding } from "@/app/actions";
-import { useState } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { defaultCountries, FlagImage, parseCountry } from 'react-international-phone';
+import { ChevronDown, Search } from "lucide-react";
 
 export default function OnboardingForm({
   defaultName
@@ -9,11 +12,91 @@ export default function OnboardingForm({
   defaultName: string
 }) {
 
-  // This small function deletes any non-number immediately
-  const handleNumberInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Replace anything that is NOT a number (0-9) with empty string
-    e.target.value = value.replace(/[^0-9]/g, "");
+  /* --- CUSTOM PHONE INPUT COMPONENT --- */
+  // We define it inside or outside based on complexity. Inside to access props if needed, but cleaner outside.
+  // Actually, let's keep it simple inside for now as we need to pass value back.
+
+  const [phoneState, setPhoneState] = useState({ iso2: 'pt', dial: '351', phone: '' });
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: any) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+        setSearchQuery(""); // Reset search on close
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Auto-focus search input when dropdown opens
+  useEffect(() => {
+    if (isDropdownOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isDropdownOpen]);
+
+  const handleCountrySelect = (country: any) => {
+    const parsed = parseCountry(country);
+    // country is array [name, iso2, dial]
+    setPhoneState(prev => ({ ...prev, iso2: parsed.iso2, dial: parsed.dialCode }));
+    setIsDropdownOpen(false);
+    setSearchQuery("");
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.target.setCustomValidity("");
+    // Allow only numbers
+    const val = e.target.value.replace(/[^0-9]/g, "");
+    setPhoneState(prev => ({ ...prev, phone: val }));
+
+    // Simple length check for visual feedback (optional)
+  };
+
+  // Filter countries
+  const filteredCountries = useMemo(() => {
+    const lower = searchQuery.toLowerCase();
+    return defaultCountries.filter((c: any) => {
+      const parsed = parseCountry(c);
+      return parsed.name.toLowerCase().includes(lower) || parsed.dialCode.includes(lower);
+    });
+  }, [searchQuery, defaultCountries]);
+
+  // Dynamic Max Length enforcement
+  // PT=9, BR=11, others=15 (E.164 max)
+  const currentMaxLength = phoneState.iso2 === 'pt' ? 9 : phoneState.iso2 === 'br' ? 11 : 15;
+
+  const fullPhoneSubmission = `+${phoneState.dial}${phoneState.phone}`;
+
+  // Find current country data
+  const currentCountryData = defaultCountries.find(c => parseCountry(c).iso2 === phoneState.iso2) || defaultCountries[0];
+  const parsedCurrent = parseCountry(currentCountryData);
+
+  // Custom constraint validation
+  const handleNifInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.target.setCustomValidity("");
+    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+  };
+
+  const handleCustomPhoneInvalid = (e: React.FormEvent<HTMLInputElement>) => {
+    const target = e.target as HTMLInputElement;
+    const len = phoneState.phone.length;
+    // Validate against the dynamic max length or a range
+    if (len < (currentMaxLength === 15 ? 7 : currentMaxLength) || len > currentMaxLength) {
+      target.setCustomValidity(`Número inválido para +${phoneState.dial} (esperados ${currentMaxLength} dígitos).`);
+    }
+  };
+
+  const handleInvalidNif = (e: React.FormEvent<HTMLInputElement>) => {
+    const target = e.target as HTMLInputElement;
+    if (target.validity.patternMismatch || target.validity.valueMissing) {
+      target.setCustomValidity("NIF inválido. Deve ter 9 dígitos.");
+    }
   };
 
   return (
@@ -25,37 +108,112 @@ export default function OnboardingForm({
           name="name"
           required
           defaultValue={defaultName}
-          className="w-full border border-gray-300 rounded-lg p-2.5 mt-1 text-gray-900 bg-white focus:ring-blue-500 focus:border-blue-500"
+          className="w-full border border-gray-300 rounded-lg p-2.5 mt-1 text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {/* TELEMOVEL */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Telemóvel *</label>
-          <input
-            name="phone"
-            required
-            type="tel"
-            maxLength={9}
-            minLength={9}
-            placeholder="912345678"
-            onInput={handleNumberInput} // <--- This BLOCKS letters
-            className="w-full border border-gray-300 rounded-lg p-2.5 mt-1 text-gray-900 bg-white focus:ring-blue-500 focus:border-blue-500"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-1">Telemóvel *</label>
+
+          {/* Custom Styled Phone Input Refactored for Overlap Safety */}
+          <div
+            className={`mt-1 relative ${isDropdownOpen ? 'z-20' : 'z-0'}`}
+            ref={dropdownRef}
+          >
+            {/* Visual Input Container - overflow-hidden ensures input doesn't bleed out */}
+            <div className="flex items-center border border-gray-300 rounded-lg bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 h-[44px]">
+              {/* Left Button with Flag & Code */}
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-2 pl-3 pr-2 h-full hover:bg-gray-50 transition border-r-0 outline-none flex-shrink-0"
+              >
+                <FlagImage iso2={phoneState.iso2} size="24px" />
+                <span className="text-gray-600 font-medium text-sm">+{phoneState.dial}</span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Divider */}
+              <div className="h-6 w-px bg-gray-300 mx-1 flex-shrink-0"></div>
+
+              {/* Input Field */}
+              <input
+                type="tel"
+                id="phone" // Add explicit ID
+                required
+                value={phoneState.phone}
+                onChange={handlePhoneChange}
+                onInvalid={handleCustomPhoneInvalid}
+                placeholder="912345678"
+                className="flex-1 h-full border-none outline-none focus:ring-0 text-gray-900 text-base placeholder:text-gray-400 pl-2 min-w-0" // min-w-0 allows flex shrink
+                maxLength={currentMaxLength}
+              />
+            </div>
+
+            {/* Custom Dropdown - Sibling to input container, so it floats freely */}
+            {isDropdownOpen && (
+              <div className="absolute top-12 left-0 w-full min-w-[300px] max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-50 flex flex-col">
+                {/* Search Bar */}
+                <div className="sticky top-0 bg-white p-2 border-b border-gray-100 z-10">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" />
+                    <input
+                      ref={searchInputRef}
+                      className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      placeholder="Procurar país..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="overflow-y-auto">
+                  {filteredCountries.length > 0 ? (
+                    filteredCountries.map((country: any) => {
+                      const parsed = parseCountry(country);
+                      const isSelected = parsed.iso2 === phoneState.iso2;
+                      return (
+                        <button
+                          key={parsed.iso2}
+                          type="button"
+                          onClick={() => handleCountrySelect(country)}
+                          className={`w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-blue-50 transition border-b border-gray-50 last:border-0 ${isSelected ? 'bg-blue-50/50' : ''}`}
+                        >
+                          <FlagImage iso2={parsed.iso2} size="20px" />
+                          <span className="text-sm text-gray-700 font-medium">{parsed.name}</span>
+                          <span className="text-sm text-gray-400 ml-auto">+{parsed.dialCode}</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 text-center text-sm text-gray-500">
+
+                      País não encontrado.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <input type="hidden" name="phone" value={fullPhoneSubmission} />
         </div>
         {/* NIF */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">NIF *</label>
+        <div className="relative z-0">
+          <label htmlFor="nif" className="block text-sm font-medium text-gray-700">NIF *</label>
           <input
+            id="nif"
             name="nif"
             required
             type="tel"
             maxLength={9}
             minLength={9}
+            pattern="[0-9]{9}"
             placeholder="123456789"
-            onInput={handleNumberInput} // <--- This BLOCKS letters
-            className="w-full border border-gray-300 rounded-lg p-2.5 mt-1 text-gray-900 bg-white focus:ring-blue-500 focus:border-blue-500"
+            onInput={handleNifInput}
+            onInvalid={handleInvalidNif}
+            className="w-full border border-gray-300 rounded-lg p-2.5 mt-1 text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
       </div>
@@ -67,7 +225,7 @@ export default function OnboardingForm({
           name="address"
           required
           rows={2}
-          className="w-full border border-gray-300 rounded-lg p-2.5 mt-1 text-gray-900 bg-white focus:ring-blue-500 focus:border-blue-500"
+          className="w-full border border-gray-300 rounded-lg p-2.5 mt-1 text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
@@ -81,10 +239,23 @@ export default function OnboardingForm({
           <input
             name="referralCode"
             placeholder="Ex: JOAO1234"
-            className="w-full border border-gray-300 rounded-lg p-2.5 pl-10 mt-1 text-gray-900 bg-white focus:ring-purple-500 focus:border-purple-500 uppercase tracking-widest placeholder:tracking-normal"
+            className="w-full border border-gray-300 rounded-lg p-2.5 pl-10 mt-1 text-gray-900 bg-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 uppercase tracking-widest placeholder:tracking-normal"
           />
         </div>
         <p className="text-xs text-gray-500 mt-1">Se um amigo te recomendou, insere o código dele para ganhares 5% de desconto.</p>
+      </div>
+
+      <div className="flex items-start gap-3 py-2">
+        <input
+          id="terms"
+          name="terms"
+          type="checkbox"
+          required
+          className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-0.5"
+        />
+        <label htmlFor="terms" className="text-sm text-gray-600 leading-tight">
+          Li e aceito os <Link href="/terms" target="_blank" className="text-blue-600 underline hover:text-blue-800">Termos e Condições</Link> e a <Link href="/privacy" target="_blank" className="text-blue-600 underline hover:text-blue-800">Política de Privacidade</Link>.
+        </label>
       </div>
 
       <button

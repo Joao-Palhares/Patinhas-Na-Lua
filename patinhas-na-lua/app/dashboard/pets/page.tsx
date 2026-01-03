@@ -1,9 +1,11 @@
 import { db } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { createPetAction } from "@/app/admin/clients/actions";
+import { createPetAction, deletePetAction } from "@/app/admin/clients/actions";
 import { PetSize, CoatType } from "@prisma/client";
 import Link from "next/link";
+import DeleteForm from "@/app/admin/components/delete-form";
+import EditPetModal from "./edit-pet-modal";
 
 const SPECIES_ICON_MAP: Record<string, string> = {
   DOG: "🐶",
@@ -41,8 +43,8 @@ export default async function MyPetsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
-      <div className="max-w-5xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8">
-        
+      <div className="max-w-5xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8 pt-8">
+
         {/* LEFT: LIST OF PETS */}
         <div className="space-y-4">
           <h2 className="font-bold text-gray-800 text-lg">Meus Pets Registados</h2>
@@ -53,12 +55,26 @@ export default async function MyPetsPage() {
                   <h3 className="font-bold text-lg text-slate-900">{pet.name}</h3>
                   <p className="text-sm text-gray-600">{pet.breed || "Raça não definida"}</p>
                 </div>
-                <span className={`px-2 py-1 rounded text-xs font-bold uppercase bg-blue-100 text-blue-800`}>
-                  <span className="text-lg" title={pet.species}>
-                        {SPECIES_ICON_MAP[pet.species] || "🐾"}
-                      </span>
-                  {pet.species === 'DOG' ? 'Cão' : pet.species === 'CAT' ? 'Gato' : 'Coelho'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase bg-blue-100 text-blue-800 flex items-center gap-1`}>
+                    <span className="text-lg" title={pet.species}>
+                      {SPECIES_ICON_MAP[pet.species] || "🐾"}
+                    </span>
+                    {pet.species === 'DOG' ? 'Cão' : pet.species === 'CAT' ? 'Gato' : 'Coelho'}
+                  </span>
+
+                  {/* EDIT BUTTON */}
+                  <EditPetModal pet={pet} />
+
+                  {/* DELETE BUTTON */}
+                  <DeleteForm
+                    id={pet.id}
+                    action={deletePetAction}
+                    className="ml-2 text-xs font-bold text-red-500 border border-red-200 rounded px-2 py-1 hover:bg-red-50 transition"
+                  >
+                    Eliminar
+                  </DeleteForm>
+                </div>
               </div>
               <div className="mt-4 text-sm text-gray-700 grid grid-cols-2 gap-3">
                 <div className="bg-slate-100 p-2 rounded border border-slate-200">
@@ -73,29 +89,29 @@ export default async function MyPetsPage() {
             </div>
           ))}
           {dbUser.pets.length === 0 && (
-             <div className="bg-white p-8 rounded-xl border-2 border-dashed border-gray-300 text-center text-gray-500">
-               Ainda não adicionou nenhum animal.
-             </div>
+            <div className="bg-white p-8 rounded-xl border-2 border-dashed border-gray-300 text-center text-gray-500">
+              Ainda não adicionou nenhum animal.
+            </div>
           )}
         </div>
 
         {/* RIGHT: ADD PET FORM */}
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-fit">
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-fit sticky top-20">
           <h2 className="font-bold text-xl text-blue-700 mb-6 flex items-center gap-2">
             Adicionar Novo Pet <span className="text-2xl">🐾</span>
           </h2>
-          
+
           <form action={createPetAction} className="space-y-5">
             <input type="hidden" name="userId" value={user.id} />
-            
+
             {/* NAME */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Nome do Pet</label>
-              <input 
-                name="name" 
-                required 
-                className="w-full border border-gray-300 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                placeholder="Ex: Bobby" 
+              <input
+                name="name"
+                required
+                className="w-full border border-gray-300 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ex: Bobby"
               />
             </div>
 
@@ -103,8 +119,8 @@ export default async function MyPetsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Espécie</label>
-                <select 
-                  name="species" 
+                <select
+                  name="species"
                   className="w-full border border-gray-300 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="DOG">Cão</option>
@@ -114,8 +130,8 @@ export default async function MyPetsPage() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Sexo</label>
-                <select 
-                  name="gender" 
+                <select
+                  name="gender"
                   className="w-full border border-gray-300 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Macho">Macho</option>
@@ -130,9 +146,9 @@ export default async function MyPetsPage() {
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Tamanho *</label>
-                  <select 
-                    name="sizeCategory" 
-                    required 
+                  <select
+                    name="sizeCategory"
+                    required
                     className="w-full border border-blue-200 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="" className="text-gray-400">Selecione o tamanho...</option>
@@ -143,9 +159,9 @@ export default async function MyPetsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Tipo de pelo *</label>
-                  <select 
-                    name="coatType" 
-                    required 
+                  <select
+                    name="coatType"
+                    required
                     className="w-full border border-blue-200 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="" className="text-gray-400">Selecione o pelo...</option>
@@ -158,59 +174,57 @@ export default async function MyPetsPage() {
             </div>
 
             {/* BREED (OPTIONAL) */}
-<div>
-  <label className="block text-sm font-bold text-gray-700 mb-1">Raça (Opcional)</label>
-  
-  <div className="relative">
-    
-    <input 
-      name="breed" 
-      className="w-full border border-gray-300 p-3 pr-10 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-      placeholder="Ex: Caniche" 
-    />
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Raça (Opcional)</label>
 
-    {/* Icon wrapper */}
-    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center cursor-help breed-help-icon">
-      
-      <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="20" 
-        height="20" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        className="text-gray-400 hover:text-blue-600 transition-colors"
-      >
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="16" x2="12" y2="12"></line>
-        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-      </svg>
+              <div className="relative">
 
-      {/* Tooltip */}
-      <div className="breed-tooltip absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-xl pointer-events-none opacity-0 invisible transition-all duration-200">
-        <p className="font-bold mb-1 text-white text-sm">Ajuda sobre a Raça:</p>
-        <ul className="list-disc pl-4 space-y-1 text-gray-300 leading-relaxed">
-          <li>Se não souber ou for mistura, escreva <span className="font-bold text-white">"IND"</span>.</li>
-          <li>Se for raça pura, escreva o nome (ex: <span className="font-bold text-white">"Pitbull"</span>).</li>
-        </ul>
-        
-        <div className="absolute top-full right-2 border-8 border-transparent border-t-slate-900"></div>
-      </div>
+                <input
+                  name="breed"
+                  className="w-full border border-gray-300 p-3 pr-10 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ex: Caniche"
+                />
 
-    </div>
-  </div>
-</div>
+                {/* Icon wrapper */}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center cursor-help breed-help-icon">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-gray-400 hover:text-blue-600 transition-colors"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+
+                  {/* Tooltip */}
+                  <div className="breed-tooltip absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-xl pointer-events-none opacity-0 invisible transition-all duration-200">
+                    <p className="font-bold mb-1 text-white text-sm">Ajuda sobre a Raça:</p>
+                    <ul className="list-disc pl-4 space-y-1 text-gray-300 leading-relaxed">
+                      <li>Se não souber ou for mistura, escreva <span className="font-bold text-white">"IND"</span>.</li>
+                      <li>Se for raça pura, escreva o nome (ex: <span className="font-bold text-white">"Pitbull"</span>).</li>
+                    </ul>
+
+                    <div className="absolute top-full right-2 border-8 border-transparent border-t-slate-900"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* BIRTHDATE */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Data Nascimento (Aprox)</label>
-              <input 
-                name="birthDate" 
-                type="date" 
-                className="w-full border border-gray-300 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500" 
+              <input
+                name="birthDate"
+                type="date"
+                className="w-full border border-gray-300 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
               />
             </div>
 

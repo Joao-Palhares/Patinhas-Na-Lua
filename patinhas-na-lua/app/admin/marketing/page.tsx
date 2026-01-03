@@ -190,7 +190,7 @@ export default function MarketingPage() {
                                 type="file"
                                 accept="image/*"
                                 onChange={handleImageUpload}
-                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
                             />
                             <Upload className="mx-auto text-gray-400 mb-2" />
                             <p className="text-sm text-gray-500">Clique para carregar foto</p>
