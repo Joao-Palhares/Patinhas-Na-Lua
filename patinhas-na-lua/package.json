@@ -9,8 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@clerk/localizations": "2.4.0",
-    "@clerk/nextjs": "5.1.6",
+    "@clerk/localizations": "2.4.4",
+    "@clerk/nextjs": "5.7.5",
     "@neondatabase/serverless": "^1.0.2",
     "@prisma/client": "^5.17.0",
     "@react-pdf/renderer": "^4.3.1",
