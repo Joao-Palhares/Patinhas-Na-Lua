@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -21,9 +21,9 @@
     "jsqr": "^1.4.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.562.0",
-    "next": "16.1.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "next": "15.1.9",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "react-international-phone": "^4.6.1",
     "react-leaflet": "^5.0.0",
     "react-qr-code": "^2.0.18",
@@ -39,7 +39,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.0",
+    "eslint-config-next": "15.1.9",
     "prisma": "^5.17.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
@@ -47,5 +47,6 @@
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
-  }
+  },
+  "packageManager": "pnpm@9.1.0"
 }
