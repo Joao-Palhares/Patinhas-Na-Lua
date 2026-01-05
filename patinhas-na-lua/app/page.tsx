@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import { SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 import ServicesMatrix from "@/app/components/landing/services-matrix";
 import BookingCalendar from "@/app/components/landing/booking-calendar";
 import PortfolioFan from "@/app/components/landing/portfolio-fan";
@@ -50,8 +51,8 @@ export default async function LandingPage() {
       {/* NAVBAR */}
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🌙</span>
+          <div className="flex items-center gap-3">
+            <Image src="/logo.png" alt="Patinhas na Lua Logo" width={40} height={40} className="rounded-lg" />
             <span className="font-serif font-bold text-lg tracking-tight">Patinhas na Lua</span>
           </div>
 
@@ -185,7 +186,9 @@ export default async function LandingPage() {
       </main>
 
       <footer className="bg-white border-t border-gray-100 py-12 text-center">
-        <p className="text-2xl mb-2">🌙</p>
+        <div className="flex justify-center mb-4">
+          <Image src="/logo.png" alt="Patinhas na Lua Logo" width={80} height={80} className="rounded-xl" />
+        </div>
         <p className="text-sm font-bold text-gray-900">Patinhas na Lua</p>
         <div className="flex gap-4 justify-center text-xs text-gray-400 mt-2">
           <p>© 2025. Todos os direitos reservados.</p>

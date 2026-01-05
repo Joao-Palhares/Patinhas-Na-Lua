@@ -1,6 +1,7 @@
 import { UserButton } from "@clerk/nextjs";
 import UserButtonWrapper from "../components/user-button-wrapper";
 import Link from "next/link";
+import Image from "next/image";
 import { currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -31,8 +32,8 @@ export default async function DashboardLayout({
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
 
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2 group">
-            <span className="text-2xl group-hover:scale-110 transition">🌙</span>
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <Image src="/logo.png" alt="Patinhas na Lua" width={32} height={32} className="rounded-lg group-hover:scale-110 transition" />
             <span className="font-bold text-blue-600 text-lg hidden md:block">Patinhas na Lua</span>
           </Link>
 
