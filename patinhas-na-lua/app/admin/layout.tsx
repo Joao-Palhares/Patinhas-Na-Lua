@@ -2,6 +2,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import AdminMobileNav from "./components/admin-mobile-nav";
 import AdminNotifications from "./components/admin-notifications";
 
@@ -30,7 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     orderBy: { date: "asc" }
   });
 
-  const appointmentsSafe = nextDayAppointments.map(app => ({
+  const appointmentsSafe = nextDayAppointments.map((app: any) => ({
     id: app.id,
     date: app.date,
     pet: { name: app.pet.name },
@@ -45,11 +46,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       {/* SIDEBAR: Stays Fixed */}
       <aside className="w-64 bg-slate-900 text-white flex flex-col hidden md:flex shadow-xl z-10">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-blue-400 tracking-wider">
-            ADMIN 🌙
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">Patinhas na Lua</p>
+        <div className="p-6 flex items-center gap-3">
+          <Image src="/logo.png" alt="Patinhas na Lua" width={40} height={40} className="rounded-lg" />
+          <div>
+            <h2 className="text-xl font-bold text-blue-400 tracking-wider">
+              ADMIN
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">Patinhas na Lua</p>
+          </div>
         </div>
 
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto">

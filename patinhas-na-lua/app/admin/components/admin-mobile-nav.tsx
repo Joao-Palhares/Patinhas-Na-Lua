@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 export default function AdminMobileNav({ children }: { children?: React.ReactNode }) {
@@ -32,7 +33,10 @@ export default function AdminMobileNav({ children }: { children?: React.ReactNod
                 <button onClick={toggle} className="p-2 -ml-2 text-2xl font-bold leading-none">
                     {isOpen ? "✕" : "☰"}
                 </button>
-                <span className="font-bold tracking-wider">ADMIN 🌙</span>
+                <div className="flex items-center gap-2">
+                    <Image src="/logo.png" alt="Admin" width={24} height={24} className="rounded" />
+                    <span className="font-bold tracking-wider text-sm">ADMIN</span>
+                </div>
                 <Link href="/admin/scan">
                     <button className="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                         📷 <span className="hidden xs:inline">Scan</span>
@@ -51,9 +55,12 @@ export default function AdminMobileNav({ children }: { children?: React.ReactNod
             {/* SIDEBAR DRAWER */}
             <div className={`fixed inset-y-0 left-0 w-64 bg-slate-900 text-white z-50 transform transition-transform duration-300 shadow-2xl ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
                 <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                    <div>
-                        <h2 className="text-xl font-bold text-blue-400 tracking-wider">ADMIN 🌙</h2>
-                        <p className="text-xs text-slate-400">Menu Completo</p>
+                    <div className="flex items-center gap-3">
+                        <Image src="/logo.png" alt="Patinhas na Lua" width={32} height={32} className="rounded-lg" />
+                        <div>
+                            <h2 className="text-xl font-bold text-blue-400 tracking-wider">ADMIN</h2>
+                            <p className="text-xs text-slate-400">Menu Completo</p>
+                        </div>
                     </div>
                     <button onClick={toggle} className="text-slate-400 hover:text-white">✕</button>
                 </div>

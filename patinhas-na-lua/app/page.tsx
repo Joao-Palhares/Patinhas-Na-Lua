@@ -24,9 +24,9 @@ export default async function LandingPage() {
     orderBy: { category: 'asc' }
   });
 
-  const services = rawServices.map(service => ({
+  const services = rawServices.map((service: any) => ({
     ...service,
-    options: service.options.map(opt => ({
+    options: service.options.map((opt: any) => ({
       ...opt,
       price: opt.price.toNumber()
     }))
@@ -34,13 +34,13 @@ export default async function LandingPage() {
 
   // FETCH SCHEDULE
   const workingDays = await db.$queryRaw<any[]>`SELECT "dayOfWeek", "isClosed" FROM "WorkingDay"`;
-  const closedDays = workingDays.filter(d => d.isClosed).map(d => d.dayOfWeek);
+  const closedDays = workingDays.filter((d: any) => d.isClosed).map((d: any) => d.dayOfWeek);
   const finalClosedDays = workingDays.length > 0 ? closedDays : [0, 6];
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const futureAbsences = await db.$queryRaw<any[]>`SELECT "startDate", "endDate" FROM "Absence" WHERE "endDate" >= ${today}`;
-  const absenceRanges = futureAbsences.map(a => ({
+  const absenceRanges = futureAbsences.map((a: any) => ({
     from: new Date(a.startDate),
     to: new Date(a.endDate)
   }));
