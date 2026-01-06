@@ -100,7 +100,7 @@ export default async function LandingPage() {
         {/* TRUST BADGES */}
         <section className="py-10 border-y border-gray-100 bg-gray-50/50">
           <div className="max-w-5xl mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center grayscale opacity-80 hover:grayscale-0 transition duration-500">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <div className="flex flex-col items-center gap-2">
                 <span className="text-3xl">🌿</span>
                 <p className="font-bold text-xs uppercase tracking-widest text-gray-600">Produtos Veganos</p>
