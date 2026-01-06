@@ -12,7 +12,7 @@
     "@clerk/localizations": "^3.32.1",
     "@clerk/nextjs": "^6.36.5",
     "@neondatabase/serverless": "^1.0.2",
-    "@prisma/client": "^5.17.0",
+    "@prisma/client": "^5.22.0",
     "@react-pdf/renderer": "^4.3.1",
     "@types/leaflet": "^1.9.21",
     "date-fns": "^4.1.0",

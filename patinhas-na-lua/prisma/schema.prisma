@@ -391,3 +391,17 @@ model Absence {
   endDate   DateTime
   reason    String?
 }
+
+model PortfolioImage {
+  id          String   @id @default(cuid())
+  url         String   // Cloudinary URL
+  title       String?
+  description String?  @db.Text
+  isPublic    Boolean  @default(true)
+  order       Int      @default(0) // For manual sorting
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([isPublic, order])
+}
+
