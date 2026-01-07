@@ -7,22 +7,33 @@ export async function addReward(formData: FormData) {
     const serviceId = formData.get("serviceId") as string;
     const pointsCost = Number(formData.get("pointsCost"));
     const discountPercentage = Number(formData.get("discountPercentage") || 100);
-    const maxDiscountAmount = formData.get("maxDiscountAmount") ? Number(formData.get("maxDiscountAmount")) : null;
+    // Handle optional decimal field
+    const rawMaxDiscount = formData.get("maxDiscountAmount");
+    const maxDiscountAmount = rawMaxDiscount ? Number(rawMaxDiscount) : null;
 
     // Simple validation
     if (!serviceId || !pointsCost || pointsCost <= 0) return;
 
-    const id = crypto.randomUUID();
+    // Now securely using Prisma Client which handles createdAt/updatedAt automatically
+    await db.loyaltyReward.create({
+        data: {
+            serviceId,
+            pointsCost,
+            discountPercentage,
+            maxDiscountAmount,
+            isActive: true,
+        }
+    });
 
-    await db.$executeRaw`
-        INSERT INTO "LoyaltyReward" ("id", "serviceId", "pointsCost", "discountPercentage", "maxDiscountAmount", "isActive")
-        VALUES (${id}, ${serviceId}, ${pointsCost}, ${discountPercentage}, ${maxDiscountAmount}, true)
-    `;
     revalidatePath("/admin/settings/rewards");
 }
 
 export async function deleteReward(formData: FormData) {
     const id = formData.get("id") as string;
-    await db.$executeRaw`DELETE FROM "LoyaltyReward" WHERE "id" = ${id}`;
+
+    await db.loyaltyReward.delete({
+        where: { id }
+    });
+
     revalidatePath("/admin/settings/rewards");
 }

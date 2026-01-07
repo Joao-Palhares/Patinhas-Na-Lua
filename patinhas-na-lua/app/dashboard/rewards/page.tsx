@@ -14,26 +14,22 @@ export default async function RewardsPage() {
 
     if (!dbUser) redirect("/onboarding");
 
-    // Fetch Rewards
-    const rewards = await db.$queryRaw<any[]>`
-        SELECT 
-            r."id", 
-            r."pointsCost", 
-            r."serviceId", 
-            r."isActive", 
-            r."discountPercentage", 
-            r."maxDiscountAmount",
-            s.name as "serviceName", 
-            s.category as "serviceCategory"
-        FROM "LoyaltyReward" r
-        JOIN "Service" s ON r."serviceId" = s."id"
-        WHERE r."isActive" = true
-        ORDER BY r."pointsCost" ASC
-    `;
+    // Fetch Rewards using proper Prisma Client
+    const rewardsRaw = await db.loyaltyReward.findMany({
+        where: { isActive: true },
+        include: { service: true },
+        orderBy: { pointsCost: 'asc' }
+    });
 
-    const rewardsSafe = rewards.map(r => ({
-        ...r,
-        maxDiscountAmount: r.maxDiscountAmount ? Number(r.maxDiscountAmount) : null
+    const rewardsSafe = rewardsRaw.map(r => ({
+        id: r.id,
+        pointsCost: r.pointsCost,
+        serviceId: r.serviceId,
+        isActive: r.isActive,
+        discountPercentage: r.discountPercentage,
+        maxDiscountAmount: r.maxDiscountAmount ? Number(r.maxDiscountAmount) : null,
+        serviceName: r.service.name,
+        serviceCategory: r.service.category
     }));
 
     return (
@@ -76,7 +72,7 @@ export default async function RewardsPage() {
             </div>
 
             {/* CONTENT */}
-            <div className="max-w-4xl mx-auto px-4 -mt-16 relative z-20">
+            <div className="max-w-6xl mx-auto px-4 -mt-16 relative z-20">
                 <RewardsClient userPoints={dbUser.loyaltyPoints} rewards={rewardsSafe} />
             </div>
 

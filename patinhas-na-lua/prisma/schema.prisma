@@ -96,6 +96,7 @@ model Service {
   options     ServiceOption[]
   
   appointments Appointment[]
+  loyaltyRewards LoyaltyReward[]
 }
 
 model ServiceOption {
@@ -405,3 +406,18 @@ model PortfolioImage {
   @@index([isPublic, order])
 }
 
+
+model LoyaltyReward {
+  id                String   @id @default(cuid())
+  pointsCost        Int
+  
+  serviceId         String
+  service           Service  @relation(fields: [serviceId], references: [id])
+  
+  isActive          Boolean  @default(true)
+  discountPercentage Int     @default(100)
+  maxDiscountAmount Decimal?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

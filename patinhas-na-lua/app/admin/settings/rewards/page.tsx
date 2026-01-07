@@ -3,48 +3,28 @@ import { deleteReward } from "./actions";
 import AddRewardForm from "./add-reward-form";
 
 export default async function RewardsSettingsPage() {
-    // 1. Ensure Table Exists (Migration Hack)
-    try {
-        await db.$executeRaw`
-           CREATE TABLE IF NOT EXISTS "LoyaltyReward" (
-              "id" TEXT NOT NULL PRIMARY KEY,
-              "pointsCost" INTEGER NOT NULL,
-              "serviceId" TEXT NOT NULL,
-              "isActive" BOOLEAN NOT NULL DEFAULT true,
-              "discountPercentage" INTEGER DEFAULT 100,
-              FOREIGN KEY ("serviceId") REFERENCES "Service"("id") ON DELETE RESTRICT ON UPDATE CASCADE
-           );
-        `;
-
-        try {
-            await db.$executeRaw`ALTER TABLE "LoyaltyReward" ADD COLUMN "discountPercentage" INTEGER DEFAULT 100`;
-        } catch (e) { }
-        try {
-            await db.$executeRaw`ALTER TABLE "LoyaltyReward" ADD COLUMN "maxDiscountAmount" DECIMAL(10,2)`;
-        } catch (e) { }
-    } catch (e) { }
-
     // 2. Fetch Services
     const services = await db.service.findMany({
         orderBy: { name: "asc" },
         select: { id: true, name: true, category: true }
     });
 
-    // 3. Fetch Rewards
-    const rewards = await db.$queryRaw<any[]>`
-        SELECT 
-            r."id", 
-            r."pointsCost", 
-            r."serviceId", 
-            r."isActive", 
-            r."discountPercentage", 
-            r."maxDiscountAmount",
-            s.name as "serviceName", 
-            s.category as "serviceCategory"
-        FROM "LoyaltyReward" r
-        JOIN "Service" s ON r."serviceId" = s."id"
-        ORDER BY r."pointsCost" ASC
-    `;
+    // 3. Fetch Rewards (Standard Prisma)
+    const rewardsRaw = await db.loyaltyReward.findMany({
+        orderBy: { pointsCost: 'asc' },
+        include: { service: true }
+    });
+
+    const rewards = rewardsRaw.map(r => ({
+        id: r.id,
+        pointsCost: r.pointsCost,
+        serviceId: r.serviceId,
+        isActive: r.isActive,
+        discountPercentage: r.discountPercentage,
+        maxDiscountAmount: r.maxDiscountAmount ? Number(r.maxDiscountAmount) : null,
+        serviceName: r.service.name,
+        serviceCategory: r.service.category
+    }));
 
     const formatCategory = (cat: string) => {
         if (cat === 'GROOMING') return 'Cão';
