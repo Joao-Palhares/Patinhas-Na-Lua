@@ -15,7 +15,7 @@ export default async function AnalyticsPage(props: {
 
   // ... (The rest of the code stays exactly the same) ...
   
-  // 3. Fetch Data for the SELECTED Year
+  // 3. Fetch Data for the SELECTED Year (Appointments, Expenses AND Users)
   const appointments = await db.appointment.findMany({
     where: {
       status: "COMPLETED",
@@ -35,12 +35,22 @@ export default async function AnalyticsPage(props: {
       }
     }
   });
+  
+  const users = await db.user.findMany({
+    where: {
+      createdAt: {
+        gte: new Date(selectedYear, 0, 1),
+        lt: new Date(selectedYear + 1, 0, 1)
+      }
+    }
+  });
 
   // --- DATA PROCESSING ---
   const yearlyData = Array.from({ length: 12 }, (_, i) => ({
     name: new Date(0, i).toLocaleString('pt-PT', { month: 'short' }),
     income: 0,
-    expense: 0
+    expense: 0,
+    users: 0 // New Field
   }));
 
   const daysInMonth = new Date(selectedYear, currentMonth + 1, 0).getDate();
@@ -72,6 +82,12 @@ export default async function AnalyticsPage(props: {
       monthlyData[day].expense += val;
     }
   });
+  
+  // Fill User Data
+  users.forEach(u => {
+    const month = u.createdAt.getMonth();
+    yearlyData[month].users += 1;
+  });
 
   // Totals
   const thisMonthTotals = yearlyData[currentMonth];
@@ -79,7 +95,21 @@ export default async function AnalyticsPage(props: {
   const totalIncome = yearlyData.reduce((acc, curr) => acc + curr.income, 0);
   const totalExpense = yearlyData.reduce((acc, curr) => acc + curr.expense, 0);
   const totalProfit = totalIncome - totalExpense;
+  const totalNewUsers = users.length; // Yearly Total
   const monthName = now.toLocaleString('pt-PT', { month: 'long' });
+
+  // --- NEW USER TRACKING ---
+  const startOfDay = new Date(now.getFullYear(), currentMonth, now.getDate());
+  const endOfDay = new Date(now.getFullYear(), currentMonth, now.getDate() + 1);
+
+  const newUsersToday = await db.user.count({
+    where: {
+      createdAt: {
+        gte: startOfDay,
+        lt: endOfDay
+      }
+    }
+  });
 
   return (
     <div className="max-w-6xl mx-auto pb-20">
@@ -112,7 +142,13 @@ export default async function AnalyticsPage(props: {
             Visão Geral: <span className="text-blue-600">{monthName}</span>
           </h2>
           {/* Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+             {/* NEW USER CARD */}
+             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <p className="text-sm text-gray-500 font-medium">Novos Clientes (Hoje)</p>
+              <p className="text-5xl font-bold text-blue-600">+{newUsersToday}</p>
+            </div>
+            
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <p className="text-sm text-gray-500 font-medium">Faturação (Mês)</p>
               <p className="text-3xl font-bold text-green-600">+{thisMonthTotals.income.toFixed(2)}€</p>
@@ -142,10 +178,10 @@ export default async function AnalyticsPage(props: {
           Visão Anual: {selectedYear}
         </h2>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Comparativo Mensal</h3>
+          <h3 className="text-lg font-bold text-gray-800 mb-6">Comparativo Mensal (+ Novos Clientes)</h3>
           <YearlyChart data={yearlyData} />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-80">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 opacity-80">
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
             <p className="text-xs text-gray-500 uppercase">Total Anual Faturado</p>
             <p className="text-xl font-bold text-green-700">{totalIncome.toFixed(2)}€</p>
@@ -153,6 +189,10 @@ export default async function AnalyticsPage(props: {
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
             <p className="text-xs text-gray-500 uppercase">Total Anual Gasto</p>
             <p className="text-xl font-bold text-red-700">{totalExpense.toFixed(2)}€</p>
+          </div>
+           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <p className="text-xs text-gray-500 uppercase">Novos Clientes (Ano)</p>
+            <p className="text-xl font-bold text-blue-700">+{totalNewUsers}</p>
           </div>
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
             <p className="text-xs text-gray-500 uppercase">Lucro Anual</p>

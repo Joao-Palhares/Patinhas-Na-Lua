@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { ptPT } from '@clerk/localizations' // <--- IMPORT THIS
+import { GoogleAnalytics } from '@next/third-parties/google'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -30,7 +31,10 @@ export default function RootLayout({
     // <--- ADD 'localization={ptPT}' HERE
     <ClerkProvider localization={ptPT}>
       <html lang="pt" suppressHydrationWarning>
-        <body suppressHydrationWarning>{children}</body>
+        <body suppressHydrationWarning>
+          {children}
+          <GoogleAnalytics gaId="G-9GKJYX5MTZ" />
+        </body>
       </html>
     </ClerkProvider>
   )

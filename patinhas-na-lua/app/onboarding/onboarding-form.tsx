@@ -1,10 +1,10 @@
 "use client";
 
 import { completeOnboarding } from "@/app/actions";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useActionState } from "react";
 import Link from "next/link";
 import { defaultCountries, FlagImage, parseCountry } from 'react-international-phone';
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search, AlertCircle } from "lucide-react";
 
 export default function OnboardingForm({
   defaultName
@@ -13,14 +13,15 @@ export default function OnboardingForm({
 }) {
 
   /* --- CUSTOM PHONE INPUT COMPONENT --- */
-  // We define it inside or outside based on complexity. Inside to access props if needed, but cleaner outside.
-  // Actually, let's keep it simple inside for now as we need to pass value back.
 
   const [phoneState, setPhoneState] = useState({ iso2: 'pt', dial: '351', phone: '' });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Use useActionState for form submission handling
+  const [state, formAction, isPending] = useActionState(completeOnboarding, null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -54,8 +55,6 @@ export default function OnboardingForm({
     // Allow only numbers
     const val = e.target.value.replace(/[^0-9]/g, "");
     setPhoneState(prev => ({ ...prev, phone: val }));
-
-    // Simple length check for visual feedback (optional)
   };
 
   // Filter countries
@@ -75,7 +74,7 @@ export default function OnboardingForm({
 
   // Find current country data
   const currentCountryData = defaultCountries.find(c => parseCountry(c).iso2 === phoneState.iso2) || defaultCountries[0];
-  const parsedCurrent = parseCountry(currentCountryData);
+  // Unused: const parsedCurrent = parseCountry(currentCountryData);
 
   // Custom constraint validation
   const handleNifInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,14 +99,22 @@ export default function OnboardingForm({
   };
 
   return (
-    <form action={completeOnboarding} className="space-y-4">
+    <form action={formAction} className="space-y-4">
+      {/* ERROR MESSAGE */}
+      {state?.error && (
+        <div className="bg-red-50 text-red-600 p-3 rounded-lg flex items-center gap-2 text-sm border border-red-200 animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span>{state.error}</span>
+        </div>
+      )}
+
       {/* NOME */}
       <div>
         <label className="block text-sm font-medium text-gray-700">Nome Completo *</label>
         <input
           name="name"
           required
-          defaultValue={defaultName}
+          defaultValue={state?.payload?.name || defaultName}
           className="w-full border border-gray-300 rounded-lg p-2.5 mt-1 text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
@@ -211,6 +218,7 @@ export default function OnboardingForm({
             minLength={9}
             pattern="[0-9]{9}"
             placeholder="123456789"
+            defaultValue={state?.payload?.nif || ""}
             onInput={handleNifInput}
             onInvalid={handleInvalidNif}
             className="w-full border border-gray-300 rounded-lg p-2.5 mt-1 text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -225,6 +233,7 @@ export default function OnboardingForm({
           name="address"
           required
           rows={2}
+          defaultValue={state?.payload?.address || ""}
           className="w-full border border-gray-300 rounded-lg p-2.5 mt-1 text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
@@ -239,7 +248,8 @@ export default function OnboardingForm({
           <input
             name="referralCode"
             placeholder="Ex: JOAO1234"
-            className="w-full border border-gray-300 rounded-lg p-2.5 pl-10 mt-1 text-gray-900 bg-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 uppercase tracking-widest placeholder:tracking-normal"
+            defaultValue={state?.payload?.referralCode || ""}
+            className={`w-full border rounded-lg p-2.5 pl-10 mt-1 text-gray-900 bg-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 uppercase tracking-widest placeholder:tracking-normal ${state?.error && state.error.includes("código") ? "border-red-500 bg-red-50" : "border-gray-300"}`}
           />
         </div>
         <p className="text-xs text-gray-500 mt-1">Se um amigo te recomendou, insere o código dele para ganhares 5% de desconto.</p>
@@ -260,9 +270,10 @@ export default function OnboardingForm({
 
       <button
         type="submit"
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition"
+        disabled={isPending}
+        className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition"
       >
-        Concluir Registo
+        {isPending ? "A processar..." : "Concluir Registo"}
       </button>
     </form>
   );

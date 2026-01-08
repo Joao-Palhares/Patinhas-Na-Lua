@@ -13,7 +13,7 @@ import {
   Area 
 } from 'recharts';
 
-// --- CHART 1: YEARLY (Bars) ---
+// --- CHART 1: YEARLY (Bars + Line for Users) ---
 export function YearlyChart({ data }: { data: any[] }) {
   return (
     <div className="h-80 w-full">
@@ -21,18 +21,20 @@ export function YearlyChart({ data }: { data: any[] }) {
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="name" fontSize={12} />
-          <YAxis fontSize={12} unit="€" />
+          <YAxis yAxisId="left" fontSize={12} unit="€" />
+          <YAxis yAxisId="right" orientation="right" fontSize={12} allowDecimals={false} />
           <Tooltip 
-            // FIX: Allow 'number | undefined' and check existence
-            formatter={(value: number | undefined) => [
-              `${(value || 0).toFixed(2)}€`, 
-              ""
-            ]}
+            formatter={(value: any, name: any) => {
+               if (name === "Novos Clientes") return [value, name];
+               return [`${Number(value).toFixed(2)}€`, name];
+            }}
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
           />
           <Legend />
-          <Bar dataKey="income" name="Entradas (Lucro)" fill="#16a34a" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="expense" name="Saídas (Custos)" fill="#dc2626" radius={[4, 4, 0, 0]} />
+          <Bar yAxisId="left" dataKey="income" name="Entradas (Lucro)" fill="#16a34a" radius={[4, 4, 0, 0]} />
+          <Bar yAxisId="left" dataKey="expense" name="Saídas (Custos)" fill="#dc2626" radius={[4, 4, 0, 0]} />
+          {/* New Line for Users */}
+          <Bar yAxisId="right" dataKey="users" name="Novos Clientes" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} opacity={0.5} />
         </BarChart>
       </ResponsiveContainer>
     </div>
