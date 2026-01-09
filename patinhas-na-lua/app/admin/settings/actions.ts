@@ -44,6 +44,7 @@ export async function saveBusinessSettings(formData: FormData) {
 
     const zone3Fee = parseFloat(formData.get("zone3Fee") as string);
     const maxRadiusKm = parseFloat(formData.get("maxRadiusKm") as string);
+    const referralRewardPercentage = parseInt(formData.get("referralRewardPercentage") as string) || 5;
 
     await db.businessSettings.upsert({
         where: { id: "default" },
@@ -55,7 +56,8 @@ export async function saveBusinessSettings(formData: FormData) {
             zone2RadiusKm,
             zone2Fee,
             zone3Fee,
-            maxRadiusKm
+            maxRadiusKm,
+            referralRewardPercentage
         },
         create: {
             id: "default",
@@ -66,7 +68,8 @@ export async function saveBusinessSettings(formData: FormData) {
             zone2RadiusKm,
             zone2Fee,
             zone3Fee,
-            maxRadiusKm
+            maxRadiusKm,
+            referralRewardPercentage
         }
     });
 

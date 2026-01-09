@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { OnboardingSchema } from "@/lib/schemas"; // <--- ADD THIS IMPORT
+import { Prisma } from "@prisma/client";
 
 export async function completeOnboarding(prevState: any, formData: FormData) {
   const user = await currentUser();
@@ -12,37 +14,63 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     return { error: "Não autorizado" };
   }
 
-  // SANITIZE INPUTS: Remove all whitespace/spaces from phone and NIF
-  const phone = (formData.get("phone") as string)?.replace(/\s/g, "");
-  const nif = (formData.get("nif") as string)?.replace(/\s/g, "");
-  const address = formData.get("address") as string;
-  const name = formData.get("name") as string;
-  const incomingReferralCode = (formData.get("referralCode") as string)
-    ?.toUpperCase()
-    .trim();
+  // --- RATE LIMITING (Max 5 attempts per 10 minutes) ---
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  const attempts = await db.rateLimit.count({
+    where: {
+      key: user.id,
+      createdAt: { gte: tenMinutesAgo }
+    }
+  });
+
+  if (attempts >= 5) {
+     return { 
+       error: "Muitas tentativas recentes. Por favor aguarda 10 minutos.",
+       payload: { 
+         name: formData.get("name") as string, 
+         nif: formData.get("nif") as string, 
+         address: formData.get("address") as string, 
+         referralCode: formData.get("referralCode") as string 
+       }
+    };
+  }
+
+  // Record this attempt
+  await db.rateLimit.create({
+    data: { key: user.id }
+  });
+  // -----------------------------------------------------
+
+  // SANITIZE INPUTS & VALIDATE WITH ZOD
+  const formDataObj = {
+    name: formData.get("name"),
+    phone: formData.get("phone"),
+    nif: formData.get("nif"),
+    address: formData.get("address"),
+    referralCode: formData.get("referralCode") || undefined, // Zod optional needs undefined not empty string
+  };
+
+  const parsed = OnboardingSchema.safeParse(formDataObj);
+
+  if (!parsed.success) {
+    // Return the first error found
+    return {
+       error: parsed.error.issues[0].message,
+       payload: { 
+         name: formDataObj.name as string, 
+         nif: formDataObj.nif as string, 
+         address: formDataObj.address as string, 
+         referralCode: formDataObj.referralCode as string 
+       }
+    };
+  }
+
+  // Extract clean data from Zod
+  const { name, phone, nif, address, referralCode: incomingReferralCode } = parsed.data;
 
   try {
     // --- SERVER SIDE VERIFICATIONS ---
-
-    // 1. Validate Phone (Allowed International: +351..., etc. or simple 9 digits)
-    // Regex: Optional +, followed by 7 to 15 digits
-    const phoneRegex = /^(\+)?[0-9]{7,15}$/;
-    if (!phoneRegex.test(phone)) {
-      return {
-        error:
-          "Número de telemóvel inválido (deve ter entre 7 a 15 algarismos).",
-        payload: { name, nif, address, referralCode: incomingReferralCode }
-      };
-    }
-
-    // 2. Validate NIF (Must be 9 digits, only numbers)
-    const nifRegex = /^[0-9]{9}$/;
-    if (!nifRegex.test(nif)) {
-      return { 
-        error: "NIF inválido. Deve ter 9 dígitos.",
-        payload: { name, nif, address, referralCode: incomingReferralCode }
-      };
-    }
+    // (Zod already handled regex checks for Phone and NIF)
 
     // 3. Validate Incoming Referral Code (If provided)
     let referredById = null;
@@ -120,7 +148,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       // 3. Delete Old User
       // 4. Update New User to correct email
 
-      await db.$transaction(async (tx) => {
+      await db.$transaction(async (tx: Prisma.TransactionClient) => {
         // A. Create the NEW user with the Real ID but a Temporary Email
         // This is needed so we have a target for the relations
         await tx.user.create({
@@ -227,27 +255,46 @@ export async function updateUserAction(formData: FormData) {
   const user = await currentUser();
   if (!user) throw new Error("Unauthorized");
 
-  const name = formData.get("name") as string;
-  const phone = (formData.get("phone") as string)?.replace(/\s/g, "");
-  const nif = (formData.get("nif") as string)?.replace(/\s/g, "");
-  const address = formData.get("address") as string;
+  // Validate with Schema (Partial because not all fields required)
+  const schema = OnboardingSchema.partial();
+  
+  const parsed = schema.safeParse({
+    name: formData.get("name"),
+    phone: formData.get("phone"),
+    nif: formData.get("nif"),
+    address: formData.get("address"),
+  });
 
-  // Basic Validation
-  if (phone && !/^(\+)?[0-9]{7,15}$/.test(phone)) {
-    return { error: "Telemóvel inválido (7-15 dígitos)" };
-  }
-  if (nif && !/^[0-9]{9}$/.test(nif)) {
-    return { error: "NIF inválido (9 dígitos)" };
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
   }
 
   try {
     await db.user.update({
       where: { id: user.id },
-      data: { name, phone, nif, address },
+      data: parsed.data,
     });
     revalidatePath("/dashboard");
     return { success: "Dados atualizados com sucesso!" };
   } catch (e) {
     return { error: "Erro ao atualizar dados." };
   }
+}
+
+export async function requestAccountDeletion() {
+  const user = await currentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  // For now, we just mark it or send an admin email.
+  // Since we don't have email plumbing here yet, let's flag the user note.
+  
+  await db.user.update({
+    where: { id: user.id },
+    data: {
+      notes: "SOLICITOU ELIMINAÇÃO DE DADOS (GDPR) EM " + new Date().toLocaleDateString()
+    }
+  });
+  
+  // In a real app, this would trigger an email to admin.
+  return { success: true, message: "Pedido registado. Iremos processar a eliminação em 30 dias." };
 }

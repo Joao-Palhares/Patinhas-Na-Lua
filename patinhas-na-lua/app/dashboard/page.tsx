@@ -161,7 +161,12 @@ export default async function DashboardPage() {
 
           {/* CARD 4: UPCOMING APPOINTMENTS */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Próximas Visitas 🗓️</h3>
+            <div className="flex justify-between items-center mb-4">
+               <h3 className="text-lg font-bold text-gray-800">Próximas Visitas 🗓️</h3>
+               <Link href="/dashboard/history" className="text-sm font-bold text-blue-600 hover:underline">
+                  Ver Histórico →
+               </Link>
+            </div>
 
             {dbUser.appointments.length === 0 ? (
               <div className="text-center py-8">

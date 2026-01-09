@@ -1,4 +1,5 @@
 import { getBusinessSettings, saveBusinessSettings } from "./actions";
+import NotificationTestButton from "./notification-test-button";
 
 export default async function AdminSettingsPage() {
     const settings = await getBusinessSettings();
@@ -62,6 +63,48 @@ export default async function AdminSettingsPage() {
                         </div>
                         <div className="md:col-span-2 text-xs text-gray-500">
                             * Use coordenadas decimais (ex: 40.5489, -8.0815). Pode obter no Google Maps.
+                        </div>
+                    </div>
+                </div>
+
+                {/* SECTION 1.6: Push Notifications */}
+                <div>
+                     <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        🔔 Notificações (Web Push)
+                    </h2>
+                    <div className="p-6 bg-blue-50 rounded-xl border border-blue-200 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-blue-900">Enviar Lembretes Manuais</h3>
+                            <p className="text-xs text-blue-700 mt-1">
+                                Disparar notificações para agendamentos de AMANHÃ.
+                            </p>
+                        </div>
+                        {/* We need a Client Component button here */}
+                        <NotificationTestButton />
+                    </div>
+                </div>
+
+                {/* SECTION 1.5: Marketing */}
+                <div>
+                     <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        📣 Marketing & Referências
+                    </h2>
+                    <div className="p-6 bg-purple-50 rounded-xl border border-purple-200">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-bold text-purple-900 mb-1">Desconto de Referência (%)</label>
+                                <input
+                                    type="number"
+                                    name="referralRewardPercentage"
+                                    defaultValue={settings.referralRewardPercentage || 5}
+                                    min="0"
+                                    max="100"
+                                    className="w-full px-4 py-2 rounded-lg border border-purple-300 focus:ring-2 focus:ring-purple-500 text-gray-900"
+                                />
+                                <p className="text-xs text-purple-700 mt-2">
+                                    Percentagem de desconto atribuída a quem convida um amigo (quando o amigo conclui o 1º serviço).
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

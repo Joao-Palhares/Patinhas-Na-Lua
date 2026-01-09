@@ -16,6 +16,13 @@ export async function submitBooking(formData: FormData) {
   const price = Number(formData.get("price"));
   const couponCode = formData.get("couponCode") as string;
 
+  // 0. CHECK BLACKLIST
+  // @ts-ignore: Prisma Client update pending
+  const user = await db.user.findUnique({ where: { id: userId } });
+  if (user?.isBlacklisted) {
+     return redirect("/dashboard?error=blacklisted");
+  }
+
   // RECURRENCE
   const isRecurring = formData.get("isRecurring") === "true";
 

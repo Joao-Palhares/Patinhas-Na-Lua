@@ -111,6 +111,33 @@ export default async function AnalyticsPage(props: {
     }
   });
 
+  // --- RETENTION METRICS (NEW) ---
+  // Find all users who had a completed appointment this year
+  const rawRetentionData = await db.user.findMany({
+    where: {
+        appointments: {
+            some: {
+                status: "COMPLETED",
+                date: {
+                    gte: new Date(selectedYear, 0, 1),
+                    lt: new Date(selectedYear + 1, 0, 1)
+                }
+            }
+        }
+    },
+    include: {
+        _count: {
+            select: { 
+                appointments: { where: { status: "COMPLETED" } } 
+            }
+        }
+    }
+  });
+
+  const totalActiveUsers = rawRetentionData.length;
+  const returningUsers = rawRetentionData.filter(u => u._count.appointments > 1).length;
+  const retentionRate = totalActiveUsers > 0 ? ((returningUsers / totalActiveUsers) * 100).toFixed(1) : "0";
+
   return (
     <div className="max-w-6xl mx-auto pb-20">
       
@@ -194,9 +221,17 @@ export default async function AnalyticsPage(props: {
             <p className="text-xs text-gray-500 uppercase">Novos Clientes (Ano)</p>
             <p className="text-xl font-bold text-blue-700">+{totalNewUsers}</p>
           </div>
-          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
             <p className="text-xs text-gray-500 uppercase">Lucro Anual</p>
             <p className="text-xl font-bold text-slate-800">{totalProfit.toFixed(2)}€</p>
+          </div>
+           {/* RETENTION CARD */}
+           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 col-span-1 md:col-span-4 mt-4 text-center">
+            <p className="text-xs text-blue-500 uppercase font-bold">Taxa de Retenção (Clientes Recorrentes)</p>
+            <p className="text-3xl font-black text-blue-700">{retentionRate}%</p>
+            <p className="text-xs text-blue-400 mt-1">
+                 {returningUsers} de {totalActiveUsers} clientes ativos voltaram este ano.
+            </p>
           </div>
         </div>
       </div>

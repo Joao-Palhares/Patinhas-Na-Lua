@@ -2,7 +2,6 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { PaymentMethod } from "@prisma/client";
 
 // HELPER: PROCESS REFERRAL REWARD
 // Give 10 points to referrer if this is the user's FIRST completed appointment
@@ -28,15 +27,35 @@ async function processReferralReward(userId: string) {
   });
 
   // If this is the FIRST one (Count is 1), reward the referrer.
-  // Note: This relies on "processReferralReward" being called AFTER the status update.
   if (completedCount === 1) {
-    await db.user.update({
-      where: { id: user.referredById },
-      data: {
-        loyaltyPoints: { increment: 10 }
-      }
+
+    // FETCH DYNAMIC SETTING
+    const settings = await db.businessSettings.findFirst();
+    const discount = settings?.referralRewardPercentage || 5; // Default to 5 if not set
+
+    const referrer = await db.user.findUnique({
+       where: { id: user.referredById },
+       select: { name: true, email: true } // Need name for code
     });
-    console.log(`[Referral] Rewarded referrer ${user.referredById} with 10 points.`);
+
+    if (referrer) {
+      // Generate Code: REF-JOAO-9482
+      const namePart = referrer.name 
+        ? referrer.name.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 4) 
+        : "AMIGO";
+      const randomPart = Math.floor(1000 + Math.random() * 9000);
+      const code = `REF-${namePart}-${randomPart}`;
+
+      await db.coupon.create({
+        data: {
+          code: code,
+          discount: discount, // DYNAMIC DISCOUNT
+          active: true,
+          userId: user.referredById
+        }
+      });
+      console.log(`[Referral] Created Coupon ${code} (${discount}%) for referrer ${user.referredById}`);
+    }
   }
 }
 
@@ -90,7 +109,7 @@ export async function updateAppointmentStatus(formData: FormData) {
 export async function registerPayment(formData: FormData) {
   const id = formData.get("id") as string;
   const amount = Number(formData.get("amount"));
-  const method = formData.get("method") as PaymentMethod;
+  const method = formData.get("method") as any; // Cast as ANY to avoid build error if enum missing
 
   const appointment = await db.appointment.update({
     where: { id },

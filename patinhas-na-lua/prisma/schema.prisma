@@ -21,6 +21,8 @@ model User {
   nif       String?
   address   String?
   isAdmin   Boolean  @default(false)
+  isBlacklisted Boolean @default(false) // Bans user from booking
+  notes     String?  // Internal Admin Notes (e.g. "Bad payer")
   createdAt DateTime @default(now())
   
   invoices  Invoice[]
@@ -373,6 +375,9 @@ model BusinessSettings {
   zone3Fee        Decimal  @default(15) // Fee for area between Zone 2 and Max Radius
   maxRadiusKm     Float    @default(20)
 
+  // Marketing (NEW)
+  referralRewardPercentage Int @default(5) // Default to 5% (safer for margins)
+
   updatedAt       DateTime @updatedAt
 }
 
@@ -420,4 +425,12 @@ model LoyaltyReward {
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   // IP Address or User ID
+  createdAt DateTime @default(now()) // We will count records in the last X minutes
+  
+  @@index([key, createdAt])
 }
