@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { InvoiceStatus, PaymentMethod } from "@prisma/client";
 
+import { requireAdmin } from "@/lib/auth";
+
 // STEP 1: UPDATE OR CREATE DRAFT
 export async function saveBillingDraft(
   appointmentId: string, 
@@ -11,6 +13,7 @@ export async function saveBillingDraft(
   extraFees: { id: string; price: number }[],
   notes: string
 ) {
+  await requireAdmin();
   // 1. Update Appointment Notes & Price
   await db.appointment.update({
     where: { id: appointmentId },
@@ -71,6 +74,7 @@ export async function saveBillingDraft(
 
 // STEP 2: UPDATE NIF
 export async function updateClientNif(userId: string, nif: string) {
+  await requireAdmin();
   await db.user.update({
     where: { id: userId },
     data: { nif }
@@ -79,6 +83,7 @@ export async function updateClientNif(userId: string, nif: string) {
 
 // STEP 4: ISSUE INVOICE (Simulated)
 export async function issueInvoice(appointmentId: string, paymentMethod: PaymentMethod) {
+  await requireAdmin();
   
   // 1. Generate Fake Invoice Number (In real life, call API)
   const count = await db.invoice.count();

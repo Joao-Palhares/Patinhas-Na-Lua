@@ -11,6 +11,7 @@ interface Props {
     description: string | null;
     category: ServiceCategory;
     isMobileAvailable?: boolean;
+    isTimeBased?: boolean;
   };
 }
 
@@ -88,6 +89,19 @@ export default function EditServiceModal({ service }: Props) {
                 />
                 <label htmlFor="mobileCheck" className="text-sm font-bold text-gray-700 cursor-pointer">
                   Disponível ao Domicílio? 🚐
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2 bg-yellow-50 p-3 rounded border border-yellow-200">
+                <input
+                  type="checkbox"
+                  name="isTimeBased"
+                  id="timeCheckEdit"
+                  defaultChecked={service.isTimeBased ?? false}
+                  className="w-5 h-5 text-yellow-600 rounded focus:ring-yellow-500 border-yellow-300"
+                />
+                <label htmlFor="timeCheckEdit" className="text-sm font-bold text-yellow-700 cursor-pointer">
+                  Preço ao Tempo (Hora) ⏳
                 </label>
               </div>
 

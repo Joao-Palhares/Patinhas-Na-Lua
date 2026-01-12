@@ -59,8 +59,11 @@ async function processReferralReward(userId: string) {
   }
 }
 
+import { requireAdmin } from "@/lib/auth";
+
 // 1. Create Manual Appointment
 export async function createManualAppointment(formData: FormData) {
+  await requireAdmin();
   const userId = formData.get("userId") as string;
   const petId = formData.get("petId") as string;
   const serviceId = formData.get("serviceId") as string;
@@ -87,6 +90,7 @@ export async function createManualAppointment(formData: FormData) {
 
 // 2. Update Status (e.g., "Completed")
 export async function updateAppointmentStatus(formData: FormData) {
+  await requireAdmin();
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
 
@@ -107,6 +111,7 @@ export async function updateAppointmentStatus(formData: FormData) {
 
 // 2. REGISTER PAYMENT (New dedicated action)
 export async function registerPayment(formData: FormData) {
+  await requireAdmin();
   const id = formData.get("id") as string;
   const amount = Number(formData.get("amount"));
   const method = formData.get("method") as any; // Cast as ANY to avoid build error if enum missing
@@ -131,6 +136,7 @@ export async function registerPayment(formData: FormData) {
 
 // 3. Delete
 export async function deleteAppointment(formData: FormData) {
+  await requireAdmin();
   const id = formData.get("id") as string;
   await db.appointment.delete({ where: { id } });
   revalidatePath("/admin/appointments");
@@ -138,6 +144,7 @@ export async function deleteAppointment(formData: FormData) {
 
 // 4. Send Test Email
 export async function sendTestEmailAction(email: string) {
+  await requireAdmin(); // Secure this too to avoid spam
   try {
     const { sendBookingConfirmation } = await import("@/lib/email");
     await sendBookingConfirmation({
@@ -153,4 +160,25 @@ export async function sendTestEmailAction(email: string) {
     console.error(error);
     return { success: false, error: "Falha ao enviar email" };
   }
+}
+
+// 5. TIMER MANAGEMENT
+export async function startAppointment(formData: FormData) {
+  await requireAdmin();
+  const id = formData.get("id") as string;
+  await db.appointment.update({
+    where: { id },
+    data: { actualStartTime: new Date() }
+  });
+  revalidatePath("/admin/appointments");
+}
+
+export async function finishAppointment(formData: FormData) {
+  await requireAdmin();
+  const id = formData.get("id") as string;
+  await db.appointment.update({
+    where: { id },
+    data: { finishedAt: new Date() }
+  });
+  revalidatePath("/admin/appointments");
 }

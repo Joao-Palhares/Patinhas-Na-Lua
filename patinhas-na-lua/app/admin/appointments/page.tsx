@@ -6,6 +6,7 @@ import BillingWizard from "./billing-wizard";
 import WhatsAppModal from "../components/whatsapp-modal";
 import TestEmailButton from "../components/test-email-button";
 import SendRemindersButton from "../components/send-reminders-button";
+import AppointmentTimer from "./appointment-timer";
 
 const formatDate = (date: Date) => date.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -180,6 +181,9 @@ export default async function AppointmentsPage(props: {
                     📍
                   </a>
                 )}
+
+                {/* TIMER (HOURLY SERVICES) */}
+                <AppointmentTimer appointment={app as any} />
 
                 {/* WHATSAPP BUTTON (QR CODE MODAL) */}
                 <WhatsAppModal

@@ -4,8 +4,11 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { ServiceCategory, PetSize, CoatType } from "@prisma/client";
 
+import { requireAdmin } from "@/lib/auth";
+
 // --- CREATE ---
 export async function createService(formData: FormData) {
+  await requireAdmin();
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const category = formData.get("category") as ServiceCategory;
@@ -17,14 +20,16 @@ export async function createService(formData: FormData) {
       name,
       description,
       category,
-      isMobileAvailable
-    } as any
+      isMobileAvailable,
+      isTimeBased: formData.get("isTimeBased") === "on",
+    } as any,
   });
   revalidatePath("/admin/services");
 }
 
 // ... (Rest of the file stays the same: addPriceOption, updateService, etc.)
 export async function addPriceOption(formData: FormData) {
+  await requireAdmin();
   const serviceId = formData.get("serviceId") as string;
   const size = formData.get("size") as PetSize | "ALL";
   const coat = formData.get("coat") as CoatType | "ALL";
@@ -40,12 +45,13 @@ export async function addPriceOption(formData: FormData) {
       price,
       durationMin,
       durationMax: durationMax || null,
-    }
+    },
   });
   revalidatePath("/admin/services");
 }
 
 export async function updateService(formData: FormData) {
+  await requireAdmin();
   const id = formData.get("id") as string;
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
@@ -55,12 +61,19 @@ export async function updateService(formData: FormData) {
   await db.service.update({
     where: { id },
     // Cast to any to bypass outdated local Prisma types
-    data: { name, description, category, isMobileAvailable } as any
+    data: {
+      name,
+      description,
+      category,
+      isMobileAvailable,
+      isTimeBased: formData.get("isTimeBased") === "on",
+    } as any,
   });
   revalidatePath("/admin/services");
 }
 
 export async function updateServiceOption(formData: FormData) {
+  await requireAdmin();
   const id = formData.get("id") as string;
   const size = formData.get("size") as PetSize | "ALL";
   const coat = formData.get("coat") as CoatType | "ALL";
@@ -76,12 +89,13 @@ export async function updateServiceOption(formData: FormData) {
       price,
       durationMin,
       durationMax: durationMax || null,
-    }
+    },
   });
   revalidatePath("/admin/services");
 }
 
 export async function deleteService(formData: FormData) {
+  await requireAdmin();
   const id = formData.get("id") as string;
   try {
     // Attempt Hard Delete first (Cleanest)
@@ -89,16 +103,19 @@ export async function deleteService(formData: FormData) {
   } catch (error) {
     // Fallback: Soft Delete (Archive)
     // This allows removing services even if they have old appointments linked
-    console.log("Hard delete failed (FK constraints). Switching to Soft Delete.");
+    console.log(
+      "Hard delete failed (FK constraints). Switching to Soft Delete."
+    );
     await db.service.update({
       where: { id },
-      data: { isActive: false } as any // Using 'any' as quickfix for type lag
+      data: { isActive: false } as any, // Using 'any' as quickfix for type lag
     });
   }
   revalidatePath("/admin/services");
 }
 
 export async function deleteOption(formData: FormData) {
+  await requireAdmin();
   const id = formData.get("id") as string;
   await db.serviceOption.delete({ where: { id } });
   revalidatePath("/admin/services");

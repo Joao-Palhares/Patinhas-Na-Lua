@@ -13,8 +13,29 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  
+  // HOURLY LOGIC
+  const isTimeBased = (appointment.service as any).isTimeBased;
+  const hourlyRate = Number(appointment.price);
 
-  const [basePrice, setBasePrice] = useState(Number(appointment.price));
+  // Calculate default minutes if available
+  const calculateDefaultMinutes = () => {
+    if (appointment.actualStartTime && appointment.finishedAt) {
+      const start = new Date(appointment.actualStartTime);
+      const end = new Date(appointment.finishedAt);
+      return Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000 / 60));
+    }
+    return 60; // Default 1 hour
+  };
+  
+  const [minutes, setMinutes] = useState(calculateDefaultMinutes());
+
+  // Initial Price: If time based, calculate it. Else use booked price.
+  const initialPrice = isTimeBased 
+    ? (calculateDefaultMinutes() / 60) * hourlyRate 
+    : Number(appointment.price);
+
+  const [basePrice, setBasePrice] = useState(initialPrice);
   const [selectedFees, setSelectedFees] = useState<{ id: string; name: string; price: number }[]>(
     appointment.extraFees.map((ef: any) => ({
       id: ef.extraFee.id,
@@ -132,7 +153,33 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
               {step === 1 && (
                 <div className="space-y-6">
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Preço Base ({appointment.service.name})</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-bold text-gray-500 uppercase">Preço Base ({appointment.service.name})</label>
+                      {isTimeBased && <span className="text-xs bg-yellow-100 text-yellow-700 px-2 rounded">Rate: {hourlyRate}€/h</span>}
+                    </div>
+
+                    {isTimeBased && (
+                      <div className="mb-3 bg-yellow-50 p-3 rounded border border-yellow-200">
+                        <label className="block text-xs font-bold text-yellow-700 mb-1">Tempo Gasto (Minutos)</label>
+                        <div className="flex gap-2 items-center">
+                          <input 
+                            type="number"
+                            value={minutes}
+                            onChange={(e) => {
+                              const m = Number(e.target.value);
+                              setMinutes(m);
+                              setBasePrice( (m / 60) * hourlyRate );
+                            }}
+                            className="w-24 border border-yellow-300 p-2 rounded font-bold text-center text-yellow-900"
+                          />
+                          <span className="text-sm text-yellow-600 font-bold">= {basePrice.toFixed(2)}€</span>
+                        </div>
+                        {appointment.actualStartTime && appointment.finishedAt && (
+                          <p className="text-[10px] text-yellow-600 mt-1">Calculado via Cronómetro (Real)</p>
+                        )}
+                      </div>
+                    )}
+
                     <input
                       type="number"
                       value={basePrice}

@@ -131,6 +131,18 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
             </label>
           </div>
 
+          <div className="flex items-center gap-2 bg-yellow-50 p-3 rounded border border-yellow-200">
+            <input
+              type="checkbox"
+              name="isTimeBased"
+              id="timeCheck"
+              className="w-5 h-5 text-yellow-600 rounded focus:ring-yellow-500 border-yellow-300"
+            />
+            <label htmlFor="timeCheck" className="text-sm font-bold text-yellow-700 cursor-pointer">
+              Preço ao Tempo (Hora) ⏳
+            </label>
+          </div>
+
           <button className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg hover:bg-blue-700 transition w-full md:w-auto self-end">
             Criar Título
           </button>
@@ -148,7 +160,10 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
             <div className="bg-slate-100 p-4 border-b border-gray-200 flex justify-between items-start">
               <div>
                 <div className="flex items-center gap-3">
-                  <h3 className="font-bold text-lg text-gray-800">{service.name}</h3>
+                  <h3 className="font-bold text-lg text-gray-800">
+                    {service.name} 
+                    {(service as any).isTimeBased && <span className="text-xs bg-yellow-100 text-yellow-700 ml-2 px-2 py-1 rounded border border-yellow-200">⏳ PREÇO / HORA</span>}
+                  </h3>
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold uppercase tracking-wide">
                     {CATEGORY_LABELS[service.category as ServiceCategory]}
                   </span>
@@ -194,6 +209,7 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
                       </td>
                       <td className="py-2 px-3 font-bold text-green-600 text-base">
                         {Number(opt.price).toFixed(2)}€
+                        {(service as any).isTimeBased ? "/h" : ""}
                       </td>
                       <td className="py-2 px-3 text-right flex items-center justify-end gap-2">
 

@@ -93,6 +93,7 @@ model Service {
   allowsAddOns Boolean @default(false)
   isMobileAvailable Boolean @default(false) // NEW: Available for mobile service
   isActive         Boolean @default(true)   // NEW: For Soft Deletes
+  isTimeBased      Boolean @default(false)  // NEW: Hourly Pricing
 
   // Link to the Price Matrix
   options     ServiceOption[]
@@ -234,6 +235,7 @@ model Review {
   appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   
   createdAt     DateTime    @default(now())
+  photos        String[]    // Client uploaded photos (Cloudinary URLs)
 }
 
 model AppointmentImage {

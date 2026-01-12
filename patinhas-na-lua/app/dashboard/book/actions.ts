@@ -6,9 +6,30 @@ import { redirect } from "next/navigation";
 import { addMinutes, format, isBefore, isAfter, setHours, setMinutes, parseISO, addWeeks } from "date-fns";
 import * as crypto from "crypto";
 
+import { currentUser } from "@clerk/nextjs/server";
+
 // 1. SUBMIT BOOKING
 export async function submitBooking(formData: FormData) {
+  const userAuth = await currentUser();
+  if (!userAuth) return redirect("/");
+
   const userId = formData.get("userId") as string;
+  
+  // 1. AUTH CHECK: Ensure user is booking for themselves
+  if (userAuth.id !== userId) {
+    throw new Error("Unauthorized: Cannot book for another user.");
+  }
+
+  // 2. RATE LIMITING (Max 3 bookings per 10 minutes)
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  const attempts = await db.rateLimit.count({
+    where: { key: userId, createdAt: { gte: tenMinutesAgo } }
+  });
+  if (attempts >= 3) {
+    return redirect("/dashboard?error=ratelimit");
+  }
+  await db.rateLimit.create({ data: { key: userId } });
+
   const petId = formData.get("petId") as string;
   const serviceId = formData.get("serviceId") as string;
   const date = formData.get("date") as string;

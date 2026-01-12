@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import ReviewModal from "./review-modal";
 
 export default async function HistoryPage() {
   const user = await currentUser();
@@ -16,7 +17,8 @@ export default async function HistoryPage() {
     },
     include: {
       service: true,
-      pet: true
+      pet: true,
+      review: true // Include review to check if exists
     },
     orderBy: { date: "desc" } // Newest first
   });
@@ -95,10 +97,16 @@ export default async function HistoryPage() {
                     </div>
 
                     {/* ACTIONS */}
+                    {/* ACTIONS */}
                     <div className="flex flex-col items-end gap-2">
                          <span className="font-bold text-gray-800">
                             {Number(app.price).toFixed(2)}€
                          </span>
+
+                         {/* REVIEW BUTTON (If Completed & Not Reviewed) */}
+                         {isCompleted && !(app as any).review && (
+                            <ReviewModal appointmentId={app.id} />
+                         )}
                          
                          {/* Show Rebook Button only if Past or Cancelled */}
                          {(isPast || isCancelled) && (
