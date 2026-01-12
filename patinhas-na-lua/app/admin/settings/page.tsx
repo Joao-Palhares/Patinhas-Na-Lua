@@ -32,14 +32,19 @@ export default async function AdminSettingsPage() {
             </div>
 
             {/* DATA BACKUP */}
-            <div className="bg-slate-800 rounded-2xl p-6 shadow-lg mb-8 text-white flex items-center justify-between">
+            <div className="bg-slate-800 rounded-2xl p-6 shadow-lg mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold mb-1">💾 Cópia de Segurança</h2>
-                    <p className="text-slate-400 text-sm">Exportar todos os dados (Clientes, Pets, Faturas) para JSON.</p>
+                    <p className="text-slate-400 text-sm">Exportar dados. JSON (Tudo) ou Excel (Relatórios).</p>
                 </div>
-                <a href="/api/backup" target="_blank" className="bg-white text-slate-900 font-bold py-3 px-6 rounded-xl shadow-md hover:bg-slate-200 transition transform hover:scale-105 flex items-center gap-2">
-                    ⬇️ Download Backup
-                </a>
+                <div className="flex gap-3">
+                    <a href="/api/backup?format=csv" target="_blank" className="bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-green-500 transition transform hover:scale-105 flex items-center gap-2">
+                        📊 Excel (CSV)
+                    </a>
+                    <a href="/api/backup" target="_blank" className="bg-white text-slate-900 font-bold py-3 px-6 rounded-xl shadow-md hover:bg-slate-200 transition transform hover:scale-105 flex items-center gap-2">
+                        ⬇️ JSON (Completo)
+                    </a>
+                </div>
             </div>
 
             <form action={saveBusinessSettings} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8">
