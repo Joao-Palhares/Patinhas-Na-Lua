@@ -96,6 +96,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/marketing" className="flex items-center gap-3 p-3 hover:bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg transition text-white font-bold group">
             <span className="group-hover:animate-spin">✨</span> Estúdio Criativo
           </Link>
+          
+          <Link href="/admin/reviews" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
+            <span>⭐</span> Moderação Reviews
+          </Link>
 
           <AdminNotifications appointments={appointmentsSafe} />
         </nav>
