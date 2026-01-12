@@ -77,4 +77,6 @@ export async function saveBusinessSettings(formData: FormData) {
 
     revalidatePath("/admin/settings");
     revalidatePath("/dashboard/book"); // Update booking wizard cache too
+    
+    return { success: true };
 }
