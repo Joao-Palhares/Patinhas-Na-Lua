@@ -31,13 +31,18 @@ export default function MarketingPage() {
     // HANDLE FILE UPLOAD
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => setImage(img);
-                img.src = event.target?.result as string;
+            const file = e.target.files[0];
+            const url = URL.createObjectURL(file);
+            
+            const img = new Image();
+            img.onload = () => {
+                setImage(img);
+                toast.success("Foto carregada com sucesso!");
             };
-            reader.readAsDataURL(e.target.files[0]);
+            img.onerror = () => {
+                toast.error("Erro ao carregar imagem. Tente outro formato.");
+            };
+            img.src = url;
         }
     };
 

@@ -45,6 +45,9 @@ export default async function LandingPage() {
     to: new Date(a.endDate)
   }));
 
+  // FETCH SETTINGS for Address
+  const settings = await db.businessSettings.findUnique({ where: { id: "default" } });
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100">
 
@@ -190,7 +193,13 @@ export default async function LandingPage() {
           <Image src="/logo.png" alt="Patinhas na Lua Logo" width={80} height={80} className="rounded-xl" />
         </div>
         <p className="text-sm font-bold text-gray-900">Patinhas na Lua</p>
-        <div className="flex gap-4 justify-center text-xs text-gray-400 mt-2">
+        
+        {/* ADD ADDRESS HERE */}
+        {settings?.baseAddress && (
+          <p className="text-sm text-gray-500 mt-2">{settings.baseAddress}</p>
+        )}
+
+        <div className="flex gap-4 justify-center text-xs text-gray-400 mt-4">
           <p>© 2025. Todos os direitos reservados.</p>
           <Link href="/terms" className="hover:underline">Termos e Condições</Link>
         </div>

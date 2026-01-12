@@ -51,6 +51,7 @@ export async function saveBusinessSettings(formData: FormData) {
         update: {
             baseLatitude,
             baseLongitude,
+            baseAddress: formData.get("baseAddress") as string,
             zone1RadiusKm,
             zone1Fee,
             zone2RadiusKm,
@@ -63,6 +64,7 @@ export async function saveBusinessSettings(formData: FormData) {
             id: "default",
             baseLatitude,
             baseLongitude,
+            baseAddress: formData.get("baseAddress") as string,
             zone1RadiusKm,
             zone1Fee,
             zone2RadiusKm,

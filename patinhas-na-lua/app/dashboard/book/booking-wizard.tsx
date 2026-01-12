@@ -28,6 +28,7 @@ interface BusinessSettings {
   zone2Fee: any;
   zone3Fee: any;
   maxRadiusKm: number;
+  referralRewardPercentage: number;
   updatedAt: Date;
 }
 import { getBusinessSettings } from "@/app/admin/settings/actions";
@@ -272,7 +273,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                 >
                   <div className="text-4xl mb-2">🏢</div>
                   <h3 className="font-bold text-gray-800">No Salão</h3>
-                  <p className="text-xs text-gray-500">Medas</p>
+                  <p className="text-xs text-gray-500">{settings?.baseAddress || "Localização Base"}</p>
                 </div>
 
                 <div

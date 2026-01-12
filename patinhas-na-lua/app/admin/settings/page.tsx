@@ -66,6 +66,16 @@ export default async function AdminSettingsPage() {
                         📍 Localização Base (Salon)
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 rounded-xl border border-gray-200">
+                        <div className="md:col-span-2">
+                             <label className="block text-sm font-bold text-gray-700 mb-1">Morada Completa</label>
+                             <input
+                                 type="text"
+                                 name="baseAddress"
+                                 defaultValue={settings.baseAddress || ""}
+                                 placeholder="Ex: Rua das Flores nº 123, Tondela"
+                                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-gray-900"
+                             />
+                        </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1">Latitude</label>
                             <input
