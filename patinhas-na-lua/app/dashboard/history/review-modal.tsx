@@ -17,11 +17,66 @@ export default function ReviewModal({ appointmentId }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // --- COMPRESSION UTILITY ---
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1200;
+        const scale = MAX_WIDTH / img.width;
+        
+        // Only resize if wider than MAX_WIDTH
+        if (scale < 1) {
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scale;
+        } else {
+            canvas.width = img.width;
+            canvas.height = img.height;
+        }
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas context error")); return; }
+        
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (!blob) { reject(new Error("Compression failed")); return; }
+          const compressedFile = new File([blob], file.name, {
+            type: "image/jpeg",
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        }, "image/jpeg", 0.7); // 70% Quality
+      };
+      img.onerror = (err) => reject(err);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const f = e.target.files[0];
-      setFile(f);
-      setPreview(URL.createObjectURL(f));
+      const originalFile = e.target.files[0];
+      
+      // Basic size check feedback (optional)
+      if(originalFile.size > 10 * 1024 * 1024) {
+          toast.error("Imagem muito grande! Tente uma menor que 10MB.");
+          return;
+      }
+
+      // Show preview immediately with original
+      setPreview(URL.createObjectURL(originalFile));
+      
+      try {
+          // Compress immediately
+          // toast.info("A otimizar imagem...", { duration: 1000 });
+          const compressed = await compressImage(originalFile);
+          setFile(compressed);
+      } catch (error) {
+          console.error("Compression error", error);
+          // Fallback to original if compression fails
+          setFile(originalFile);
+      }
     }
   };
 
@@ -32,12 +87,18 @@ export default function ReviewModal({ appointmentId }: Props) {
       formData.set("appointmentId", appointmentId);
       formData.set("rating", rating.toString());
       
+      // IMPORTANT: Override the 'image' field with the compressed file from state
+      // The original <input type="file" name="image"> might contain the large file.
+      if (file) {
+        formData.set("image", file);
+      }
+      
       await submitReview(formData);
       
       toast.success("Obrigado! A tua avaliação foi enviada.");
       setIsOpen(false);
     } catch (error) {
-      toast.error("Erro ao enviar avaliação.");
+      toast.error("Erro ao enviar avaliação pode ser pelo tamanho da imagem.");
       console.error(error);
     } finally {
       setLoading(false);
