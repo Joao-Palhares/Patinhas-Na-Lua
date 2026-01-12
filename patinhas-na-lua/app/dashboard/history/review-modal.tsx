@@ -16,9 +16,11 @@ export default function ReviewModal({ appointmentId }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // State for Base64 string
+  const [imageBase64, setImageBase64] = useState<string>("");
 
-  // --- COMPRESSION UTILITY ---
-  const compressImage = async (file: File): Promise<File> => {
+  // --- COMPRESSION UTILITY (Returns Base64) ---
+  const compressImage = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.src = URL.createObjectURL(file);
@@ -41,14 +43,9 @@ export default function ReviewModal({ appointmentId }: Props) {
         
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         
-        canvas.toBlob((blob) => {
-          if (!blob) { reject(new Error("Compression failed")); return; }
-          const compressedFile = new File([blob], file.name, {
-            type: "image/jpeg",
-            lastModified: Date.now(),
-          });
-          resolve(compressedFile);
-        }, "image/jpeg", 0.7); // 70% Quality
+        // Convert directly to Base64
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        resolve(dataUrl);
       };
       img.onerror = (err) => reject(err);
     });
@@ -59,8 +56,8 @@ export default function ReviewModal({ appointmentId }: Props) {
       const originalFile = e.target.files[0];
       
       // Basic size check feedback (optional)
-      if(originalFile.size > 10 * 1024 * 1024) {
-          toast.error("Imagem muito grande! Tente uma menor que 10MB.");
+      if(originalFile.size > 15 * 1024 * 1024) {
+          toast.error("Imagem muito grande! Tente uma menor que 15MB.");
           return;
       }
 
@@ -68,14 +65,12 @@ export default function ReviewModal({ appointmentId }: Props) {
       setPreview(URL.createObjectURL(originalFile));
       
       try {
-          // Compress immediately
-          // toast.info("A otimizar imagem...", { duration: 1000 });
-          const compressed = await compressImage(originalFile);
-          setFile(compressed);
+          const base64 = await compressImage(originalFile);
+          setImageBase64(base64); // Store encoded string
+          setFile(originalFile); // Keep original just for UI logic if needed, but we rely on base64
       } catch (error) {
           console.error("Compression error", error);
-          // Fallback to original if compression fails
-          setFile(originalFile);
+          toast.error("Erro ao processar imagem.");
       }
     }
   };
@@ -87,18 +82,22 @@ export default function ReviewModal({ appointmentId }: Props) {
       formData.set("appointmentId", appointmentId);
       formData.set("rating", rating.toString());
       
-      // IMPORTANT: Override the 'image' field with the compressed file from state
-      // The original <input type="file" name="image"> might contain the large file.
-      if (file) {
-        formData.set("image", file);
+      // We manually append the base64 string if it exists
+      if (imageBase64) {
+          formData.set("imageBase64", imageBase64);
       }
       
       await submitReview(formData);
       
       toast.success("Obrigado! A tua avaliação foi enviada.");
       setIsOpen(false);
+      // Reset
+      setFile(null);
+      setPreview(null);
+      setImageBase64("");
+      setRating(5);
     } catch (error) {
-      toast.error("Erro ao enviar avaliação pode ser pelo tamanho da imagem.");
+      toast.error("Erro ao enviar avaliação.");
       console.error(error);
     } finally {
       setLoading(false);

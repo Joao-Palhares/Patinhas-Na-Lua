@@ -19,10 +19,11 @@ export async function submitReview(formData: FormData) {
   const appointmentId = formData.get("appointmentId") as string;
   const rating = Number(formData.get("rating"));
   const comment = formData.get("comment") as string;
+  const imageBase64 = formData.get("imageBase64") as string | null;
   const file = formData.get("image") as File | null;
 
   // 1. VALIDATION
-  // Verify ownership and status
+  // ... (keep validation logic) ...
   const appointment = await db.appointment.findUnique({
     where: { id: appointmentId },
     include: { review: true }
@@ -35,34 +36,40 @@ export async function submitReview(formData: FormData) {
 
   let photoUrl: string | null = null;
 
-  // 2. UPLOAD IMAGE (If exists)
-  if (file && file.size > 0 && file.name !== "undefined") {
-    
-    // Convert File to Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
-    // Upload to Cloudinary (Stream)
-    try {
-      const uploadResult = await new Promise<any>((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          { 
-             folder: "patinhas-reviews",
-             resource_type: "image"
-          }, 
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        ).end(buffer);
-      });
-
-      photoUrl = uploadResult.secure_url;
-
-    } catch (error) {
-      console.error("Cloudinary Upload Error:", error);
-      throw new Error("Failed to upload image");
-    }
+  // 2. UPLOAD IMAGE
+  try {
+      // Priority: Base64 (from client compression)
+      if (imageBase64 && imageBase64.startsWith("data:image")) {
+          const result = await cloudinary.uploader.upload(imageBase64, {
+              folder: "patinhas-reviews",
+              resource_type: "image"
+          });
+          photoUrl = result.secure_url;
+      } 
+      // Fallback: File Object (Upload Stream)
+      else if (file && file.size > 0 && file.name !== "undefined") {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        const uploadResult = await new Promise<any>((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+            { 
+                folder: "patinhas-reviews",
+                resource_type: "image"
+            }, 
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }
+            ).end(buffer);
+        });
+        photoUrl = uploadResult.secure_url;
+      }
+  } catch (error) {
+    console.error("Cloudinary Upload Error:", error);
+    // Don't block review if image fails, just log it? Or throw? 
+    // User expects image, so let's throw.
+    throw new Error("Failed to upload image");
   }
 
   // 3. SAVE REVIEW
