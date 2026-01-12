@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { ptPT } from '@clerk/localizations' 
 import CookieConsent from './components/cookie-consent'
+import { Toaster } from 'sonner';
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -43,6 +44,7 @@ export default function RootLayout({
         <body suppressHydrationWarning>
           {children}
           <CookieConsent />
+          <Toaster richColors position="top-right" />
         </body>
       </html>
     </ClerkProvider>
