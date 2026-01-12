@@ -36,40 +36,17 @@ export async function submitReview(formData: FormData) {
 
   let photoUrl: string | null = null;
 
-  // 2. UPLOAD IMAGE
+  // 2. IMAGE HANDLING
+  // Strategy: Store Base64 directly in DB (Neon/Postgres allows large text)
+  // This avoids external dependencies like Cloudinary that are error-prone.
   try {
-      // Priority: Base64 (from client compression)
       if (imageBase64 && imageBase64.startsWith("data:image")) {
-          const result = await cloudinary.uploader.upload(imageBase64, {
-              folder: "patinhas-reviews",
-              resource_type: "image"
-          });
-          photoUrl = result.secure_url;
+          // Use the base64 string directly as the "url"
+          photoUrl = imageBase64;
       } 
-      // Fallback: File Object (Upload Stream)
-      else if (file && file.size > 0 && file.name !== "undefined") {
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        
-        const uploadResult = await new Promise<any>((resolve, reject) => {
-            cloudinary.uploader.upload_stream(
-            { 
-                folder: "patinhas-reviews",
-                resource_type: "image"
-            }, 
-            (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-            }
-            ).end(buffer);
-        });
-        photoUrl = uploadResult.secure_url;
-      }
   } catch (error) {
-    console.error("Cloudinary Upload Error:", error);
-    // Don't block review if image fails, just log it? Or throw? 
-    // User expects image, so let's throw.
-    throw new Error("Failed to upload image");
+    console.error("Image Processing Error:", error);
+    // Continue without image if fails
   }
 
   // 3. SAVE REVIEW
