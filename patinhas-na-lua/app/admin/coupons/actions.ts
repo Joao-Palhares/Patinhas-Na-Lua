@@ -18,6 +18,7 @@ export async function createCouponAction(formData: FormData) {
                 code: code.toUpperCase(),
                 discount,
                 active: true,
+                maxUses: Number(formData.get("maxUses") || 1),
                 userId: userId || undefined, // Handle optional user
             }
         });
@@ -26,5 +27,16 @@ export async function createCouponAction(formData: FormData) {
     } catch (error) {
         console.error("Failed to create coupon:", error);
         return { error: "Erro ao criar cupão. O código pode já existir ou o utilizador ser inválido." };
+    }
+}
+
+export async function deleteCouponAction(id: string) {
+    try {
+        await db.coupon.delete({
+            where: { id }
+        });
+        revalidatePath("/admin/coupons");
+    } catch (e) {
+        console.error("Failed to delete coupon", e);
     }
 }

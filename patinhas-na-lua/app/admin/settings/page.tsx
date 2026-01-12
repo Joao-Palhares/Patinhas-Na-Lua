@@ -31,6 +31,17 @@ export default async function AdminSettingsPage() {
                 </a>
             </div>
 
+            {/* LINK TO COUPONS */}
+            <div className="bg-gradient-to-r from-teal-600 to-teal-500 rounded-2xl p-6 shadow-lg mb-8 text-white flex items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-bold mb-1">🏷️ Cupões de Desconto</h2>
+                    <p className="text-teal-100 text-sm">Gerir cupões ativos e histórico de uso.</p>
+                </div>
+                <a href="/admin/coupons" className="bg-white text-teal-600 font-bold py-3 px-6 rounded-xl shadow-md hover:bg-teal-50 transition transform hover:scale-105">
+                    Gerir Cupões →
+                </a>
+            </div>
+
             {/* DATA BACKUP */}
             <div className="bg-slate-800 rounded-2xl p-6 shadow-lg mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>

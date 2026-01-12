@@ -299,8 +299,11 @@ model Expense {
 model Coupon {
   id        String   @id @default(cuid())
   code      String   @unique
-  discount  Int      // Percentage (e.g. 100) or Fixed Amount? usually % based on context.
+  discount  Int      // Percentage
   active    Boolean  @default(true)
+  
+  maxUses   Int      @default(1)     // Default to 1 (Single use per code)
+  usesCount Int      @default(0)     // Count how many times it has been used
   
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])

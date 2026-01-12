@@ -103,9 +103,30 @@ export default async function AdminCouponsPage() {
                                             <p className="text-sm text-gray-500 mt-1">
                                                 Cliente: <span className="font-bold text-gray-700">{coupon.user?.name || "Qualquer Utilizador"}</span>
                                             </p>
+                                            
+                                            {/* USAGE STATS */}
+                                            <p className="text-xs text-slate-400 mt-1">
+                                                Usado: <strong>{coupon.usesCount}</strong> / {coupon.maxUses}
+                                            </p>
                                         </div>
-                                        <div className="text-right text-xs text-gray-400">
-                                            <p>{format(coupon.createdAt, "dd/MM/yyyy")}</p>
+                                        
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right text-xs text-gray-400">
+                                                <p>{format(coupon.createdAt, "dd/MM/yyyy")}</p>
+                                            </div>
+                                            
+                                            {/* DELETE BUTTON */}
+                                            <form action={async () => {
+                                                "use server";
+                                                // lazy import to avoid cycle issue in this specific file if needed, 
+                                                // but standard import should work since page calls actions.
+                                                const { deleteCouponAction } = await import("./actions");
+                                                await deleteCouponAction(coupon.id);
+                                            }}>
+                                                <button className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded transition" title="Apagar">
+                                                    ✕
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
                                 ))}

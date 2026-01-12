@@ -75,6 +75,20 @@ export default function CreateCouponModal({ users }: { users: User[] }) {
                                 />
                             </div>
 
+                            {/* MAX USES */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Limite de Utilizações</label>
+                                <input
+                                    name="maxUses"
+                                    type="number"
+                                    required
+                                    min="1"
+                                    defaultValue="1"
+                                    className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Ex: 1 (Para cliente único) ou 50 (Para campanha "Verão").</p>
+                            </div>
+
                             {/* USER (OPTIONAL) */}
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Atribuir a Cliente (Opcional)</label>
