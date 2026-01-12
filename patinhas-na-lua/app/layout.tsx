@@ -44,7 +44,7 @@ export default function RootLayout({
         <body suppressHydrationWarning>
           {children}
           <CookieConsent />
-          <Toaster richColors position="top-right" />
+          <Toaster richColors position="top-center" />
         </body>
       </html>
     </ClerkProvider>

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { saveBusinessSettings } from "./actions";
 import SubmitSettingsButton from "./submit-button"; // Fixed Import
 import NotificationTestButton from "./notification-test-button"; // Need this if referenced, but it was in page.tsx
+import ToastShowcase from "./toast-showcase";
 
 // Re-defining properties for clarity if needed, or using 'any' as typical in rapid dev
 interface Props {
@@ -22,6 +23,7 @@ export default function SettingsForm({ settings }: Props) {
     }
 
     return (
+        <>
         <form action={handleSubmit} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8">
             {/* SECTION 1: Base Location */}
             <div>
@@ -197,5 +199,8 @@ export default function SettingsForm({ settings }: Props) {
                 <SubmitSettingsButton />
             </div>
         </form>
+
+        <ToastShowcase />
+    </>
     );
 }
