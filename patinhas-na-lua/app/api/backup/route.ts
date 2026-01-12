@@ -14,20 +14,51 @@ export async function GET() {
   }
 
   // 2. Fetch ALL Data
-  // We'll dump the critical tables to JSON (easier to restore than CSV for relational data)
   const users = await db.user.findMany();
-  const appointments = await db.appointment.findMany();
   const pets = await db.pet.findMany();
+  const appointments = await db.appointment.findMany();
+  const appointmentImages = await db.appointmentImage.findMany();
+  const appointmentExtraFees = await db.appointmentExtraFee.findMany();
+  
   const services = await db.service.findMany();
+  const serviceOptions = await db.serviceOption.findMany();
+  
+  const businessSettings = await db.businessSettings.findFirst();
+  const workingDays = await db.workingDay.findMany();
+  const absences = await db.absence.findMany();
+  
+  const expenses = await db.expense.findMany();
+  const extraFees = await db.extraFee.findMany();
   const invoices = await db.invoice.findMany();
+  const coupons = await db.coupon.findMany();
+  const loyaltyRewards = await db.loyaltyReward.findMany();
+  
+  const reviews = await db.review.findMany();
+  const portfolioImages = await db.portfolioImage.findMany();
+  const pushSubscriptions = await db.pushSubscription.findMany();
+  const rateLimits = await db.rateLimit.findMany();
 
   const backupData = {
     timestamp: new Date().toISOString(),
     users,
     pets,
     appointments,
+    appointmentImages,
+    appointmentExtraFees,
     services,
-    invoices
+    serviceOptions,
+    businessSettings,
+    workingDays,
+    absences,
+    expenses,
+    extraFees,
+    invoices,
+    coupons,
+    loyaltyRewards,
+    reviews,
+    portfolioImages,
+    pushSubscriptions,
+    rateLimits
   };
 
   // 3. Return as File Download
