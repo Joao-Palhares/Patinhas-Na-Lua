@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import AdminMobileNav from "./components/admin-mobile-nav";
 import AdminNotifications from "./components/admin-notifications";
+import SidebarLink from "./components/sidebar-link";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -57,39 +58,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
 
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
-          <Link href="/admin/services" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>✂️</span> Serviços e Preços
-          </Link>
-
-          <Link href="/admin/expenses" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>💶</span> Despesas (Custos)
-          </Link>
-
-          <Link href="/admin/appointments" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>📅</span> Agenda / Marcações
-          </Link>
-
-          <Link href="/admin/clients" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>👥</span> Clientes
-          </Link>
-          <Link href="/admin/analytics" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>📈</span> Relatórios & Lucro
-          </Link>
-          <Link href="/admin/fees" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>🏷️</span> Taxas Extras
-          </Link>
-          <Link href="/admin/invoices" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>🧾</span> Faturas
-          </Link>
-          <Link href="/admin/coupons" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>🎟️</span> Prémios & Cupões
-          </Link>
-          <Link href="/admin/settings" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>⚙️</span> Configuração
-          </Link>
-          <Link href="/admin/vacations" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>🏖️</span> Férias
-          </Link>
+          <SidebarLink href="/admin/services" icon="✂️" label="Serviços e Preços" />
+          <SidebarLink href="/admin/expenses" icon="💶" label="Despesas (Custos)" />
+          <SidebarLink href="/admin/appointments" icon="📅" label="Agenda / Marcações" />
+          <SidebarLink href="/admin/clients" icon="👥" label="Clientes" />
+          <SidebarLink href="/admin/analytics" icon="📈" label="Relatórios & Lucro" />
+          <SidebarLink href="/admin/fees" icon="🏷️" label="Taxas Extras" />
+          <SidebarLink href="/admin/invoices" icon="🧾" label="Faturas" />
+          <SidebarLink href="/admin/coupons" icon="🎟️" label="Prémios & Cupões" />
+          <SidebarLink href="/admin/settings" icon="⚙️" label="Configuração" />
+          <SidebarLink href="/admin/vacations" icon="🏖️" label="Férias" />
 
           <div className="my-2 border-t border-slate-800 mx-2"></div>
 
@@ -97,13 +75,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="group-hover:animate-spin">✨</span> Estúdio Criativo
           </Link>
           
-          <Link href="/admin/portfolio" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>🖼️</span> Portfólio (Site)
-          </Link>
-
-          <Link href="/admin/reviews" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
-            <span>⭐</span> Moderação Reviews
-          </Link>
+          <SidebarLink href="/admin/portfolio" icon="🖼️" label="Portfólio (Site)" />
+          <SidebarLink href="/admin/reviews" icon="⭐" label="Moderação Reviews" />
 
           <AdminNotifications appointments={appointmentsSafe} />
         </nav>
