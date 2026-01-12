@@ -66,8 +66,22 @@ export async function submitBooking(formData: FormData) {
     });
 
     if (coupon) {
-      discountPercent = coupon.discount;
-      usedCouponId = coupon.id;
+      if (coupon.usesCount >= coupon.maxUses) {
+         // Should fail ideally, but let's just ignore discount to not break flow? 
+         // Or safer to throw err? Let's ignore discount.
+         discountPercent = 0;
+         discountNotes = `Cupão ${couponCode} expirado (limite atingido)`;
+      } else {
+         discountPercent = coupon.discount;
+         usedCouponId = coupon.id;
+         
+         // Increment Use Count
+         await db.coupon.update({
+             where: { id: coupon.id },
+             data: { usesCount: { increment: 1 } }
+         });
+      }
+
     } else {
       // @ts-ignore: Prisma Client not generated yet
       const referrer = await db.user.findFirst({ where: { referralCode: couponCode } });
@@ -167,6 +181,9 @@ export async function validateCoupon(code: string) {
   });
 
   if (coupon) {
+    if (coupon.usesCount >= coupon.maxUses) {
+       return { valid: false, message: "Este cupão atingiu o limite de utilizações." };
+    }
     return { valid: true, discount: coupon.discount, type: "COUPON", id: coupon.id };
   }
 
