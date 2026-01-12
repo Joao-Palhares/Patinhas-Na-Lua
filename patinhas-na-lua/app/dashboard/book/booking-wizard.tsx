@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { submitBooking, getAvailableSlots } from "./actions";
 import { Pet, Service, ServiceOption } from "@prisma/client";
+import { toast } from "sonner"; // + Import Toast
 
 import dynamic from 'next/dynamic';
 const LocationPicker = dynamic(() => import('@/app/components/location-picker'), {
@@ -416,8 +417,10 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                       });
 
                       if (conflict) {
-                        const reasonMsg = conflict.reason ? ` (${conflict.reason})` : "";
-                        alert(`⚠️ Estamos fechados nesta data${reasonMsg}. Por favor selecione outro dia.`);
+                        const reasonMsg = conflict.reason ? `Motivo: ${conflict.reason}` : "";
+                        toast.warning("Estamos fechados nesta data. 🚫", {
+                          description: reasonMsg || "Por favor, selecione outro dia."
+                        });
                         e.target.value = "";
                         setDate("");
                         return;

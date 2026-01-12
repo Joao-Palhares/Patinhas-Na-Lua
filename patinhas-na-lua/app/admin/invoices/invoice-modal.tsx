@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { pdf } from "@react-pdf/renderer"; 
 import { InvoiceDocument } from "./invoice-document"; // Make sure the filename matches!
+import { toast } from "sonner"; // + Import
 
 interface Props {
   invoice: any; 
@@ -66,7 +67,7 @@ export default function InvoiceModal({ invoice }: Props) {
       
     } catch (error) {
       console.error("PDF generation error:", error);
-      alert("Erro ao gerar PDF.");
+      toast.error("Erro ao gerar PDF.", { description: "Tente novamente mais tarde." });
     } finally {
       setIsDownloading(false);
     }

@@ -1,16 +1,34 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { updateUserAction, requestAccountDeletion } from "@/app/actions";
 import Link from "next/link";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner"; // + Import
 
 export default function ProfileForm({ initialData }: { initialData: any }) {
-  const { user } = useUser(); // Still use Clerk for Avatar
+  const { user } = useUser(); 
   const [state, formAction, isPending] = useActionState(updateUserAction, null);
   
   const [deleteState, deleteAction, isDeletePending] = useActionState(requestAccountDeletion, null);
+
+  // Effect to show toast based on Server Action result
+  useEffect(() => {
+      if (state?.success) {
+          toast.success(state.success);
+      } else if (state?.error) {
+          toast.error(state.error);
+      }
+  }, [state]);
+
+  // Effect for delete action
+  useEffect(() => {
+    if (deleteState?.success) {
+        toast.success("Pedido enviado com sucesso.", { description: "Os seus dados serão eliminados em 30 dias." });
+    }
+  }, [deleteState]);
+
 
   if (!initialData) return <div className="p-8 text-center text-red-500">Erro ao carregar perfil.</div>;
 
@@ -26,23 +44,13 @@ export default function ProfileForm({ initialData }: { initialData: any }) {
             <h1 className="text-2xl font-black text-gray-800">Meu Perfil 👤</h1>
         </div>
 
-        {/* FEEDBACK MESSAGES */}
-        {state?.error && (
-            <div className="bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-medium animate-pulse border border-red-200">
-                ⚠️ {state.error}
-            </div>
-        )}
-        {state?.success && (
-            <div className="bg-green-100 text-green-700 p-4 rounded-xl mb-6 font-bold border border-green-200">
-                ✅ {state.success}
-            </div>
-        )}
+        {/* Removed inline messages, now handled by toast */}
 
         {/* PROFILE PICTURE (From Clerk) */}
         <div className="flex flex-col items-center mb-8">
             <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg mb-2">
                 <Image 
-                    src={user.imageUrl} 
+                    src={user?.imageUrl || "/placeholder-user.png"} // fallback
                     alt="Profile" 
                     fill 
                     className="object-cover"

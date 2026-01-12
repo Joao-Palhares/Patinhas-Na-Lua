@@ -1,20 +1,24 @@
 'use client';
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function SendRemindersButton() {
     const [loading, setLoading] = useState(false);
 
     const handleSend = async () => {
+        // We keep confirm as it's a critical action, but we could replace with a modal later
         if (!confirm("⚠️ Atenção: Isto vai enviar e-mails REAIS para todos os clientes com agendamento para AMANHÃ.\n\nTem a certeza?")) return;
 
         setLoading(true);
         try {
             const res = await fetch('/api/cron/reminders');
             const data = await res.json();
-            alert(`✅ Processo concluído!\nEmails enviados: ${data.sent}`);
+             toast.success("✅ Processo concluído!", {
+                description: `Emails enviados: ${data.sent}`
+            });
         } catch (error) {
-            alert("❌ Erro ao enviar lembretes.");
+             toast.error("❌ Erro ao enviar lembretes.");
             console.error(error);
         } finally {
             setLoading(false);

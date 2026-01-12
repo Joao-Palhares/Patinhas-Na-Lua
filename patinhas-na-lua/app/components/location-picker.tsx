@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { BusinessSettings } from "@prisma/client";
+import { toast } from "sonner"; // + Import
 
 // Define strict type for Serialized settings (Decimals converted to numbers)
 // Define strict type for Serialized settings (Decimals converted to numbers)
@@ -129,10 +130,10 @@ export default function LocationPicker({ settings, onLocationSelect }: LocationP
                 mapRef.current?.setView([latNum, lonNum], 15);
                 // We don't auto-select, user must click to confirm exact house
             } else {
-                alert("Morada não encontrada.");
+                toast.warning("Morada não encontrada.", { description: "Tente ser mais específico (Ex: Rua X, Tondela)" });
             }
         } catch (e) {
-            alert("Erro na pesquisa.");
+            toast.error("Erro na pesquisa.");
         }
         setIsSearching(false);
     };

@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { sendTestEmailAction } from "../appointments/actions";
+import { toast } from "sonner";
 
 export default function TestEmailButton() {
     const [loading, setLoading] = useState(false);
 
     async function handleTest() {
+        // prompt is still useful for simple input, could replace with dialog but out of scope for pure toast migration
         const email = prompt("Para qual email quer enviar o teste? (Deve ser o mesmo do registo no Resend se não tiver domínio verificado)");
         if (!email) return;
 
@@ -15,9 +17,9 @@ export default function TestEmailButton() {
         setLoading(false);
 
         if (res.success) {
-            alert("✅ Email enviado! Verifique a sua caixa de entrada (e spam).");
+            toast.success("✅ Email enviado!", { description: "Verifique a sua caixa de entrada (e spam)." });
         } else {
-            alert("❌ Erro ao enviar. Verifique a consola do servidor.");
+             toast.error("❌ Erro ao enviar.", { description: "Verifique a consola do servidor." });
         }
     }
 

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { format } from "date-fns";
 import Link from "next/link";
 import CreateCouponModal from "./create-coupon-modal";
+import DeleteCouponButton from "./delete-coupon-button";
 
 export default async function AdminCouponsPage() {
 
@@ -116,17 +117,8 @@ export default async function AdminCouponsPage() {
                                             </div>
                                             
                                             {/* DELETE BUTTON */}
-                                            <form action={async () => {
-                                                "use server";
-                                                // lazy import to avoid cycle issue in this specific file if needed, 
-                                                // but standard import should work since page calls actions.
-                                                const { deleteCouponAction } = await import("./actions");
-                                                await deleteCouponAction(coupon.id);
-                                            }}>
-                                                <button className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded transition" title="Apagar">
-                                                    ✕
-                                                </button>
-                                            </form>
+                                            {/* DELETE BUTTON */}
+                                            <DeleteCouponButton id={coupon.id} />
                                         </div>
                                     </div>
                                 ))}
