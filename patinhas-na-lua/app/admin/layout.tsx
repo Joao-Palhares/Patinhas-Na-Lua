@@ -97,6 +97,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="group-hover:animate-spin">✨</span> Estúdio Criativo
           </Link>
           
+          <Link href="/admin/portfolio" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
+            <span>🖼️</span> Portfólio (Site)
+          </Link>
+
           <Link href="/admin/reviews" className="flex items-center gap-3 p-3 hover:bg-slate-800 rounded-lg transition text-slate-300 hover:text-white">
             <span>⭐</span> Moderação Reviews
           </Link>
