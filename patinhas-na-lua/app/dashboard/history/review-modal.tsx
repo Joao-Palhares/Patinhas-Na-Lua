@@ -13,88 +13,78 @@ export default function ReviewModal({ appointmentId }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
+  // State
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  // State for Base64 string
-  const [imageBase64, setImageBase64] = useState<string>("");
 
-  // --- COMPRESSION UTILITY (Returns Base64) ---
-  const compressImage = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const MAX_WIDTH = 1200;
-        const scale = MAX_WIDTH / img.width;
-        
-        // Only resize if wider than MAX_WIDTH
-        if (scale < 1) {
-            canvas.width = MAX_WIDTH;
-            canvas.height = img.height * scale;
-        } else {
-            canvas.width = img.width;
-            canvas.height = img.height;
-        }
+  const UPLOAD_PRESET = "patinhas_unsigned"; // User must create this!
+  const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
-        const ctx = canvas.getContext("2d");
-        if (!ctx) { reject(new Error("Canvas context error")); return; }
-        
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Convert directly to Base64
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-        resolve(dataUrl);
-      };
-      img.onerror = (err) => reject(err);
-    });
+  const uploadImageToCloudinary = async (fileToUpload: File) => {
+    const formData = new FormData();
+    formData.append("file", fileToUpload);
+    formData.append("upload_preset", UPLOAD_PRESET); 
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.message || "Upload failed");
+    }
+
+    const data = await response.json();
+    return data.secure_url;
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const originalFile = e.target.files[0];
-      
-      // Basic size check feedback (optional)
-      if(originalFile.size > 15 * 1024 * 1024) {
-          toast.error("Imagem muito grande! Tente uma menor que 15MB.");
-          return;
-      }
-
-      // Show preview immediately with original
-      setPreview(URL.createObjectURL(originalFile));
-      
-      try {
-          const base64 = await compressImage(originalFile);
-          setImageBase64(base64); // Store encoded string
-          setFile(originalFile); // Keep original just for UI logic if needed, but we rely on base64
-      } catch (error) {
-          console.error("Compression error", error);
-          toast.error("Erro ao processar imagem.");
-      }
+      const f = e.target.files[0];
+      setFile(f);
+      setPreview(URL.createObjectURL(f));
     }
   };
 
   const handleSubmit = async (formData: FormData) => {
     setLoading(true);
     try {
-      // Append manual states
+      // 1. Upload Image Client-Side if exists
+      let uploadedUrl = "";
+      if (file) {
+          try {
+             // toast.info("A carregar foto...");
+             uploadedUrl = await uploadImageToCloudinary(file);
+          } catch (err: any) {
+             console.error("Cloudinary Error:", err);
+             toast.error(`Erro no upload: ${err.message}`);
+             setLoading(false);
+             return;
+          }
+      }
+
+      // 2. Submit Review with URL
+      // We perform a "hidden" append because we are reusing the Server Action formData
       formData.set("appointmentId", appointmentId);
       formData.set("rating", rating.toString());
-      
-      // We manually append the base64 string if it exists
-      if (imageBase64) {
-          formData.set("imageBase64", imageBase64);
+      if (uploadedUrl) {
+          formData.set("photoUrl", uploadedUrl);
       }
+      
+      // Remove raw file to avoid sending it to server (waste of bandwidth)
+      formData.delete("image");
       
       await submitReview(formData);
       
-      toast.success("Obrigado! A tua avaliação foi enviada.");
+      toast.success("Obrigado! A tua avaliação foi enviada. 🌟");
       setIsOpen(false);
-      // Reset
       setFile(null);
       setPreview(null);
-      setImageBase64("");
       setRating(5);
     } catch (error) {
       toast.error("Erro ao enviar avaliação.");

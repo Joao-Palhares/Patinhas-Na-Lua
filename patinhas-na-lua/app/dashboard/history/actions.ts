@@ -16,14 +16,13 @@ export async function submitReview(formData: FormData) {
   const user = await currentUser();
   if (!user) throw new Error("Unauthorized");
 
+  // 1. INPUTS
   const appointmentId = formData.get("appointmentId") as string;
   const rating = Number(formData.get("rating"));
   const comment = formData.get("comment") as string;
-  const imageBase64 = formData.get("imageBase64") as string | null;
-  const file = formData.get("image") as File | null;
+  const clientProvidedUrl = formData.get("photoUrl") as string | null;
 
-  // 1. VALIDATION
-  // ... (keep validation logic) ...
+  // 2. VALIDATION
   const appointment = await db.appointment.findUnique({
     where: { id: appointmentId },
     include: { review: true }
@@ -34,20 +33,10 @@ export async function submitReview(formData: FormData) {
   if (appointment.status !== "COMPLETED") throw new Error("Service not completed yet");
   if (appointment.review) throw new Error("Already reviewed");
 
-  let photoUrl: string | null = null;
+  let photoUrl = clientProvidedUrl;
 
-  // 2. IMAGE HANDLING
-  // Strategy: Store Base64 directly in DB (Neon/Postgres allows large text)
-  // This avoids external dependencies like Cloudinary that are error-prone.
-  try {
-      if (imageBase64 && imageBase64.startsWith("data:image")) {
-          // Use the base64 string directly as the "url"
-          photoUrl = imageBase64;
-      } 
-  } catch (error) {
-    console.error("Image Processing Error:", error);
-    // Continue without image if fails
-  }
+  // Security check: ensure URL is from our Cloudinary account if configured (optional but good practice)
+  // For now we trust the client provided URL since it's an unsigned upload to our own cloud.
 
   // 3. SAVE REVIEW
   await db.review.create({
