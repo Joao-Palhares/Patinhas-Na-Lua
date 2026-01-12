@@ -71,9 +71,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
           <div className="my-2 border-t border-slate-800 mx-2"></div>
 
-          <Link href="/admin/marketing" className="flex items-center gap-3 p-3 hover:bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg transition text-white font-bold group">
-            <span className="group-hover:animate-spin">✨</span> Estúdio Criativo
-          </Link>
+          <SidebarLink 
+             href="/admin/marketing" 
+             icon={<span className="group-hover:animate-spin">✨</span>} 
+             label="Estúdio Criativo"
+             className="group hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-500"
+          />
           
           <SidebarLink href="/admin/portfolio" icon="🖼️" label="Portfólio (Site)" />
           <SidebarLink href="/admin/reviews" icon="⭐" label="Moderação Reviews" />

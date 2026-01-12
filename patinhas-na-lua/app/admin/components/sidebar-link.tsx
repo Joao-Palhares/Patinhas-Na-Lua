@@ -6,11 +6,12 @@ import { cn } from "@/lib/utils";
 
 interface SidebarLinkProps {
   href: string;
-  icon: string;
+  icon: React.ReactNode;
   label: string;
+  className?: string; // Allow custom styling
 }
 
-export default function SidebarLink({ href, icon, label }: SidebarLinkProps) {
+export default function SidebarLink({ href, icon, label, className }: SidebarLinkProps) {
   const pathname = usePathname();
   const isActive = pathname.startsWith(href);
 
@@ -18,10 +19,11 @@ export default function SidebarLink({ href, icon, label }: SidebarLinkProps) {
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 p-3 rounded-lg transition",
+        "flex items-center gap-3 p-3 rounded-lg transition whitespace-nowrap", // whitespace-nowrap fixes line break
         isActive
-          ? "bg-blue-600 text-white font-bold shadow-md transform scale-105"
-          : "hover:bg-slate-800 text-slate-300 hover:text-white"
+          ? "bg-blue-600 text-white font-bold shadow-md" // Removed scale-105 to prevent layout shifts
+          : "hover:bg-slate-800 text-slate-300 hover:text-white",
+        className
       )}
     >
       <span className={cn(isActive ? "animate-pulse" : "")}>{icon}</span>
