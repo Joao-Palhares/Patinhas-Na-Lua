@@ -107,44 +107,54 @@ export default function PortfolioFan({ images = [] }: Props) {
         </div>
       </div>
 
-      {/* MODAL */}
+      {/* MODAL OVERLAY */}
       {isOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div 
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-300"
+            onClick={() => setIsOpen(false)}
+        >
             
             {/* CLOSE BUTTON */}
             <button 
                 onClick={() => setIsOpen(false)}
-                className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition z-50"
+                className="absolute top-6 right-6 text-white/50 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-3 transition z-50 backdrop-blur-md border border-white/10"
             >
                 <X className="w-8 h-8" />
             </button>
 
-            <div className="relative w-full max-w-5xl aspect-video md:aspect-[16/9] flex items-center justify-center">
+            {/* MAIN CONTENT LAYER */}
+            <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
                 
                 {/* PREV BTN */}
                 <button 
                     onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                    className="absolute left-2 md:-left-12 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 backdrop-blur z-50 transition"
+                    className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white/70 hover:text-white hover:scale-110 transition z-50 p-4"
                 >
-                    <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
+                    <ChevronLeft className="w-10 h-10 md:w-16 md:h-16 drop-shadow-lg" />
                 </button>
 
-                {/* SLIDES */}
-                <div className="relative w-full h-full overflow-hidden rounded-lg shadow-2xl bg-black">
+                {/* SLIDES CONTAINER */}
+                <div 
+                    className="relative w-full max-w-6xl h-[70vh] md:h-[80vh] flex items-center justify-center"
+                    onClick={(e) => e.stopPropagation()} 
+                >
                     {displayImages.map((img, index) => (
                         <div 
                             key={index}
-                            className={`absolute inset-0 transition-opacity duration-500 ease-in-out flex items-center justify-center ${
-                                index === activeIndex ? "opacity-100 z-20" : "opacity-0 z-10"
+                            className={`absolute inset-0 transition-all duration-500 ease-out flex items-center justify-center ${
+                                index === activeIndex 
+                                    ? "opacity-100 scale-100 blur-0 z-20" 
+                                    : "opacity-0 scale-95 blur-sm z-10 pointer-events-none"
                             }`}
                         >
-                            <div className="relative w-full h-full"> 
+                            {/* IMAGE WRAPPER */}
+                            <div className="relative w-full h-full p-2"> 
                                 <Image 
                                     src={img.url} 
                                     alt={`Gallery Image ${index + 1}`} 
                                     fill
-                                    className="object-contain" 
-                                    quality={90}
+                                    className="object-contain drop-shadow-2xl" 
+                                    quality={95}
                                     priority={index === activeIndex}
                                 />
                             </div>
@@ -155,19 +165,24 @@ export default function PortfolioFan({ images = [] }: Props) {
                 {/* NEXT BTN */}
                 <button 
                     onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                    className="absolute right-2 md:-right-12 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 backdrop-blur z-50 transition"
+                    className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white/70 hover:text-white hover:scale-110 transition z-50 p-4"
                 >
-                   <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
+                   <ChevronRight className="w-10 h-10 md:w-16 md:h-16 drop-shadow-lg" />
                 </button>
 
-                 {/* INDICATORS */}
-                <div className="absolute -bottom-8 md:-bottom-10 left-1/2 -translate-x-1/2 flex gap-2">
+                 {/* INDICATORS (Bottom) */}
+                <div 
+                    className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex gap-3 px-6 py-3 bg-black/30 backdrop-blur-md rounded-full border border-white/10"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     {displayImages.map((_, i) => (
                         <button
                             key={i}
                             onClick={() => setActiveIndex(i)}
-                            className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all ${
-                                i === activeIndex ? "bg-white scale-125" : "bg-white/30 hover:bg-white/50"
+                            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                                i === activeIndex 
+                                    ? "bg-white scale-125 shadow-[0_0_10px_white]" 
+                                    : "bg-white/30 hover:bg-white/60"
                             }`}
                         />
                     ))}
