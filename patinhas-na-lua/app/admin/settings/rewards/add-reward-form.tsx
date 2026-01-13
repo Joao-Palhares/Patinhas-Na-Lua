@@ -52,12 +52,12 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
 
     const formatOptionLabel = (opt: ServiceOption) => {
         const sizeMap: Record<string, string> = {
-            'TOY': 'Toy (<6kg)',
-            'SMALL': 'Pequeno (6-15kg)',
-            'MEDIUM': 'Médio (15-25kg)',
-            'LARGE': 'Grande (25-40kg)',
-            'XL': 'Gigante (>40kg)',
-            'GIANT': 'Gigante (>40kg)'
+            'TOY': 'Toy (< 5kg)',
+            'SMALL': 'Pequeno (5-10kg)',
+            'MEDIUM': 'Médio (11-20kg)',
+            'LARGE': 'Grande (21-30kg)',
+            'XL': 'XL (31-40kg)',
+            'GIANT': 'Gigante (> 40kg)'
         };
         
         const coatMap: Record<string, string> = {
