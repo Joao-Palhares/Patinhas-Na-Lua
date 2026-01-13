@@ -48,6 +48,13 @@ export default async function LandingPage() {
   // FETCH SETTINGS for Address
   const settings = await db.businessSettings.findUnique({ where: { id: "default" } });
 
+  // FETCH PORTFOLIO IMAGES
+  const portfolioImages = await db.portfolioImage.findMany({
+    where: { isPublic: true },
+    orderBy: { order: 'asc' },
+    take: 3
+  });
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100">
 
@@ -162,7 +169,7 @@ export default async function LandingPage() {
             </div>
 
             <div className="flex justify-center scale-90 md:scale-100">
-              <PortfolioFan />
+              <PortfolioFan images={portfolioImages} />
             </div>
           </div>
         </section>

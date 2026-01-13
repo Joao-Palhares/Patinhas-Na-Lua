@@ -3,8 +3,6 @@
 import { toast } from "sonner";
 import { saveBusinessSettings } from "./actions";
 import SubmitSettingsButton from "./submit-button"; // Fixed Import
-import NotificationTestButton from "./notification-test-button"; // Need this if referenced, but it was in page.tsx
-import ToastShowcase from "./toast-showcase";
 
 // Re-defining properties for clarity if needed, or using 'any' as typical in rapid dev
 interface Props {
@@ -69,22 +67,8 @@ export default function SettingsForm({ settings }: Props) {
                 </div>
             </div>
 
-            {/* SECTION 1.6: Push Notifications */}
-            <div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    🔔 Notificações (Web Push)
-                </h2>
-                <div className="p-6 bg-blue-50 rounded-xl border border-blue-200 flex justify-between items-center">
-                    <div>
-                        <h3 className="font-bold text-blue-900">Enviar Lembretes Manuais</h3>
-                        <p className="text-xs text-blue-700 mt-1">
-                            Disparar notificações para agendamentos de AMANHÃ.
-                        </p>
-                    </div>
-                    <NotificationTestButton />
-                </div>
-            </div>
-
+            {/* SECTION 1.6: Push Notifications - REMOVED TEST BUTTONS */}
+            
             {/* SECTION 1.5: Marketing */}
             <div>
                     <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -199,8 +183,6 @@ export default function SettingsForm({ settings }: Props) {
                 <SubmitSettingsButton />
             </div>
         </form>
-
-        <ToastShowcase />
     </>
     );
 }

@@ -2,6 +2,7 @@
 
 import { updateWorkingDay, checkScheduleConflicts } from "./actions";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface Props {
     dayName: string;
@@ -32,12 +33,22 @@ export default function DayRow({ dayName, dayIndex, startTime, endTime, breakSta
             }
         }
 
-        await updateWorkingDay(formData);
+        try {
+            await updateWorkingDay(formData);
+            toast.success("Horário atualizado com sucesso!");
+        } catch (error) {
+            toast.error("Erro ao atualizar horário.");
+        }
     };
 
     const confirmSave = async () => {
         if (pendingFormData) {
-            await updateWorkingDay(pendingFormData);
+            try {
+                await updateWorkingDay(pendingFormData);
+                toast.success("Horário fechado com sucesso!");
+            } catch (error) {
+                toast.error("Erro ao fechar horário.");
+            }
             setIsWarningOpen(false);
             setPendingFormData(null);
         }
