@@ -4,52 +4,78 @@ import { db } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
-export async function redeemReward(rewardId: string) {
+export async function redeemReward(rewardId: string, petId?: string) {
     const user = await currentUser();
     if (!user) return { success: false, message: "Utilizador não autenticado" };
 
     const dbUser = await db.user.findUnique({ where: { id: user.id } });
     if (!dbUser) return { success: false, message: "Utilizador não encontrado" };
 
-    // 1. Fetch the Reward
-    // We use raw query or prisma findUnique if defined. It seems 'LoyaltyReward' was created via SQL/Migration in page.tsx 
-    // so it might not be in Prisma Client Schema yet?
-    // If it's not in Prisma Schema, we MUST use $queryRaw.
-    // The previous page.tsx used $queryRaw, suggesting it's NOT in Prisma Schema properly or was added manually.
-
-    // Let's try raw query for safety.
-    const rewards = await db.$queryRaw<any[]>`
-        SELECT * FROM "LoyaltyReward" WHERE id = ${rewardId} LIMIT 1
-    `;
-    const reward = rewards[0];
+    // 1. Fetch the Reward with Service Options context
+    const reward = await db.loyaltyReward.findUnique({
+        where: { id: rewardId },
+        include: { 
+            service: {
+                include: { options: true }
+            }
+        }
+    });
 
     if (!reward) return { success: false, message: "Prémio não encontrado" };
-
     if (!reward.isActive) return { success: false, message: "Este prémio já não está disponível" };
 
-    if (dbUser.loyaltyPoints < reward.pointsCost) {
-        return { success: false, message: "Pontos insuficientes" };
+    let pointsCost = reward.pointsCost;
+
+    // --- DYNAMIC REWARD LOGIC ---
+    if (pointsCost <= 0) {
+        if (!petId) {
+            return { success: false, message: "Erro: É necessário selecionar um animal para este prémio." };
+        }
+
+        const pet = await db.pet.findUnique({ where: { id: petId } });
+        if (!pet) return { success: false, message: "Animal não encontrado." };
+        
+        // Ensure Pet has size/coat data
+        if (!pet.sizeCategory || !pet.coatType) {
+            return { success: false, message: "Por favor atualize o perfil do seu animal (Tamanho e Pelo) para usar este prémio." };
+        }
+
+        // Find Matching Option
+        const matchedOption = reward.service.options.find(o => 
+            o.petSize === pet.sizeCategory && 
+            o.coatType === pet.coatType
+        );
+
+        if (!matchedOption) {
+            return { success: false, message: "Este serviço não está disponível para o tamanho/pelo do seu animal." };
+        }
+
+        // Calculate Cost: Price * 20
+        pointsCost = Math.ceil(Number(matchedOption.price) * 20);
+    }
+
+    // Check Balance
+    if (dbUser.loyaltyPoints < pointsCost) {
+        return { success: false, message: `Pontos insuficientes. Necessita de ${pointsCost} patinhas.` };
     }
 
     try {
         // 2. Deduct Points
         await db.user.update({
             where: { id: user.id },
-            data: { loyaltyPoints: { decrement: reward.pointsCost } }
+            data: { loyaltyPoints: { decrement: pointsCost } }
         });
 
         // 3. Create Coupon code
         const part1 = Math.random().toString(36).substring(2, 6).toUpperCase();
         const part2 = Math.random().toString(36).substring(2, 6).toUpperCase();
-        const code = `LUA-${part1}-${part2}`; // Shorter, cleaner code
+        const code = `LUA-${part1}-${part2}`; 
 
         // 4. Create Coupon
-        // Discount logic: If reward.discountPercentage is e.g. 100, coupon is 100% off.
-        // We assume discountPercentage is the DISCOUNT amount.
         await db.coupon.create({
             data: {
                 code: code,
-                discount: reward.discountPercentage || 0,
+                discount: reward.discountPercentage || 0, // Usually 100 for free services
                 active: true,
                 userId: user.id
             }

@@ -10,6 +10,7 @@ interface Reward {
     discountPercentage: number;
     serviceName: string;
     serviceCategory: string;
+    petId?: string;
 }
 
 interface Props {
@@ -22,11 +23,11 @@ export default function RewardsClient({ userPoints, rewards }: Props) {
     const [loadingId, setLoadingId] = useState<string | null>(null);
     const [claimedCode, setClaimedCode] = useState<string | null>(null);
 
-    const handleRedeem = async (rewardId: string, cost: number, title: string) => {
+    const handleRedeem = async (rewardId: string, cost: number, title: string, petId?: string) => {
         if (!confirm(`Tem a certeza que quer trocar ${cost} patinhas por "${title}"?`)) return;
 
         setLoadingId(rewardId);
-        const res = await redeemReward(rewardId);
+        const res = await redeemReward(rewardId, petId);
 
         if (res.success && res.code) {
             setClaimedCode(res.code);
@@ -261,7 +262,7 @@ export default function RewardsClient({ userPoints, rewards }: Props) {
                                     <p className="text-sm text-slate-500 mb-6 min-h-[40px] leading-relaxed">{desc}</p>
 
                                     <button
-                                        onClick={() => handleRedeem(reward.id, cost, title)}
+                                        onClick={() => handleRedeem(reward.id, cost, title, reward.petId)}
                                         disabled={!unlocked || loadingId !== null}
                                         className={`w-full py-3 rounded-xl font-bold transition shadow-sm ${unlocked
                                             ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg active:scale-95"
