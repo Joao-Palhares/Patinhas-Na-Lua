@@ -108,35 +108,39 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
                 </select>
             </div>
 
-            {/* OPTION SELECT (Only if service selected) */}
-            {selectedService && (
-                <div className="animate-in fade-in slide-in-from-top-2 bg-purple-50 p-3 rounded-lg border border-purple-100">
-                    <label className="block text-sm font-bold text-purple-900 mb-1">Opção Específica</label>
-                    
-                    {selectedService.options.length > 0 ? (
-                        <>
-                            <select 
-                                name="serviceOptionId" 
-                                className="w-full border border-purple-200 rounded-lg p-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 outline-none transition"
-                                value={selectedOptionId}
-                                onChange={(e) => setSelectedOptionId(e.target.value)}
-                            >
-                                <option value="">Qualquer Tamanho/Pelo (Genérico)</option>
-                                {selectedService.options.map(opt => (
-                                    <option key={opt.id} value={opt.id}>
-                                        {formatOptionLabel(opt)} — {Number(opt.price).toFixed(2)}€
-                                    </option>
-                                ))}
-                            </select>
-                            <p className="text-[10px] text-purple-700 mt-1">
-                                Selecione uma variação para fixar o preço e simplificar.
-                            </p>
-                        </>
-                    ) : (
-                        <p className="text-sm text-gray-500 italic">Este serviço não tem opções de tamanho/pelo configuradas (Preço único).</p>
-                    )}
-                </div>
-            )}
+            {/* OPTION SELECT (Always Visible for better UX) */}
+            <div className={`p-3 rounded-lg border transition-all duration-300 ${selectedService ? 'bg-purple-50 border-purple-100' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
+                <label className={`block text-sm font-bold mb-1 ${selectedService ? 'text-purple-900' : 'text-gray-400'}`}>Opção Específica (Opcional)</label>
+                
+                {!selectedService ? (
+                    <select disabled className="w-full border border-gray-200 rounded-lg p-2 bg-gray-100 text-gray-400 cursor-not-allowed">
+                        <option>← Selecione um serviço acima primeiro</option>
+                    </select>
+                ) : selectedService.options.length > 0 ? (
+                    <>
+                        <select 
+                            name="serviceOptionId" 
+                            className="w-full border border-purple-200 rounded-lg p-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 outline-none transition"
+                            value={selectedOptionId}
+                            onChange={(e) => setSelectedOptionId(e.target.value)}
+                        >
+                            <option value="">Qualquer Tamanho/Pelo (Genérico)</option>
+                            {selectedService.options.map(opt => (
+                                <option key={opt.id} value={opt.id}>
+                                    {formatOptionLabel(opt)} — {Number(opt.price).toFixed(2)}€
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-[10px] text-purple-700 mt-1">
+                            * Ao selecionar uma opção, o valor e o custo em pontos são calculados automaticamente.
+                        </p>
+                    </>
+                ) : (
+                    <div className="p-2 bg-white/50 rounded border border-gray-200 text-sm italic text-gray-500">
+                        Este serviço não tem variações (Preço único).
+                    </div>
+                )}
+            </div>
 
             {/* VALUE / PRICE INPUT */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -5,6 +5,7 @@ import AddRewardForm from "./add-reward-form";
 export default async function RewardsSettingsPage() {
     // 2. Fetch Services with Options
     const services = await db.service.findMany({
+        where: { isActive: true }, // Filter active only
         orderBy: { name: "asc" },
         include: {
             options: {
