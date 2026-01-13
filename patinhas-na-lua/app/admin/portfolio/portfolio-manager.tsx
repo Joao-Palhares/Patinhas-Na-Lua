@@ -99,6 +99,41 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
         }
     };
 
+    // --- CLIPBOARD PASTE HANDLER ---
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) {
+                    console.log("📋 Pasted from clipboard:", file.name, (file.size / 1024 / 1024).toFixed(2), "MB");
+                    setUploading(true);
+                    toast.loading("A enviar imagem colada...");
+                    try {
+                        const url = await handleSignedUpload(file);
+                        setNewImage({ ...newImage, url });
+                        toast.dismiss();
+                        toast.success("Imagem carregada!");
+                    } catch (error) {
+                        toast.dismiss();
+                        toast.error("Erro ao enviar imagem");
+                    } finally {
+                        setUploading(false);
+                    }
+                }
+                break;
+            }
+        }
+    };
+
+    // --- RESET FORM ---
+    const resetForm = () => {
+        setNewImage({ url: "", title: "", description: "" });
+        setShowUploadForm(false);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newImage.url) return;
@@ -164,11 +199,11 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
             {showUploadForm && (
                 <div className="bg-white border-2 border-blue-200 rounded-xl p-6 shadow-lg">
                     <h3 className="text-xl font-bold mb-4">Nova Imagem</h3>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* File Upload */}
+                    <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4">
+                        {/* File Upload with Paste Support */}
                         <div>
                             <label className="block text-sm font-semibold mb-2">
-                                Escolher Imagem
+                                Escolher Imagem <span className="text-gray-400 font-normal">(ou Ctrl+V para colar)</span>
                             </label>
                             <input
                                 type="file"
@@ -177,9 +212,20 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
                                 disabled={uploading}
                                 className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
-                            {newImage.url && (
-                                <div className="mt-4">
+                            {newImage.url ? (
+                                <div className="mt-4 relative inline-block">
                                     <Image src={newImage.url} alt="Preview" width={300} height={200} className="rounded-lg shadow-md" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewImage({ ...newImage, url: "" })}
+                                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="mt-4 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-400">
+                                    Arraste uma imagem ou use Ctrl+V para colar
                                 </div>
                             )}
                         </div>
@@ -221,7 +267,7 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setShowUploadForm(false)}
+                                onClick={resetForm}
                                 className="bg-gray-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-600"
                             >
                                 Cancelar
