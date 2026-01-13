@@ -65,6 +65,14 @@ export default async function RewardsPage() {
                 // If pet has no size/coat defined, we can't match accurately.
                 if (!pet.sizeCategory || !pet.coatType) continue;
 
+                // SPECIES COMPATIBILITY CHECK
+                // Prevent showing Rabbit/Cat services to Dogs and vice-versa
+                const cat = r.service.category;
+                const species = pet.species;
+
+                if (cat === 'GROOMING' && species !== 'DOG') continue;
+                if (cat === 'EXOTIC' && species === 'DOG') continue;
+
                 // Find matching option in the Service's Option List
                 const matchedOption = r.service.options.find(o => 
                     o.petSize === pet.sizeCategory && 
