@@ -55,11 +55,11 @@ export default async function BookingPage(props: {
     reason: a.reason
   }));
 
-  // 5. Fetch Pet Availability Rules
-  const availabilityRules = await db.petSizeRule.findMany({
-    where: { isActive: false }
-  });
-  const disabledSizes = availabilityRules.map(r => r.size);
+  // 5. Fetch Pet Availability Rules (Using Raw SQL for safety)
+  const availabilityRulesRaw = await db.$queryRaw<any[]>`
+    SELECT "size" FROM "PetSizeRule" WHERE "isActive" = false
+  `;
+  const disabledSizes = availabilityRulesRaw.map(r => r.size);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">

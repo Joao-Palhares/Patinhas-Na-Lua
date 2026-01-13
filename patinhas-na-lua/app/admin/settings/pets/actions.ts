@@ -11,11 +11,15 @@ export async function togglePetSizeRule(formData: FormData) {
     if (!size) return;
 
     try {
-        await db.petSizeRule.upsert({
-            where: { size: size },
-            update: { isActive },
-            create: { size, isActive }
-        });
+        // Use Raw SQL for robust Upsert even if Client Types are stale
+        const newId = crypto.randomUUID();
+
+        await db.$executeRaw`
+            INSERT INTO "PetSizeRule" ("id", "size", "isActive", "updatedAt")
+            VALUES (${newId}, ${size}::"PetSize", ${isActive}, NOW())
+            ON CONFLICT ("size") 
+            DO UPDATE SET "isActive" = ${isActive}, "updatedAt" = NOW();
+        `;
 
         revalidatePath("/admin/settings/pets");
     } catch (error) {

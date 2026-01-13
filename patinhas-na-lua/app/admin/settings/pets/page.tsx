@@ -3,8 +3,15 @@ import { PetSize } from "@prisma/client";
 import { togglePetSizeRule } from "./actions";
 
 export default async function PetsSettingsPage() {
-    // Fetch existing rules
-    const rules = await db.petSizeRule.findMany();
+    // Fetch existing rules using Raw SQL to bypass stale Client cache
+    // This ensures it works efficiently even if 'prisma generate' hasn't run yet.
+    const rulesRequest = await db.$queryRaw<any[]>`SELECT * FROM "PetSizeRule"`;
+    
+    // Normalize data (Prisma raw returns generic objects, we cast to expected shape)
+    const rules = rulesRequest.map(r => ({
+        size: r.size as PetSize,
+        isActive: r.isActive
+    }));
 
     // Helper to get state
     const isEnabled = (size: PetSize) => {
