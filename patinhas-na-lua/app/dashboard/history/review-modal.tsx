@@ -24,14 +24,14 @@ export default function ReviewModal({ appointmentId }: Props) {
     
     // 1. Check Variables
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    // Fallback because current .env doesn't have NEXT_PUBLIC prefix for API Key yet
-    const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || "913772474614451"; 
+    // Must use NEXT_PUBLIC_ prefix so browser can access it
+    const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY; 
     
     console.log("Cloud Name:", cloudName || "MISSING");
     console.log("API Key:", apiKey || "MISSING");
     
     if (!cloudName || !apiKey) {
-      toast.error("STOP: Missing Env Vars");
+      toast.error("STOP: Missing Env Vars. Check .env.local");
       throw new Error("Missing Env Vars");
     }
 
@@ -45,6 +45,11 @@ export default function ReviewModal({ appointmentId }: Props) {
     }
     const signData = await signRes.json();
     console.log("Signature Data:", signData);
+    
+    if (!signData.signature) {
+        toast.error("ERROR: Backend did not return a signature!");
+        throw new Error("Missing Signature from Backend");
+    }
 
     // 3. Build Payload
     const formData = new FormData();

@@ -26,29 +26,52 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
         description: "",
     });
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = "portfolio_preset"; // You'll create this in Cloudinary
+    // --- SIGNED UPLOAD FUNCTION ---
+    const handleSignedUpload = async (file: File) => {
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
 
-    const handleCloudinaryUpload = async (file: File) => {
+        // DEBUG: Check if variables are loaded
+        if (!cloudName || !apiKey) {
+            console.error("❌ MISSING VARS:", { cloudName, apiKey });
+            throw new Error("Cloudinary Environment Variables are missing! Check .env.local");
+        }
+
+        // A. Request Signature from your Backend
+        const signRes = await fetch('/api/sign-cloudinary', { method: 'POST' });
+        if (!signRes.ok) throw new Error("Failed to generate signature");
+        
+        const signData = await signRes.json();
+        const { signature, timestamp } = signData;
+
+        // B. Prepare the Form Data
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("upload_preset", uploadPreset);
+        formData.append("api_key", apiKey); 
+        formData.append("timestamp", timestamp.toString());
+        formData.append("signature", signature);
+        
+        // ⚠️ CRITICAL: folder MUST match backend signing!
+        formData.append("folder", "patinhas-reviews"); 
 
-        try {
-            const response = await fetch(
-                `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-                {
-                    method: "POST",
-                    body: formData,
-                }
-            );
+        // C. Upload to Cloudinary
+        const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+            {
+                method: "POST",
+                body: formData,
+            }
+        );
 
-            const data = await response.json();
-            return data.secure_url;
-        } catch (error) {
-            console.error("Upload error:", error);
-            throw error;
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Cloudinary Error Details:", data);
+            throw new Error(data.error?.message || "Upload failed");
         }
+
+        console.log("✅ Success:", data.secure_url);
+        return data.secure_url;
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,7 +82,7 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
         toast.loading("A enviar imagem para Cloudinary...");
 
         try {
-            const url = await handleCloudinaryUpload(file);
+            const url = await handleSignedUpload(file);
             setNewImage({ ...newImage, url });
             toast.dismiss();
             toast.success("Imagem carregada!");
