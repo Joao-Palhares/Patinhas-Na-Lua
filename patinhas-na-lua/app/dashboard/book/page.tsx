@@ -55,6 +55,12 @@ export default async function BookingPage(props: {
     reason: a.reason
   }));
 
+  // 5. Fetch Pet Availability Rules
+  const availabilityRules = await db.petSizeRule.findMany({
+    where: { isActive: false }
+  });
+  const disabledSizes = availabilityRules.map(r => r.size);
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       <nav className="bg-white shadow-sm p-4 mb-8">
@@ -85,6 +91,7 @@ export default async function BookingPage(props: {
             initialDate={initialDate}
             closedDays={finalClosedDays}
             absenceRanges={absenceRanges}
+            disabledSizes={disabledSizes}
           />
         )}
       </div>

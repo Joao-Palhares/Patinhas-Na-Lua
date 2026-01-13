@@ -47,6 +47,7 @@ interface Props {
   initialDate: string;
   closedDays?: number[];
   absenceRanges?: { from: Date; to: Date; reason?: string }[];
+  disabledSizes?: string[];
 }
 
 const SPECIES_ICON_MAP: Record<string, string> = {
@@ -56,7 +57,7 @@ const SPECIES_ICON_MAP: Record<string, string> = {
   OTHER: "🐾"
 };
 
-export default function BookingWizard({ user, pets, services, initialDate, closedDays, absenceRanges }: Props) {
+export default function BookingWizard({ user, pets, services, initialDate, closedDays, absenceRanges, disabledSizes = [] }: Props) {
   const [step, setStep] = useState(1);
   const [selectedPetId, setSelectedPetId] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
@@ -234,22 +235,39 @@ export default function BookingWizard({ user, pets, services, initialDate, close
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-gray-800">Selecione o Pet 🐾</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {pets.map(pet => (
-                  <div
-                    key={pet.id}
-                    onClick={() => setSelectedPetId(pet.id)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-center gap-3 ${selectedPetId === pet.id ? "border-blue-600 bg-blue-50" : "border-gray-100 hover:border-blue-300"
+                {pets.map(pet => {
+                  const isDisabled = pet.sizeCategory && disabledSizes.includes(pet.sizeCategory);
+                  
+                  return (
+                    <div
+                      key={pet.id}
+                      onClick={() => !isDisabled && setSelectedPetId(pet.id)}
+                      className={`relative p-4 rounded-xl border-2 transition flex items-center gap-3 ${
+                        isDisabled 
+                          ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed" 
+                          : selectedPetId === pet.id 
+                            ? "border-blue-600 bg-blue-50 cursor-pointer" 
+                            : "border-gray-100 hover:border-blue-300 cursor-pointer"
                       }`}
-                  >
-                    <span className="text-lg" title={pet.species}>
-                      {SPECIES_ICON_MAP[pet.species] || "🐾"}
-                    </span>
-                    <div>
-                      <p className="font-bold text-gray-800">{pet.name}</p>
-                      <p className="text-xs text-gray-500">{pet.breed}</p>
+                    >
+                      <span className="text-lg" title={pet.species}>
+                        {SPECIES_ICON_MAP[pet.species] || "🐾"}
+                      </span>
+                      <div>
+                        <p className="font-bold text-gray-800">{pet.name}</p>
+                        <p className="text-xs text-gray-500">{pet.breed}</p>
+                      </div>
+
+                      {isDisabled && (
+                        <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-xl">
+                          <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full shadow-sm">
+                            Indisponível Temporariamente
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <button
                 type="button"

@@ -21,6 +21,17 @@ export default async function AdminSettingsPage() {
                 </a>
             </div>
 
+            {/* LINK TO PET RULES */}
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-6 shadow-lg mb-8 text-white flex items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-bold mb-1">🐾 Disponibilidade de Animais</h2>
+                    <p className="text-orange-100 text-sm">Ativar/Desativar tamanhos de cães (ex: Avaria de mesa).</p>
+                </div>
+                <a href="/admin/settings/pets" className="bg-white text-orange-600 font-bold py-3 px-6 rounded-xl shadow-md hover:bg-orange-50 transition transform hover:scale-105">
+                    Gerir Regras →
+                </a>
+            </div>
+
             {/* LINK TO REWARDS */}
             <div className="bg-gradient-to-r from-purple-600 to-purple-500 rounded-2xl p-6 shadow-lg mb-8 text-white flex items-center justify-between">
                 <div>
