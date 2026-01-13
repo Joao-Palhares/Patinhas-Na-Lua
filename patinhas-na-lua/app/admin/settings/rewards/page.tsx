@@ -51,6 +51,15 @@ export default async function RewardsSettingsPage() {
         return `${size} - ${coat}`;
     };
 
+    // Serialize Services for Client Component (Decimal -> Number)
+    const serializedServices = services.map(s => ({
+        ...s,
+        options: s.options.map(opt => ({
+            ...opt,
+            price: Number(opt.price)
+        }))
+    }));
+
     return (
         <div className="max-w-4xl mx-auto pb-20 px-4 pt-6">
             <div className="flex items-center gap-4 mb-8">
@@ -63,8 +72,7 @@ export default async function RewardsSettingsPage() {
                 {/* LEFT: ADD FORM */}
                 <div className="bg-white p-6 rounded-xl border border-purple-100 shadow-lg h-fit">
                     <h2 className="text-lg font-bold text-purple-900 mb-4 border-b pb-2">Adicionar Novo Prémio</h2>
-                    {/* @ts-ignore */}
-                    <AddRewardForm services={services} />
+                    <AddRewardForm services={serializedServices} />
                     <div className="mt-4 p-4 bg-purple-50 rounded-lg text-xs text-purple-800">
                         <p><strong>Regra 5% ROI:</strong> O sistema multiplica o valor do serviço por 20 para garantir que o cliente gasta 20x esse valor para ganhar o prémio.</p>
                     </div>
