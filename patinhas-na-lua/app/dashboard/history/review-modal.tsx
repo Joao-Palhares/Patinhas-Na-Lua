@@ -18,41 +18,60 @@ export default function ReviewModal({ appointmentId }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const API_KEY = process.env.CLOUDINARY_API_KEY || "913772474614451"; // Fallback to public for client (usually needs to be PUBLIC env but user put it in standard env)
-  // Actually, CLOUDINARY_API_KEY in .env is server-side only usually. 
-  // We need to pass the API Key explicitly or use a public var. 
-  // Let's assume the user will fix env logic later, but for now we'll fetch signature.
-
-  const uploadImageToCloudinary = async (fileToUpload: File) => {
-    // 1. Get Signature
-    const signResponse = await fetch('/api/sign-cloudinary', { method: 'POST' });
-    if (!signResponse.ok) throw new Error("Failed to get signature");
-    const { timestamp, signature } = await signResponse.json();
-
-    // 2. Prepare Upload
-    const formData = new FormData();
-    formData.append("file", fileToUpload);
-    formData.append("api_key", API_KEY); 
-    formData.append("timestamp", timestamp);
-    formData.append("signature", signature);
-    formData.append("folder", "patinhas-reviews"); // Must match backend signing!
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-
-    if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error?.message || "Upload failed");
+  // --- DEBUGGER UPLOAD FUNCTION (TEMPORARY) ---
+  const debugUpload = async (file: File) => {
+    console.log("--- DEBUG START ---");
+    
+    // 1. Check Variables
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    // Fallback because current .env doesn't have NEXT_PUBLIC prefix for API Key yet
+    const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || "913772474614451"; 
+    
+    console.log("Cloud Name:", cloudName || "MISSING");
+    console.log("API Key:", apiKey || "MISSING");
+    
+    if (!cloudName || !apiKey) {
+      toast.error("STOP: Missing Env Vars");
+      throw new Error("Missing Env Vars");
     }
 
-    const data = await response.json();
-    return data.secure_url;
+    // 2. Get Signature
+    console.log("Fetching signature...");
+    const signRes = await fetch('/api/sign-cloudinary', { method: 'POST' });
+    if (!signRes.ok) {
+        const err = await signRes.text();
+        console.error("Sign API Error:", err);
+        throw new Error("Sign API failed");
+    }
+    const signData = await signRes.json();
+    console.log("Signature Data:", signData);
+
+    // 3. Build Payload
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("api_key", apiKey);
+    formData.append("timestamp", signData.timestamp);
+    formData.append("signature", signData.signature);
+    formData.append("folder", "patinhas-reviews"); // Must match backend signing!
+
+    // 4. Send
+    console.log("Sending to Cloudinary...");
+    const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: formData }
+    );
+
+    // 5. READ THE ERROR
+    const result = await response.json();
+    if (!response.ok) {
+        console.error("🔥 CLOUDINARY REJECTED:", result);
+        // Toast the EXACT error message from Cloudinary
+        toast.error(`UPLOAD ERROR: ${result.error?.message}`);
+        throw new Error(result.error?.message || "Upload failed");
+    } else {
+        console.log("✅ SUCCESS:", result.secure_url);
+        return result.secure_url;
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,7 +90,7 @@ export default function ReviewModal({ appointmentId }: Props) {
       if (file) {
           try {
              // toast.info("A carregar foto...");
-             uploadedUrl = await uploadImageToCloudinary(file);
+             uploadedUrl = await debugUpload(file);
           } catch (err: any) {
              console.error("Cloudinary Error:", err);
              toast.error(`Erro no upload: ${err.message}`);
