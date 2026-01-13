@@ -53,12 +53,28 @@ export default async function RewardsSettingsPage() {
     };
 
     // Serialize Services for Client Component (Decimal -> Number)
+    // AND Sort options logically (Size -> Coat) instead of just by Price
+    const sizeOrder: Record<string, number> = { 'TOY': 1, 'SMALL': 2, 'MEDIUM': 3, 'LARGE': 4, 'XL': 5, 'GIANT': 6 };
+    const coatOrder: Record<string, number> = { 'SHORT': 1, 'MEDIUM': 2, 'LONG': 3 };
+
     const serializedServices = services.map(s => ({
         ...s,
-        options: s.options.map(opt => ({
-            ...opt,
-            price: Number(opt.price)
-        }))
+        options: s.options
+            .map(opt => ({
+                ...opt,
+                price: Number(opt.price)
+            }))
+            .sort((a, b) => {
+                // 1. Sort by Size
+                const sizeA = a.petSize ? (sizeOrder[a.petSize] || 99) : 99;
+                const sizeB = b.petSize ? (sizeOrder[b.petSize] || 99) : 99;
+                if (sizeA !== sizeB) return sizeA - sizeB;
+
+                // 2. Sort by Coat
+                const coatA = a.coatType ? (coatOrder[a.coatType] || 99) : 99;
+                const coatB = b.coatType ? (coatOrder[b.coatType] || 99) : 99;
+                return coatA - coatB;
+            })
     }));
 
     return (
