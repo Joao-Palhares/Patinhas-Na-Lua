@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 export async function togglePetSizeRule(formData: FormData) {
     const size = formData.get("size") as PetSize;
+    const species = (formData.get("species") as string) || "DOG";
     const isActiveStr = formData.get("isActive") as string;
     const isActive = isActiveStr === 'true';
 
@@ -14,10 +15,11 @@ export async function togglePetSizeRule(formData: FormData) {
         // Use Raw SQL for robust Upsert even if Client Types are stale
         const newId = crypto.randomUUID();
 
+        // Note: We cast species to "Species" enum
         await db.$executeRaw`
-            INSERT INTO "PetSizeRule" ("id", "size", "isActive", "updatedAt")
-            VALUES (${newId}, ${size}::"PetSize", ${isActive}, NOW())
-            ON CONFLICT ("size") 
+            INSERT INTO "PetSizeRule" ("id", "size", "species", "isActive", "updatedAt")
+            VALUES (${newId}, ${size}::"PetSize", ${species}::"Species", ${isActive}, NOW())
+            ON CONFLICT ("size", "species") 
             DO UPDATE SET "isActive" = ${isActive}, "updatedAt" = NOW();
         `;
 

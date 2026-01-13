@@ -445,10 +445,13 @@ model RateLimit {
   
   @@index([key, createdAt])
 }
-// GLOBAL AVAILABILITY RULES (e.g. Disable Large Dogs if table broken)
+// GLOBAL AVAILABILITY RULES
 model PetSizeRule {
   id        String   @id @default(cuid())
-  size      PetSize  @unique // One rule per size category
+  size      PetSize
+  species   Species  @default(DOG) // Default to DOG for existing rows
   isActive  Boolean  @default(true)
   updatedAt DateTime @updatedAt
+
+  @@unique([size, species]) // Allow separate rules for Dog vs Cat
 }

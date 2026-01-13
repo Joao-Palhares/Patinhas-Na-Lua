@@ -47,7 +47,7 @@ interface Props {
   initialDate: string;
   closedDays?: number[];
   absenceRanges?: { from: Date; to: Date; reason?: string }[];
-  disabledSizes?: string[];
+  disabledRules?: string[];
 }
 
 const SPECIES_ICON_MAP: Record<string, string> = {
@@ -57,7 +57,7 @@ const SPECIES_ICON_MAP: Record<string, string> = {
   OTHER: "🐾"
 };
 
-export default function BookingWizard({ user, pets, services, initialDate, closedDays, absenceRanges, disabledSizes = [] }: Props) {
+export default function BookingWizard({ user, pets, services, initialDate, closedDays, absenceRanges, disabledRules = [] }: Props) {
   const [step, setStep] = useState(1);
   const [selectedPetId, setSelectedPetId] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
@@ -236,7 +236,9 @@ export default function BookingWizard({ user, pets, services, initialDate, close
               <h2 className="text-xl font-bold text-gray-800">Selecione o Pet 🐾</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {pets.map(pet => {
-                  const isDisabled = pet.sizeCategory && disabledSizes.includes(pet.sizeCategory);
+                  // Check exact rule match: "SPECIES:SIZE"
+                  const ruleKey = `${pet.species}:${pet.sizeCategory}`;
+                  const isDisabled = pet.sizeCategory && disabledRules.includes(ruleKey);
                   
                   return (
                     <div

@@ -57,9 +57,10 @@ export default async function BookingPage(props: {
 
   // 5. Fetch Pet Availability Rules (Using Raw SQL for safety)
   const availabilityRulesRaw = await db.$queryRaw<any[]>`
-    SELECT "size" FROM "PetSizeRule" WHERE "isActive" = false
+    SELECT "size", "species" FROM "PetSizeRule" WHERE "isActive" = false
   `;
-  const disabledSizes = availabilityRulesRaw.map(r => r.size);
+  // Format: "SPECIES:SIZE" (e.g. "DOG:LARGE")
+  const disabledRules = availabilityRulesRaw.map(r => `${r.species}:${r.size}`);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
@@ -91,7 +92,7 @@ export default async function BookingPage(props: {
             initialDate={initialDate}
             closedDays={finalClosedDays}
             absenceRanges={absenceRanges}
-            disabledSizes={disabledSizes}
+            disabledRules={disabledRules}
           />
         )}
       </div>
