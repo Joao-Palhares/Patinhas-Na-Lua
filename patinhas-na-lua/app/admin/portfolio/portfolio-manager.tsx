@@ -20,8 +20,11 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
     const [uploading, setUploading] = useState(false);
     const [showUploadForm, setShowUploadForm] = useState(false);
 
+    // Store the pending file (not uploaded yet)
+    const [pendingFile, setPendingFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string>("");
+    
     const [newImage, setNewImage] = useState({
-        url: "",
         title: "",
         description: "",
     });
@@ -31,76 +34,54 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
         const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
         const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
 
-        // DEBUG: Check if variables are loaded
         if (!cloudName || !apiKey) {
             console.error("❌ MISSING VARS:", { cloudName, apiKey });
-            throw new Error("Cloudinary Environment Variables are missing! Check .env.local");
+            throw new Error("Cloudinary Environment Variables are missing!");
         }
 
-        // A. Request Signature from your Backend
         const signRes = await fetch('/api/sign-cloudinary', { method: 'POST' });
         if (!signRes.ok) throw new Error("Failed to generate signature");
         
         const signData = await signRes.json();
         const { signature, timestamp } = signData;
 
-        // B. Prepare the Form Data
         const formData = new FormData();
         formData.append("file", file);
         formData.append("api_key", apiKey); 
         formData.append("timestamp", timestamp.toString());
         formData.append("signature", signature);
-        
-        // ⚠️ CRITICAL: folder MUST match backend signing!
-        formData.append("folder", "patinhas-reviews"); 
+        formData.append("folder", "patinhas-reviews");
 
-        // C. Upload to Cloudinary
         const response = await fetch(
             `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-            {
-                method: "POST",
-                body: formData,
-            }
+            { method: "POST", body: formData }
         );
 
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("Cloudinary Error Details:", data);
+            console.error("Cloudinary Error:", data);
             throw new Error(data.error?.message || "Upload failed");
         }
 
-        console.log("✅ Success:", data.secure_url);
+        console.log("✅ Uploaded:", data.secure_url);
         return data.secure_url;
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // --- FILE SELECT: Just store locally, NO upload ---
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // DEBUG: Log file details
-        console.log("📁 File selected:", file.name);
-        console.log("📦 File size:", (file.size / 1024 / 1024).toFixed(2), "MB");
-        console.log("📄 File type:", file.type);
-
-        setUploading(true);
-        toast.loading("A enviar imagem para Cloudinary...");
-
-        try {
-            const url = await handleSignedUpload(file);
-            setNewImage({ ...newImage, url });
-            toast.dismiss();
-            toast.success("Imagem carregada!");
-        } catch (error) {
-            toast.dismiss();
-            toast.error("Erro ao enviar imagem");
-        } finally {
-            setUploading(false);
-        }
+        console.log("📁 File selected:", file.name, (file.size / 1024 / 1024).toFixed(2), "MB");
+        
+        setPendingFile(file);
+        setPreviewUrl(URL.createObjectURL(file)); // Local preview only
+        toast.success("Imagem selecionada!");
     };
 
-    // --- CLIPBOARD PASTE HANDLER ---
-    const handlePaste = async (e: React.ClipboardEvent) => {
+    // --- CLIPBOARD PASTE: Just store locally, NO upload ---
+    const handlePaste = (e: React.ClipboardEvent) => {
         const items = e.clipboardData?.items;
         if (!items) return;
 
@@ -108,20 +89,10 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
             if (item.type.startsWith('image/')) {
                 const file = item.getAsFile();
                 if (file) {
-                    console.log("📋 Pasted from clipboard:", file.name, (file.size / 1024 / 1024).toFixed(2), "MB");
-                    setUploading(true);
-                    toast.loading("A enviar imagem colada...");
-                    try {
-                        const url = await handleSignedUpload(file);
-                        setNewImage({ ...newImage, url });
-                        toast.dismiss();
-                        toast.success("Imagem carregada!");
-                    } catch (error) {
-                        toast.dismiss();
-                        toast.error("Erro ao enviar imagem");
-                    } finally {
-                        setUploading(false);
-                    }
+                    console.log("📋 Pasted:", file.name, (file.size / 1024 / 1024).toFixed(2), "MB");
+                    setPendingFile(file);
+                    setPreviewUrl(URL.createObjectURL(file)); // Local preview only
+                    toast.success("Imagem colada!");
                 }
                 break;
             }
@@ -130,27 +101,45 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
 
     // --- RESET FORM ---
     const resetForm = () => {
-        setNewImage({ url: "", title: "", description: "" });
+        setPendingFile(null);
+        setPreviewUrl("");
+        setNewImage({ title: "", description: "" });
         setShowUploadForm(false);
     };
 
+    // --- SUBMIT: Upload to Cloudinary NOW, then save to DB ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newImage.url) return;
+        if (!pendingFile) {
+            toast.error("Seleciona uma imagem primeiro!");
+            return;
+        }
 
-        const formData = new FormData();
-        formData.append("url", newImage.url);
-        formData.append("title", newImage.title);
-        formData.append("description", newImage.description);
+        setUploading(true);
+        toast.loading("A enviar imagem...");
 
         try {
+            // 1. Upload to Cloudinary
+            const cloudinaryUrl = await handleSignedUpload(pendingFile);
+
+            // 2. Save to Database
+            const formData = new FormData();
+            formData.append("url", cloudinaryUrl);
+            formData.append("title", newImage.title);
+            formData.append("description", newImage.description);
+
             await uploadPortfolioImage(formData);
+            
+            toast.dismiss();
             toast.success("Imagem adicionada ao portfólio!");
-            setNewImage({ url: "", title: "", description: "" });
-            setShowUploadForm(false);
+            resetForm();
             window.location.reload();
         } catch (error) {
+            toast.dismiss();
             toast.error("Erro ao guardar imagem");
+            console.error(error);
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -212,12 +201,12 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
                                 disabled={uploading}
                                 className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
-                            {newImage.url ? (
+                            {previewUrl ? (
                                 <div className="mt-4 relative inline-block">
-                                    <Image src={newImage.url} alt="Preview" width={300} height={200} className="rounded-lg shadow-md" />
+                                    <img src={previewUrl} alt="Preview" className="rounded-lg shadow-md max-w-[300px] max-h-[200px] object-cover" />
                                     <button
                                         type="button"
-                                        onClick={() => setNewImage({ ...newImage, url: "" })}
+                                        onClick={() => { setPendingFile(null); setPreviewUrl(""); }}
                                         className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
                                     >
                                         ×
@@ -260,7 +249,7 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
                         <div className="flex gap-3">
                             <button
                                 type="submit"
-                                disabled={!newImage.url || uploading}
+                                disabled={!pendingFile || uploading}
                                 className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
                             >
                                 Guardar
