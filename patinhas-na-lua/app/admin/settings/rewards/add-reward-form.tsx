@@ -51,8 +51,23 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
     };
 
     const formatOptionLabel = (opt: ServiceOption) => {
-        const size = opt.petSize || "Tamanho Único";
-        const coat = opt.coatType ? ` - ${opt.coatType}` : "";
+        const sizeMap: Record<string, string> = {
+            'TOY': 'Toy (<6kg)',
+            'SMALL': 'Pequeno (6-15kg)',
+            'MEDIUM': 'Médio (15-25kg)',
+            'LARGE': 'Grande (25-40kg)',
+            'XL': 'Gigante (>40kg)',
+            'GIANT': 'Gigante (>40kg)'
+        };
+        
+        const coatMap: Record<string, string> = {
+            'SHORT': 'Pelo Curto',
+            'MEDIUM': 'Pelo Médio',
+            'LONG': 'Pelo Longo'
+        };
+
+        const size = opt.petSize ? (sizeMap[opt.petSize] || opt.petSize) : "Tamanho Único";
+        const coat = opt.coatType ? ` - ${coatMap[opt.coatType] || opt.coatType}` : "";
         return `${size}${coat}`;
     };
 
@@ -150,9 +165,10 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
                     </label>
                     
                     {selectedOption ? (
-                        // READ ONLY DISPLAY FOR OPTION
-                        <div className="w-full border border-gray-200 bg-gray-100 rounded-lg p-2 text-gray-500 font-mono cursor-not-allowed">
-                            {Number(selectedOption.price).toFixed(2)} €
+                        // READ ONLY DISPLAY FOR OPTION - GREEN STYLE
+                        <div className="w-full border border-green-200 bg-green-50 rounded-lg p-2 text-green-800 font-bold flex items-center justify-between shadow-sm">
+                            <span>{Number(selectedOption.price).toFixed(2)} €</span>
+                            <span className="text-[10px] uppercase tracking-wider bg-green-200 text-green-800 px-2 py-0.5 rounded-full">Automático</span>
                         </div>
                     ) : (
                         // MANUAL INPUT FOR GENERIC
