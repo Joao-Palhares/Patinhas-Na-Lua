@@ -2,14 +2,13 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
   images?: { url: string }[];
 }
 
 export default function PortfolioFan({ images = [] }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   // Fallback images
