@@ -109,25 +109,32 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
             </div>
 
             {/* OPTION SELECT (Only if service selected) */}
-            {selectedService && selectedService.options.length > 0 && (
-                <div className="animate-in fade-in slide-in-from-top-2">
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Opção Específica (Opcional)</label>
-                    <select 
-                        name="serviceOptionId" 
-                        className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
-                        value={selectedOptionId}
-                        onChange={(e) => setSelectedOptionId(e.target.value)}
-                    >
-                        <option value="">Qualquer Tamanho/Pelo (Genérico)</option>
-                        {selectedService.options.map(opt => (
-                            <option key={opt.id} value={opt.id}>
-                                {formatOptionLabel(opt)} — {Number(opt.price).toFixed(2)}€
-                            </option>
-                        ))}
-                    </select>
-                    <p className="text-[10px] text-gray-500 mt-1">
-                        Se selecionar uma opção, o valor e pontos são calculados automaticamente.
-                    </p>
+            {selectedService && (
+                <div className="animate-in fade-in slide-in-from-top-2 bg-purple-50 p-3 rounded-lg border border-purple-100">
+                    <label className="block text-sm font-bold text-purple-900 mb-1">Opção Específica</label>
+                    
+                    {selectedService.options.length > 0 ? (
+                        <>
+                            <select 
+                                name="serviceOptionId" 
+                                className="w-full border border-purple-200 rounded-lg p-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 outline-none transition"
+                                value={selectedOptionId}
+                                onChange={(e) => setSelectedOptionId(e.target.value)}
+                            >
+                                <option value="">Qualquer Tamanho/Pelo (Genérico)</option>
+                                {selectedService.options.map(opt => (
+                                    <option key={opt.id} value={opt.id}>
+                                        {formatOptionLabel(opt)} — {Number(opt.price).toFixed(2)}€
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-[10px] text-purple-700 mt-1">
+                                Selecione uma variação para fixar o preço e simplificar.
+                            </p>
+                        </>
+                    ) : (
+                        <p className="text-sm text-gray-500 italic">Este serviço não tem opções de tamanho/pelo configuradas (Preço único).</p>
+                    )}
                 </div>
             )}
 
