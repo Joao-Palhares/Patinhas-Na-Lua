@@ -78,6 +78,11 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
         const file = e.target.files?.[0];
         if (!file) return;
 
+        // DEBUG: Log file details
+        console.log("📁 File selected:", file.name);
+        console.log("📦 File size:", (file.size / 1024 / 1024).toFixed(2), "MB");
+        console.log("📄 File type:", file.type);
+
         setUploading(true);
         toast.loading("A enviar imagem para Cloudinary...");
 
