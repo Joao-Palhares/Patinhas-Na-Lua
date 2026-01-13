@@ -158,63 +158,90 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
             </div>
 
             {/* VALUE / PRICE INPUT */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                        {type === "FREE" ? "Valor Coberto (€)" : "Valor Base (€)"}
-                    </label>
-                    
-                    {selectedOption ? (
-                        // READ ONLY DISPLAY FOR OPTION - GREEN STYLE
-                        <div className="w-full border border-green-200 bg-green-50 rounded-lg p-2 text-green-800 font-bold flex items-center justify-between shadow-sm">
-                            <span>{Number(selectedOption.price).toFixed(2)} €</span>
-                            <span className="text-[10px] uppercase tracking-wider bg-green-200 text-green-800 px-2 py-0.5 rounded-full">Automático</span>
+            <div className="grid grid-cols-1 gap-4">
+                
+                {/* DYNAMIC COST EXPLANATION (For Generic Free Rewards) */}
+                {selectedService && !selectedOption && type === "FREE" ? (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-blue-800">
+                        <div className="flex items-center gap-2 mb-2">
+                             <span className="bg-blue-100 p-1 rounded-md text-xs font-bold uppercase tracking-wider">Dinâmico</span>
+                             <h3 className="font-bold text-sm">Custo em Pontos Automático</h3>
                         </div>
-                    ) : (
-                        // MANUAL INPUT FOR GENERIC
-                        <input
-                            type="number"
-                            step="0.01"
-                            min="1"
-                            required={!selectedOption}
-                            value={manualValue}
-                            onChange={e => setManualValue(e.target.value)}
-                            placeholder="ex: 30.00"
-                            className="w-full border border-gray-300 rounded-lg p-2 text-gray-900"
-                        />
-                    )}
-
-                    {type === "FREE" && !selectedOption && (
-                        <p className="text-[10px] text-gray-500 mt-1 leading-tight">
-                            Define o teto máximo para este serviço genérico.
+                        <p className="text-sm opacity-90 mb-3">
+                            O custo deste prémio será calculado para cada cliente com base no tamanho do seu animal.
                         </p>
-                    )}
-                </div>
+                        <div className="flex gap-4 text-xs font-mono bg-white/60 p-2 rounded-lg">
+                            <div>
+                                <span className="block text-blue-400 text-[10px] uppercase">Cão Pequeno (ex: 20€)</span>
+                                <span className="font-bold text-lg">400 pts</span>
+                            </div>
+                            <div className="border-l border-blue-200 pl-4">
+                                <span className="block text-blue-400 text-[10px] uppercase">Cão Grande (ex: 30€)</span>
+                                <span className="font-bold text-lg">600 pts</span>
+                            </div>
+                        </div>
+                        {/* Send 0 to signal Dynamic Calc */}
+                        <input type="hidden" name="pointsCost" value="0" />
+                        <input type="hidden" name="maxDiscountAmount" value="0" />
+                    </div>
+                ) : (
+                    // FIXED COST (If Option Selected OR Discount Type)
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">
+                                {type === "FREE" ? "Valor Coberto (€)" : "Valor Base (€)"}
+                            </label>
+                            
+                            {selectedOption ? (
+                                // READ ONLY DISPLAY FOR OPTION - GREEN STYLE
+                                <div className="w-full border border-green-200 bg-green-50 rounded-lg p-2 text-green-800 font-bold flex items-center justify-between shadow-sm">
+                                    <span>{Number(selectedOption.price).toFixed(2)} €</span>
+                                    <span className="text-[10px] uppercase tracking-wider bg-green-200 text-green-800 px-2 py-0.5 rounded-full">Fixo</span>
+                                </div>
+                            ) : (
+                                // MANUAL INPUT FOR GENERIC (Only if Manual Override needed, usually not for dynamic)
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="1"
+                                    required={!selectedOption}
+                                    value={manualValue}
+                                    onChange={e => setManualValue(e.target.value)}
+                                    placeholder="ex: 30.00"
+                                    className="w-full border border-gray-300 rounded-lg p-2 text-gray-900"
+                                />
+                            )}
+                        </div>
 
-                {type === "DISCOUNT" && (
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Percentagem (%)</label>
-                        <input
-                            type="number"
-                            min="1"
-                            max="99"
-                            required
-                            value={discount}
-                            onChange={e => setDiscount(Number(e.target.value))}
-                            className="w-full border border-gray-300 rounded-lg p-2 text-gray-900"
-                        />
+                         {type === "DISCOUNT" && (
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Percentagem (%)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="99"
+                                    required
+                                    value={discount}
+                                    onChange={e => setDiscount(Number(e.target.value))}
+                                    className="w-full border border-gray-300 rounded-lg p-2 text-gray-900"
+                                />
+                            </div>
+                        )}
+                        
+                        {/* Calculate Fixed Points */}
+                        <input type="hidden" name="pointsCost" value={points} />
                     </div>
                 )}
             </div>
 
-            {/* Calculated Points Preview */}
-            <div className={`p-4 rounded-lg border text-center transition ${points > 0 ? 'bg-purple-100 border-purple-200 text-purple-900' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                <p className="text-xs font-bold uppercase mb-1">Custo para o Cliente</p>
-                <p className="text-2xl font-black">{points} Pontos</p>
-                {points > 0 && <p className="text-xs mt-1">Oferta equivalente a {(effectiveSavings).toFixed(2)}€</p>}
-            </div>
-
-            <input type="hidden" name="pointsCost" value={points} />
+            {/* POINTS PREVIEW (Hide if Dynamic) */}
+            {!(selectedService && !selectedOption && type === "FREE") && (
+                <div className={`p-4 rounded-lg border text-center transition ${points > 0 ? 'bg-purple-100 border-purple-200 text-purple-900' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                    <p className="text-xs font-bold uppercase mb-1">Custo para o Cliente</p>
+                    <p className="text-2xl font-black">{points} Pontos</p>
+                    {points > 0 && <p className="text-xs mt-1">Oferta equivalente a {(effectiveSavings).toFixed(2)}€</p>}
+                </div>
+            )}
 
             <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl shadow transition transform hover:scale-[1.02]">
                 Criar Prémio

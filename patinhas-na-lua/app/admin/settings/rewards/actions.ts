@@ -14,8 +14,8 @@ export async function addReward(formData: FormData) {
     // NEW: Optional Specific Option
     const serviceOptionId = formData.get("serviceOptionId") as string || null;
 
-    // Simple validation
-    if (!serviceId || !pointsCost || pointsCost <= 0) return;
+    // Simple validation (Allow 0 for Dynamic Rewards)
+    if (!serviceId || pointsCost < 0) return;
 
     // Now securely using Prisma Client which handles createdAt/updatedAt automatically
     await db.loyaltyReward.create({
