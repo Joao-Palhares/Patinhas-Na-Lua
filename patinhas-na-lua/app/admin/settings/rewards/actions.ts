@@ -10,6 +10,9 @@ export async function addReward(formData: FormData) {
     // Handle optional decimal field
     const rawMaxDiscount = formData.get("maxDiscountAmount");
     const maxDiscountAmount = rawMaxDiscount ? Number(rawMaxDiscount) : null;
+    
+    // NEW: Optional Specific Option
+    const serviceOptionId = formData.get("serviceOptionId") as string || null;
 
     // Simple validation
     if (!serviceId || !pointsCost || pointsCost <= 0) return;
@@ -18,6 +21,7 @@ export async function addReward(formData: FormData) {
     await db.loyaltyReward.create({
         data: {
             serviceId,
+            serviceOptionId, // NEW
             pointsCost,
             discountPercentage,
             maxDiscountAmount,

@@ -1,18 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { addReward } from "./actions";
+
+interface ServiceOption {
+    id: string;
+    price: number | string; // Decimal comes as string often
+    petSize: string | null;
+    coatType: string | null;
+}
 
 interface Service {
     id: string;
     name: string;
     category: string;
+    options: ServiceOption[];
 }
 
 export default function AddRewardForm({ services }: { services: Service[] }) {
-    const [value, setValue] = useState("");
+    const [selectedServiceId, setSelectedServiceId] = useState("");
+    const [selectedOptionId, setSelectedOptionId] = useState("");
+    
+    // Value input (Price or Max Coverage)
+    const [manualValue, setManualValue] = useState(""); 
+    
     const [type, setType] = useState<"FREE" | "DISCOUNT">("FREE");
     const [discount, setDiscount] = useState(50);
+
+    // Get currently selected service
+    const selectedService = useMemo(() => 
+        services.find(s => s.id === selectedServiceId), 
+    [selectedServiceId, services]);
+
+    // Get currently selected option
+    const selectedOption = useMemo(() => 
+        selectedService?.options.find(o => o.id === selectedOptionId), 
+    [selectedService, selectedOptionId]);
+
+    // Determine the effective "Value" to use for calculation
+    // If Option selected -> Use its Price
+    // If No Option -> Use Manual Value
+    const activeValue = selectedOption ? Number(selectedOption.price) : (parseFloat(manualValue) || 0);
 
     const formatCategory = (cat: string) => {
         if (cat === 'GROOMING') return 'Cão 🐶';
@@ -22,12 +50,16 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
         return cat;
     };
 
-    const numValue = parseFloat(value) || 0;
+    const formatOptionLabel = (opt: ServiceOption) => {
+        const size = opt.petSize || "Tamanho Único";
+        const coat = opt.coatType ? ` - ${opt.coatType}` : "";
+        return `${size}${coat}`;
+    };
 
     // Logic: 
-    // Free Service (100% discount) -> Points based on Full Value (which is now the CAP)
+    // Free Service (100% discount) -> Points based on Full Value
     // Percentage Discount -> Points based on Savings
-    const effectiveSavings = type === "FREE" ? numValue : (numValue * (discount / 100));
+    const effectiveSavings = type === "FREE" ? activeValue : (activeValue * (discount / 100));
     const points = effectiveSavings > 0 ? Math.ceil(effectiveSavings * 20) : 0;
 
     return (
@@ -52,11 +84,21 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
             </div>
 
             <input type="hidden" name="discountPercentage" value={type === "FREE" ? 100 : discount} />
-            {type === "FREE" && <input type="hidden" name="maxDiscountAmount" value={value} />}
+            {type === "FREE" && <input type="hidden" name="maxDiscountAmount" value={activeValue} />}
 
+            {/* SERVICE SELECT */}
             <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Serviço de Referência</label>
-                <select name="serviceId" required className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900">
+                <select 
+                    name="serviceId" 
+                    required 
+                    className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
+                    value={selectedServiceId}
+                    onChange={(e) => {
+                        setSelectedServiceId(e.target.value);
+                        setSelectedOptionId(""); // Reset option when service changes
+                    }}
+                >
                     <option value="">Selecione um serviço...</option>
                     {services.map(s => (
                         <option key={s.id} value={s.id}>
@@ -66,24 +108,58 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
                 </select>
             </div>
 
+            {/* OPTION SELECT (Only if service selected) */}
+            {selectedService && selectedService.options.length > 0 && (
+                <div className="animate-in fade-in slide-in-from-top-2">
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Opção Específica (Opcional)</label>
+                    <select 
+                        name="serviceOptionId" 
+                        className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
+                        value={selectedOptionId}
+                        onChange={(e) => setSelectedOptionId(e.target.value)}
+                    >
+                        <option value="">Qualquer Tamanho/Pelo (Genérico)</option>
+                        {selectedService.options.map(opt => (
+                            <option key={opt.id} value={opt.id}>
+                                {formatOptionLabel(opt)} — {Number(opt.price).toFixed(2)}€
+                            </option>
+                        ))}
+                    </select>
+                    <p className="text-[10px] text-gray-500 mt-1">
+                        Se selecionar uma opção, o valor e pontos são calculados automaticamente.
+                    </p>
+                </div>
+            )}
+
+            {/* VALUE / PRICE INPUT */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">
-                        {type === "FREE" ? "Valor Máximo Coberto (€)" : "Valor Base para Cálculo (€)"}
+                        {type === "FREE" ? "Valor Coberto (€)" : "Valor Base (€)"}
                     </label>
-                    <input
-                        type="number"
-                        step="0.01"
-                        min="1"
-                        required
-                        value={value}
-                        onChange={e => setValue(e.target.value)}
-                        placeholder="ex: 30.00"
-                        className="w-full border border-gray-300 rounded-lg p-2 text-gray-900"
-                    />
-                    {type === "FREE" && (
+                    
+                    {selectedOption ? (
+                        // READ ONLY DISPLAY FOR OPTION
+                        <div className="w-full border border-gray-200 bg-gray-100 rounded-lg p-2 text-gray-500 font-mono cursor-not-allowed">
+                            {Number(selectedOption.price).toFixed(2)} €
+                        </div>
+                    ) : (
+                        // MANUAL INPUT FOR GENERIC
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="1"
+                            required={!selectedOption}
+                            value={manualValue}
+                            onChange={e => setManualValue(e.target.value)}
+                            placeholder="ex: 30.00"
+                            className="w-full border border-gray-300 rounded-lg p-2 text-gray-900"
+                        />
+                    )}
+
+                    {type === "FREE" && !selectedOption && (
                         <p className="text-[10px] text-gray-500 mt-1 leading-tight">
-                            Define o teto máximo. Se o serviço custar mais (ex: cão gigante), o cliente paga a diferença.
+                            Define o teto máximo para este serviço genérico.
                         </p>
                     )}
                 </div>

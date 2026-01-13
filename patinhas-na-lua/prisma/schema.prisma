@@ -116,6 +116,8 @@ model ServiceOption {
   price       Decimal
   durationMin Int
   durationMax Int?
+
+  loyaltyRewards LoyaltyReward[]
 }
 
 model Invoice {
@@ -427,6 +429,10 @@ model LoyaltyReward {
   isActive          Boolean  @default(true)
   discountPercentage Int     @default(100)
   maxDiscountAmount Decimal?
+
+  // NEW: Link directly to a specific price option (e.g. "Small Dog")
+  serviceOptionId   String?
+  serviceOption     ServiceOption? @relation(fields: [serviceOptionId], references: [id])
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

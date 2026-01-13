@@ -3,16 +3,23 @@ import { deleteReward } from "./actions";
 import AddRewardForm from "./add-reward-form";
 
 export default async function RewardsSettingsPage() {
-    // 2. Fetch Services
+    // 2. Fetch Services with Options
     const services = await db.service.findMany({
         orderBy: { name: "asc" },
-        select: { id: true, name: true, category: true }
+        include: {
+            options: {
+                orderBy: { price: 'asc' }
+            }
+        }
     });
 
     // 3. Fetch Rewards (Standard Prisma)
     const rewardsRaw = await db.loyaltyReward.findMany({
         orderBy: { pointsCost: 'asc' },
-        include: { service: true }
+        include: { 
+            service: true,
+            serviceOption: true // NEW
+        }
     });
 
     const rewards = rewardsRaw.map(r => ({
@@ -23,7 +30,10 @@ export default async function RewardsSettingsPage() {
         discountPercentage: r.discountPercentage,
         maxDiscountAmount: r.maxDiscountAmount ? Number(r.maxDiscountAmount) : null,
         serviceName: r.service.name,
-        serviceCategory: r.service.category
+        serviceCategory: r.service.category,
+        // NEW
+        optionName: r.serviceOption ? `${r.serviceOption.price}€` : null, // Simplistic representation, improved below
+        optionDetails: r.serviceOption,
     }));
 
     const formatCategory = (cat: string) => {
@@ -32,6 +42,13 @@ export default async function RewardsSettingsPage() {
         if (cat === 'SPA') return 'Spa';
         if (cat === 'HYGIENE') return 'Higiene';
         return cat;
+    };
+
+    const formatOption = (opt: any) => {
+        if (!opt) return null;
+        const size = opt.petSize ? opt.petSize : 'Tamanho Único';
+        const coat = opt.coatType ? opt.coatType : 'Pelo Padrão';
+        return `${size} - ${coat}`;
     };
 
     return (
@@ -46,6 +63,7 @@ export default async function RewardsSettingsPage() {
                 {/* LEFT: ADD FORM */}
                 <div className="bg-white p-6 rounded-xl border border-purple-100 shadow-lg h-fit">
                     <h2 className="text-lg font-bold text-purple-900 mb-4 border-b pb-2">Adicionar Novo Prémio</h2>
+                    {/* @ts-ignore */}
                     <AddRewardForm services={services} />
                     <div className="mt-4 p-4 bg-purple-50 rounded-lg text-xs text-purple-800">
                         <p><strong>Regra 5% ROI:</strong> O sistema multiplica o valor do serviço por 20 para garantir que o cliente gasta 20x esse valor para ganhar o prémio.</p>
@@ -69,22 +87,32 @@ export default async function RewardsSettingsPage() {
                                     {reward.pointsCost}
                                 </div>
                                 <div>
-                                    <p className="font-bold text-gray-900 flex items-center gap-2 flex-wrap">
+                                    <p className="font-bold text-gray-900 flex items-center gap-2 flex-wrap leading-tight">
                                         {reward.serviceName}
                                         {reward.discountPercentage < 100 && (
                                             <span className="bg-green-100 text-green-700 text-[10px] px-2 rounded-full border border-green-200">
                                                 -{100 - reward.discountPercentage}% OFF
                                             </span>
                                         )}
-                                        {reward.maxDiscountAmount && (
+                                        {reward.maxDiscountAmount && !reward.optionDetails && (
                                             <span className="bg-blue-100 text-blue-700 text-[10px] px-2 rounded-full border border-blue-200">
                                                 Até {Number(reward.maxDiscountAmount)}€
                                             </span>
                                         )}
                                     </p>
-                                    <p className="text-xs text-gray-500 font-medium bg-gray-100 inline-block px-1 rounded mt-0.5">
-                                        {formatCategory(reward.serviceCategory)}
-                                    </p>
+                                    
+                                    {/* Option Details */}
+                                    {reward.optionDetails && (
+                                        <p className="text-xs font-bold text-purple-600 mt-0.5">
+                                            {formatOption(reward.optionDetails)} ({Number(reward.optionDetails.price)}€)
+                                        </p>
+                                    )}
+
+                                    {!reward.optionDetails && (
+                                        <p className="text-xs text-gray-500 font-medium bg-gray-100 inline-block px-1 rounded mt-0.5">
+                                            {formatCategory(reward.serviceCategory)} (Genérico)
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                             <form action={deleteReward}>
