@@ -1,15 +1,15 @@
 "use client";
-
 import { useState } from "react";
 import { PetSize, CoatType } from "@prisma/client";
 import { updateServiceOption } from "./actions";
 
 interface Props {
+  serviceCategory?: string;
   option: {
     id: string;
     petSize: PetSize | null;
     coatType: CoatType | null;
-    price: any; // Decimal
+    price: any;
     durationMin: number;
     durationMax: number | null;
   };
@@ -30,7 +30,7 @@ const COAT_LABELS: Record<CoatType, string> = {
   LONG: "Pelo Comprido",
 };
 
-export default function EditOptionModal({ option }: Props) {
+export default function EditOptionModal({ option, serviceCategory }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -59,9 +59,10 @@ export default function EditOptionModal({ option }: Props) {
                   <label className="block text-xs font-bold text-gray-700 mb-1">Tamanho</label>
                   <select name="size" defaultValue={option.petSize || "ALL"} className="w-full border p-2 rounded text-gray-900 bg-white">
                     <option value="ALL">Qualquer Tamanho</option>
-                    {Object.entries(SIZE_LABELS).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
+                    {Object.entries(SIZE_LABELS).map(([key, label]) => {
+                         if (serviceCategory === 'EXOTIC' && !['TOY', 'SMALL'].includes(key)) return null;
+                         return <option key={key} value={key}>{label}</option>
+                    })}
                   </select>
                 </div>
                 <div>

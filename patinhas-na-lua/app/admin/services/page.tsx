@@ -213,7 +213,7 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
                       </td>
                       <td className="py-2 px-3 text-right flex items-center justify-end gap-2">
 
-                        <EditOptionModal option={opt} />
+                        <EditOptionModal option={opt} serviceCategory={service.category} />
 
                         {/* Imported delete option action */}
                         <DeleteForm
@@ -248,9 +248,13 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Tamanho</label>
                     <select name="size" className="block border border-gray-300 p-2 rounded text-sm w-36 text-gray-900 bg-white">
                       <option value="ALL">Qualquer Tamanho</option>
-                      {Object.entries(SIZE_LABELS).map(([key, label]) => (
-                        <option key={key} value={key}>{label}</option>
-                      ))}
+                      {Object.entries(SIZE_LABELS).map(([key, label]) => {
+                        // Filter sizes for EXOTIC animals (likely Cats/Rabbits -> Toy/Small only)
+                        if (service.category === 'EXOTIC' && !['TOY', 'SMALL'].includes(key)) {
+                          return null;
+                        }
+                        return <option key={key} value={key}>{label}</option>
+                      })}
                     </select>
                   </div>
 
