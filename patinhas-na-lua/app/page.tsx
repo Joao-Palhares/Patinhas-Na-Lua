@@ -52,7 +52,7 @@ export default async function LandingPage() {
   const portfolioImages = await db.portfolioImage.findMany({
     where: { isPublic: true },
     orderBy: { order: 'asc' },
-    take: 3
+    take: 12
   });
 
   return (
