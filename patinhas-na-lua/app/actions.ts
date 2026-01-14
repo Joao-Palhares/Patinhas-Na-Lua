@@ -251,7 +251,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
   redirect("/dashboard");
 }
 
-export async function updateUserAction(formData: FormData) {
+export async function updateUserAction(prevState: any, formData: FormData) {
   const user = await currentUser();
   if (!user) throw new Error("Unauthorized");
 
@@ -275,13 +275,14 @@ export async function updateUserAction(formData: FormData) {
       data: parsed.data,
     });
     revalidatePath("/dashboard");
+    revalidatePath("/dashboard/profile");
     return { success: "Dados atualizados com sucesso!" };
   } catch (e) {
     return { error: "Erro ao atualizar dados." };
   }
 }
 
-export async function requestAccountDeletion() {
+export async function requestAccountDeletion(prevState: any, formData: FormData) {
   const user = await currentUser();
   if (!user) throw new Error("Unauthorized");
 
