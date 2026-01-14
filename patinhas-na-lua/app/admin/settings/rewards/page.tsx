@@ -121,7 +121,7 @@ export default async function RewardsSettingsPage() {
                                         {reward.serviceName}
                                         {reward.discountPercentage < 100 && (
                                             <span className="bg-green-100 text-green-700 text-[10px] px-2 rounded-full border border-green-200">
-                                                -{100 - reward.discountPercentage}% OFF
+                                                -{reward.discountPercentage}% OFF
                                             </span>
                                         )}
                                         {Number(reward.maxDiscountAmount) > 0 && !reward.optionDetails && (
