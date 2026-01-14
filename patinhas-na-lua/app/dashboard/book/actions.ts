@@ -153,10 +153,20 @@ export async function submitBooking(formData: FormData) {
     // Re-fetch included data for email
     const firstApp = await db.appointment.findUnique({
       where: { id: firstAppointmentId },
-      include: { user: true, pet: true, service: true }
+      include: { 
+        user: true, 
+        pet: true, 
+        service: {
+            include: { options: true }
+        } 
+      }
     });
 
     if (firstApp) {
+      // Determine Duration based on Pet Size
+      const matchedOption = firstApp.service.options.find(opt => opt.petSize === firstApp.pet.sizeCategory);
+      const duration = matchedOption?.durationMin || firstApp.service.options[0]?.durationMin || 60;
+
       const { sendBookingConfirmation } = await import("@/lib/email");
       await sendBookingConfirmation({
         to: firstApp.user.email,
@@ -164,7 +174,11 @@ export async function submitBooking(formData: FormData) {
         petName: firstApp.pet.name,
         serviceName: firstApp.service.name + (isRecurring ? " (Série de 6 meses)" : ""),
         dateStr: firstApp.date.toLocaleDateString("pt-PT"),
-        timeStr: firstApp.date.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })
+        timeStr: firstApp.date.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }),
+        // Calendar Invite Data
+        appointmentDate: firstApp.date,
+        durationMinutes: duration,
+        appointmentId: firstApp.id
       });
     }
   } catch (error) {

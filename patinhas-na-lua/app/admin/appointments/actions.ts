@@ -153,7 +153,9 @@ export async function sendTestEmailAction(email: string) {
       petName: "Rex (Teste)",
       serviceName: "Banho de Teste",
       dateStr: new Date().toLocaleDateString("pt-PT"),
-      timeStr: "12:00"
+      timeStr: "12:00",
+      appointmentDate: new Date(),
+      durationMinutes: 30
     });
     return { success: true };
   } catch (error) {

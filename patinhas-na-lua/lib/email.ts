@@ -9,6 +9,28 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Helper to generate ICS content
+function generateICS(event: { start: Date, durationMinutes: number, summary: string, description: string, location: string, uid: string }) {
+    const formatDate = (date: Date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const end = new Date(event.start.getTime() + event.durationMinutes * 60000);
+    
+    return `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Patinhas Na Lua//Agendamentos//PT
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:${event.uid}
+DTSTAMP:${formatDate(new Date())}
+DTSTART:${formatDate(event.start)}
+DTEND:${formatDate(end)}
+SUMMARY:${event.summary}
+DESCRIPTION:${event.description.replace(/\n/g, '\\n')}
+LOCATION:${event.location}
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR`;
+}
+
 interface EmailParams {
     to: string;
     userName: string;
@@ -16,6 +38,10 @@ interface EmailParams {
     serviceName: string;
     dateStr: string;
     timeStr: string;
+    // New fields for Calendar
+    appointmentDate?: Date;
+    durationMinutes?: number;
+    appointmentId?: string;
 }
 
 export async function sendBookingConfirmation({
@@ -24,7 +50,10 @@ export async function sendBookingConfirmation({
     petName,
     serviceName,
     dateStr,
-    timeStr
+    timeStr,
+    appointmentDate,
+    durationMinutes = 60,
+    appointmentId
 }: EmailParams) {
 
     if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
@@ -33,7 +62,7 @@ export async function sendBookingConfirmation({
     }
 
     try {
-        await transporter.sendMail({
+        const mailOptions: any = {
             from: `"Patinhas na Lua" <${process.env.GMAIL_USER}>`,
             to: to,
             subject: '📅 Confirmação de Agendamento - Patinhas na Lua',
@@ -49,14 +78,33 @@ export async function sendBookingConfirmation({
             <p style="margin: 5px 0;"><strong>⏰ Hora:</strong> ${timeStr}</p>
           </div>
 
-          <p>Estamos ansiosos para vos receber!</p>
-          <p>Se precisar de alterar, por favor contacte-nos.</p>
-          
+          <p>Adicionámos um convite de calendário a este email para facilitar!</p>
+
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
           <p style="font-size: 12px; color: #888;">Patinhas na Lua 🌙<br>Tondela</p>
         </div>
       `
-        });
+        };
+
+        // If date is provided, attach calendar invite
+        if (appointmentDate) {
+            const icsContent = generateICS({
+                start: appointmentDate,
+                durationMinutes,
+                summary: `Patinhas na Lua: ${petName} (${serviceName})`,
+                description: `Serviço de Grooming/Banho para ${petName}.\nServiço: ${serviceName}`,
+                location: 'Patinhas na Lua, Tondela',
+                uid: appointmentId || `appt-${Date.now()}@patinhasnalua.pt`
+            });
+
+            mailOptions.icalEvent = {
+                filename: 'invite.ics',
+                method: 'PUBLISH',
+                content: icsContent
+            };
+        }
+
+        await transporter.sendMail(mailOptions);
         console.log("✅ Email sent successfully to:", to);
     } catch (error) {
         console.error("❌ Failed to send email:", error);
