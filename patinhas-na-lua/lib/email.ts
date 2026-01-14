@@ -100,3 +100,49 @@ export async function sendAppointmentReminder({
         console.error("❌ Failed to send reminder:", error);
     }
 }
+
+export async function sendAppointmentCancellation({
+    to,
+    userName,
+    petName,
+    serviceName,
+    dateStr,
+    timeStr,
+    reason
+}: EmailParams & { reason: string }) {
+
+    if (!process.env.RESEND_API_KEY) {
+        console.log("No Email API Key - skipping cancellation email to " + to);
+        return;
+    }
+
+    try {
+        await resend.emails.send({
+            from: 'Patinhas na Lua <onboarding@resend.dev>',
+            to: to,
+            subject: '🚫 Agendamento Cancelado - Patinhas na Lua',
+            html: `
+        <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #ef4444;">Olá ${userName}.</h1>
+          <p>Lamentamos informar que o agendamento para o(a) <strong>${petName}</strong> teve de ser cancelado.</p>
+          
+          <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #fecaca;">
+            <p style="margin: 5px 0;"><strong>Motivo:</strong> ${reason}</p>
+            <hr style="border: none; border-top: 1px solid #fecaca; margin: 10px 0;" />
+            <p style="margin: 5px 0;"><strong>📅 Data Original:</strong> ${dateStr}</p>
+            <p style="margin: 5px 0;"><strong>✂️ Serviço:</strong> ${serviceName}</p>
+          </div>
+
+          <p>Por favor entre em contacto connosco para reagendar ou esclarecer qualquer dúvida.</p>
+          <p>Pedimos desculpa pelo incómodo.</p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+          <p style="font-size: 12px; color: #888;">Patinhas na Lua 🌙<br>Tondela</p>
+        </div>
+      `
+        });
+        console.log("✅ Cancellation email sent to:", to);
+    } catch (error) {
+        console.error("❌ Failed to send cancellation email:", error);
+    }
+}

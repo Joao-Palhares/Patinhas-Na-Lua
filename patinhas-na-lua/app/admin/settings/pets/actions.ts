@@ -24,6 +24,57 @@ export async function togglePetSizeRule(formData: FormData) {
         `;
 
         revalidatePath("/admin/settings/pets");
+
+        // --- AUTOMATIC CANCELLATION LOGIC ---
+        if (!isActive) {
+            // Find future appointments for this disabled category
+            // We use Prisma Client here for convenience as Appointment model is stable
+            const impactedAppointments = await db.appointment.findMany({
+                where: {
+                    date: { gte: new Date() }, // Future only
+                    status: { in: ["PENDING", "APPROVED"] },
+                    pet: {
+                        sizeCategory: size,
+                        species: species as any // Cast to Species (or any to avoid TS issues with enums)
+                    }
+                },
+                include: { pet: true, user: true, service: true }
+            });
+
+            if (impactedAppointments.length > 0) {
+                console.log(`Cancelling ${impactedAppointments.length} appointments for ${species} ${size}...`);
+                
+                for (const appt of impactedAppointments) {
+                    // 1. Mark as Cancelled in DB
+                    await db.appointment.update({
+                        where: { id: appt.id },
+                        data: {
+                            status: "CANCELLED",
+                            groomerNotes: (appt.groomerNotes || "") + "\n[Sistema] Cancelado por indisponibilidade temporária da categoria."
+                        }
+                    });
+
+                    // 2. Send Email Notification
+                    if (appt.user?.email) {
+                        try {
+                            const { sendAppointmentCancellation } = await import("@/lib/email");
+                            await sendAppointmentCancellation({
+                                to: appt.user.email,
+                                userName: appt.user.name || "Cliente",
+                                petName: appt.pet.name,
+                                serviceName: appt.service?.name || "Serviço",
+                                dateStr: appt.date.toLocaleDateString('pt-PT'),
+                                timeStr: appt.date.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}),
+                                reason: "O equipamento/espaço necessário para o tamanho do seu animal encontra-se temporariamente indisponível."
+                            });
+                        } catch (err) {
+                            console.error("Failed to send cancellation email:", err);
+                        }
+                    }
+                }
+            }
+        }
+
     } catch (error) {
         console.error("Error toggling pet rule:", error);
     }
