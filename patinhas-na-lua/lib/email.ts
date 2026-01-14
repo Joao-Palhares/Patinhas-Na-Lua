@@ -1,8 +1,13 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-// NOTE: You need to get an API Key from https://resend.com (It's free)
-// And add it to your .env file as RESEND_API_KEY
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Configure Nodemailer for Gmail
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS, // NOTE: Use an "App Password" if 2FA is on
+  },
+});
 
 interface EmailParams {
     to: string;
@@ -22,17 +27,14 @@ export async function sendBookingConfirmation({
     timeStr
 }: EmailParams) {
 
-    if (!process.env.RESEND_API_KEY) {
-        console.warn("⚠️ RESEND_API_KEY is missing. Email not sent.");
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
+        console.warn("⚠️ GMAIL_USER or GMAIL_PASS missing. Email not sent.");
         return;
     }
 
     try {
-        await resend.emails.send({
-            // IMPORTANT: Until you verify your domain on Resend, you can only send to yourself
-            // or use 'onboarding@resend.dev' to a verified email.
-            // Once verified, change this to: 'Agendamentos <geral@patinhasnalua.pt>'
-            from: 'Patinhas na Lua <onboarding@resend.dev>',
+        await transporter.sendMail({
+            from: `"Patinhas na Lua" <${process.env.GMAIL_USER}>`,
             to: to,
             subject: '📅 Confirmação de Agendamento - Patinhas na Lua',
             html: `
@@ -69,11 +71,11 @@ export async function sendAppointmentReminder({
     timeStr
 }: Omit<EmailParams, "serviceName">) {
 
-    if (!process.env.RESEND_API_KEY) return;
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) return;
 
     try {
-        await resend.emails.send({
-            from: 'Patinhas na Lua <onboarding@resend.dev>',
+        await transporter.sendMail({
+            from: `"Patinhas na Lua" <${process.env.GMAIL_USER}>`,
             to: to,
             subject: '⏰ Lembrete: O seu agendamento é amanhã! - Patinhas na Lua',
             html: `
@@ -111,14 +113,14 @@ export async function sendAppointmentCancellation({
     reason
 }: EmailParams & { reason: string }) {
 
-    if (!process.env.RESEND_API_KEY) {
-        console.log("No Email API Key - skipping cancellation email to " + to);
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
+        console.log("No GMAIL Interface - skipping cancellation email to " + to);
         return;
     }
 
     try {
-        await resend.emails.send({
-            from: 'Patinhas na Lua <onboarding@resend.dev>',
+        await transporter.sendMail({
+            from: `"Patinhas na Lua" <${process.env.GMAIL_USER}>`,
             to: to,
             subject: '🚫 Agendamento Cancelado - Patinhas na Lua',
             html: `
