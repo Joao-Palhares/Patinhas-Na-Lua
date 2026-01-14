@@ -160,32 +160,61 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
             {/* VALUE / PRICE INPUT */}
             <div className="grid grid-cols-1 gap-4">
                 
-                {/* DYNAMIC COST EXPLANATION (For Generic Free Rewards) */}
-                {selectedService && !selectedOption && type === "FREE" ? (
+                {/* DYNAMIC COST EXPLANATION (For Generic Rewards - Free OR Discount) */}
+                {selectedService && !selectedOption ? (
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-blue-800">
                         <div className="flex items-center gap-2 mb-2">
                              <span className="bg-blue-100 p-1 rounded-md text-xs font-bold uppercase tracking-wider">Dinâmico</span>
                              <h3 className="font-bold text-sm">Custo em Pontos Automático</h3>
                         </div>
                         <p className="text-sm opacity-90 mb-3">
-                            O custo deste prémio será calculado para cada cliente com base no tamanho do seu animal.
+                            O custo deste prémio será calculado para cada cliente com base no tamanho do seu animal
+                            {type === "DISCOUNT" ? ` e na poupança gerada (${discount}% do valor).` : "."}
                         </p>
-                        <div className="flex gap-4 text-xs font-mono bg-white/60 p-2 rounded-lg">
-                            <div>
-                                <span className="block text-blue-400 text-[10px] uppercase">Cão Pequeno (ex: 20€)</span>
-                                <span className="font-bold text-lg">400 pts</span>
+                        
+                        {/* Examples */}
+                        {(() => {
+                           const pct = type === "FREE" ? 1 : (discount / 100);
+                           const exSmall = Math.ceil((20 * pct) * 20); // 20€ base
+                           const exLarge = Math.ceil((30 * pct) * 20); // 30€ base
+                           return (
+                             <div className="flex gap-4 text-xs font-mono bg-white/60 p-2 rounded-lg">
+                                <div>
+                                    <span className="block text-blue-400 text-[10px] uppercase">Cão Pequeno (ex: 20€)</span>
+                                    <span className="font-bold text-lg">{exSmall} pts</span>
+                                    {type === "DISCOUNT" && <span className="block text-red-400 text-[9px]">-{(20 * pct).toFixed(2)}€</span>}
+                                </div>
+                                <div className="border-l border-blue-200 pl-4">
+                                    <span className="block text-blue-400 text-[10px] uppercase">Cão Grande (ex: 30€)</span>
+                                    <span className="font-bold text-lg">{exLarge} pts</span>
+                                    {type === "DISCOUNT" && <span className="block text-red-400 text-[9px]">-{(30 * pct).toFixed(2)}€</span>}
+                                </div>
                             </div>
-                            <div className="border-l border-blue-200 pl-4">
-                                <span className="block text-blue-400 text-[10px] uppercase">Cão Grande (ex: 30€)</span>
-                                <span className="font-bold text-lg">600 pts</span>
+                           );
+                        })()}
+
+                        {/* PERCENTAGE INPUT FOR DYNAMIC DISCOUNT */}
+                        {type === "DISCOUNT" && (
+                            <div className="mt-3">
+                                <label className="block text-xs font-bold text-blue-800 mb-1">Percentagem de Desconto (%)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="99"
+                                    required
+                                    value={discount}
+                                    onChange={e => setDiscount(Number(e.target.value))}
+                                    className="w-full border border-blue-200 rounded-lg p-2 text-gray-900 bg-white/80 focus:bg-white transition"
+                                />
                             </div>
-                        </div>
+                        )}
+
                         {/* Send 0 to signal Dynamic Calc */}
                         <input type="hidden" name="pointsCost" value="0" />
                         <input type="hidden" name="maxDiscountAmount" value="0" />
                     </div>
                 ) : (
-                    // FIXED COST (If Option Selected OR Discount Type)
+                    // FIXED COST (If Option Selected OR Manual Value needed)
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1">
@@ -235,7 +264,7 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
             </div>
 
             {/* POINTS PREVIEW (Hide if Dynamic) */}
-            {!(selectedService && !selectedOption && type === "FREE") && (
+            {!(selectedService && !selectedOption) && (
                 <div className={`p-4 rounded-lg border text-center transition ${points > 0 ? 'bg-purple-100 border-purple-200 text-purple-900' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                     <p className="text-xs font-bold uppercase mb-1">Custo para o Cliente</p>
                     <p className="text-2xl font-black">{points} Pontos</p>
