@@ -22,6 +22,7 @@ model User {
   address   String?
   isAdmin   Boolean  @default(false)
   isBlacklisted Boolean @default(false) // Bans user from booking
+  isOfflineUser Boolean @default(false) // Created by Admin (No Login)
   notes     String?  // Internal Admin Notes (e.g. "Bad payer")
   createdAt DateTime @default(now())
   
@@ -29,6 +30,7 @@ model User {
 
   // LOYALTY SYSTEM (Controlled by Groomer or Auto-calculated)
   loyaltyPoints Int      @default(0) // e.g. 9 points. At 10, gets coupon.
+  billingProfileId String?
   
   appointments Appointment[]
   pets         Pet[]
@@ -94,6 +96,7 @@ model Service {
   isMobileAvailable Boolean @default(false) // NEW: Available for mobile service
   isActive         Boolean @default(true)   // NEW: For Soft Deletes
   isTimeBased      Boolean @default(false)  // NEW: Hourly Pricing
+  taxRate          Int     @default(0)      // VAT Exempt (Art 53)
 
   // Link to the Price Matrix
   options     ServiceOption[]
@@ -131,19 +134,26 @@ model Invoice {
   
   status        InvoiceStatus @default(DRAFT)
   
-  externalId    String?       // Moloni ID
+  externalId    String?       // Facturalusa ID
   pdfUrl        String?
+
+  // SNAPSHOT FIELDS
+  invoicedName    String
+  invoicedNif     String
+  invoicedAddress String?
+  invoicedEmail   String?
   
-  appointmentId String        @unique
-  appointment   Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
+  appointmentId String?       @unique
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id])
 }
 
 model ExtraFee {
   id          String                @id @default(cuid())
   name        String                // "Taxa de Nós"
   basePrice   Decimal
+  taxRate     Int                   @default(0)
   category    ExtraFeeCategory      @default(MANEJO)
   appointments AppointmentExtraFee[]
 }

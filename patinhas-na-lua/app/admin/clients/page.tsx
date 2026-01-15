@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { User, Pet } from "@prisma/client";
 import AddPetModal from "./add-pet-modal";
+import RegisterClientModal from "./register-client-modal";
 import Search from "@/app/components/search";
 import PaginationControls from "@/app/components/pagination-controls";
 import { Prisma } from "@prisma/client";
@@ -40,6 +41,7 @@ export default async function ClientsPage(props: {
     <div className="max-w-6xl mx-auto pb-20">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-slate-800">Clientes & Pets</h1>
+        <RegisterClientModal />
       </div>
 
       {/* SEARCH BAR (Debounced) */}

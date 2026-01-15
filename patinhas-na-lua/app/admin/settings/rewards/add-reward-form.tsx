@@ -25,7 +25,7 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
     const [manualValue, setManualValue] = useState(""); 
     
     const [type, setType] = useState<"FREE" | "DISCOUNT">("FREE");
-    const [discount, setDiscount] = useState(50);
+    const [discount, setDiscount] = useState("50");
 
     // Get currently selected service
     const selectedService = useMemo(() => 
@@ -74,7 +74,8 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
     // Logic: 
     // Free Service (100% discount) -> Points based on Full Value
     // Percentage Discount -> Points based on Savings
-    const effectiveSavings = type === "FREE" ? activeValue : (activeValue * (discount / 100));
+    const discountVal = Number(discount) || 0;
+    const effectiveSavings = type === "FREE" ? activeValue : (activeValue * (discountVal / 100));
     const points = effectiveSavings > 0 ? Math.ceil(effectiveSavings * 20) : 0;
 
     return (
@@ -98,7 +99,7 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
                 </button>
             </div>
 
-            <input type="hidden" name="discountPercentage" value={type === "FREE" ? 100 : discount} />
+            <input type="hidden" name="discountPercentage" value={type === "FREE" ? 100 : discountVal} />
             {type === "FREE" && <input type="hidden" name="maxDiscountAmount" value={activeValue} />}
 
             {/* SERVICE SELECT */}
@@ -158,7 +159,7 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
             </div>
 
             {/* VALUE / PRICE INPUT */}
-            <div className="grid grid-cols-1 gap-4">
+            <div className={`grid grid-cols-1 gap-4 transition-all duration-500 ${!selectedService ? "opacity-40 pointer-events-none filter grayscale" : ""}`}>
                 
                 {/* DYNAMIC COST EXPLANATION (For Generic Rewards - Free OR Discount) */}
                 {selectedService && !selectedOption ? (
@@ -174,7 +175,7 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
                         
                         {/* Examples */}
                         {(() => {
-                           const pct = type === "FREE" ? 1 : (discount / 100);
+                           const pct = type === "FREE" ? 1 : (Number(discount) || 0) / 100;
                            const exSmall = Math.ceil((20 * pct) * 20); // 20€ base
                            const exLarge = Math.ceil((30 * pct) * 20); // 30€ base
                            return (
@@ -203,7 +204,7 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
                                     max="99"
                                     required
                                     value={discount}
-                                    onChange={e => setDiscount(Number(e.target.value))}
+                                    onChange={e => setDiscount(e.target.value)}
                                     className="w-full border border-blue-200 rounded-lg p-2 text-gray-900 bg-white/80 focus:bg-white transition"
                                 />
                             </div>
@@ -251,7 +252,7 @@ export default function AddRewardForm({ services }: { services: Service[] }) {
                                     max="99"
                                     required
                                     value={discount}
-                                    onChange={e => setDiscount(Number(e.target.value))}
+                                    onChange={e => setDiscount(e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 text-gray-900"
                                 />
                             </div>
