@@ -26,31 +26,34 @@ export default async function DashboardLayout({
   if (!dbUser) redirect("/onboarding");
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* --- PERSISTENT NAVBAR --- */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <nav className="bg-white border-b border-secondary/20 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
 
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-3 group">
             <Image src="/logo.png" alt="Patinhas na Lua" width={32} height={32} className="rounded-lg group-hover:scale-110 transition" />
-            <span className="font-bold text-blue-600 text-lg hidden md:block">Patinhas na Lua</span>
+            <span className="font-bold text-primary text-lg hidden md:block">Patinhas na Lua</span>
           </Link>
 
           {/* Navigation Links */}
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
-            <Link href="/dashboard" className="hover:text-blue-600 transition">
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-foreground">
+            <Link href="/dashboard" className="hover:text-primary transition">
               Início
             </Link>
-            <Link href="/dashboard/pets" className="hover:text-blue-600 transition">
+            <Link href="/dashboard/pets" className="hover:text-primary transition">
               Meus Pets
             </Link>
-            <Link href="/dashboard/book" className="hover:text-blue-600 transition">
+            <Link href="/dashboard/book" className="hover:text-primary transition">
               Agendar
+            </Link>
+            <Link href="/dashboard/pricing" className="hover:text-primary transition">
+              Preçário
             </Link>
             {/* If Admin, show Admin Link */}
             {dbUser.isAdmin && (
-              <Link href="/admin/appointments" className="text-purple-600 font-bold hover:text-purple-800">
+              <Link href="/admin/appointments" className="text-primary font-bold hover:text-primary-hover border border-primary/20 px-3 py-1 rounded-full text-xs">
                 Área Admin
               </Link>
             )}
@@ -59,7 +62,7 @@ export default async function DashboardLayout({
           {/* User Profile (Clerk Handles this) */}
           <div className="flex items-center gap-4">
             <Link href="/dashboard/book" className="md:hidden">
-              <button className="bg-blue-600 text-white text-xs font-bold px-3 py-2 rounded-lg">
+              <button className="bg-primary text-white text-xs font-bold px-3 py-2 rounded-lg">
                 + Agendar
               </button>
             </Link>
@@ -72,7 +75,7 @@ export default async function DashboardLayout({
       {/* --- PAGE CONTENT --- */}
       {children}
 
-      <footer className="py-8 text-center text-xs text-gray-400 mt-auto">
+      <footer className="py-8 text-center text-xs text-foreground/60 mt-auto">
         <div className="flex justify-center gap-4 mb-2">
           <Link href="/terms" className="hover:underline">Termos e Condições</Link>
           <Link href="/privacy" className="hover:underline">Política de Privacidade</Link>

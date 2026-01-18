@@ -1,12 +1,36 @@
 @import "tailwindcss";
 
 :root {
-    --background: #F8FAFC;
-    --foreground: #1e293b;
+  --background: #FDFBF7; /* Warm White */
+  --foreground: #4A3B32; /* Dark Coffee */
 }
 
 body {
-    color: var(--foreground);
-    background: var(--background);
-    font-family: Arial, Helvetica, sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@theme {
+  /* CLIENT AREA (Brand Identity) */
+  --color-primary: #8C6A5D;       /* Terracotta (CTA, Titles) */
+  --color-primary-hover: #755549; /* Darker Terracotta */
+  --color-primary-light: #FCEFEF; /* Very Light Pink for subtle backgrounds */
+  --color-primary-soft: #FFE4E4;  /* Fresher Light Pink */
+  
+  --color-secondary: #A89088;     /* Taupe (Borders/Decor) */
+  
+  /* ADMIN AREA (System Identity) - Default: Purple-600 */
+  --color-admin: #9333ea;
+  --color-admin-hover: #7e22ce;
+  --color-admin-light: #f3e8ff;
 }

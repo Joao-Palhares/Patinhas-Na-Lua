@@ -14,6 +14,8 @@ const SPECIES_ICON_MAP: Record<string, string> = {
   OTHER: "🐾"
 };
 
+import { Hand, PawPrint } from "lucide-react";
+
 export default async function DashboardPage() {
   const user = await currentUser();
   if (!user) redirect("/");
@@ -46,7 +48,7 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-background pb-20">
 
       {/* MAIN CONTENT */}
       <main className="max-w-6xl mx-auto px-4 mt-8">
@@ -61,12 +63,15 @@ export default async function DashboardPage() {
         )}
 
         {/* WELCOME BANNER */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white shadow-lg mb-8">
-          <h2 className="text-2xl font-bold mb-2">Bem-vindo de volta! 👋</h2>
+        <div className="bg-primary-soft rounded-2xl py-5 px-8 text-foreground shadow-sm mb-8 border border-primary/20">
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-2xl font-bold text-primary">Bem-vindo de volta!</h2>
+            <Hand className="w-6 h-6 text-primary animate-pulse" />
+          </div>
           <p className="opacity-90">Pronto para mimar o seu melhor amigo?</p>
-          <div className="mt-6">
+          <div className="mt-8">
             <Link href="/dashboard/book">
-              <button className="bg-white text-blue-600 font-bold py-3 px-6 rounded-lg shadow hover:bg-gray-100 transition">
+              <button className="bg-primary text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-primary-hover transition">
                 📅 Agendar Nova Visita
               </button>
             </Link>
@@ -91,15 +96,15 @@ export default async function DashboardPage() {
                 <span className="text-9xl">🦴</span>
               </div>
 
-              <h3 className="text-lg font-bold text-gray-800 mb-2">Clube Patinhas 🦴</h3>
+              <h3 className="text-lg font-bold text-primary mb-2">Clube Patinhas 🦴</h3>
 
               <div className="relative z-10 flex flex-col justify-center h-full min-h-[100px]">
-                <p className="text-4xl font-black text-blue-600 mb-1">
-                  {dbUser.loyaltyPoints} <span className="text-lg font-bold text-gray-400">Patinhas</span>
+                <p className="text-4xl font-black text-primary mb-1">
+                  {dbUser.loyaltyPoints} <span className="text-lg font-bold text-foreground/50">Patinhas</span>
                 </p>
-                <p className="text-sm text-gray-500 font-medium">Troque as suas patinhas por ofertas!</p>
+                <p className="text-sm text-foreground/70 font-medium">Troque as suas patinhas por ofertas!</p>
 
-                <span className="mt-4 text-xs font-bold text-blue-500 uppercase tracking-wider group-hover:underline">
+                <span className="mt-4 text-xs font-bold text-primary uppercase tracking-wider group-hover:underline">
                   Ver Prémios →
                 </span>
               </div>
@@ -107,10 +112,10 @@ export default async function DashboardPage() {
           </Link>
 
           {/* CARD 2: REVIEW BOOSTER (NEW) */}
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-xl shadow-sm border border-yellow-100 flex flex-col justify-center items-center text-center">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
             <span className="text-4xl mb-2">⭐</span>
-            <h3 className="text-lg font-bold text-gray-800 mb-1">Gostou do serviço?</h3>
-            <p className="text-sm text-gray-600 mb-4">A sua opinião ajuda-nos a crescer!</p>
+            <h3 className="text-lg font-bold text-primary mb-1">Gostou do serviço?</h3>
+            <p className="text-sm text-foreground/70 font-medium mb-4">A sua opinião ajuda-nos a crescer!</p>
             <a
               href="https://www.google.com/maps/place/Patinhas+na+Lua/@40.4490301,-8.6885608,211725m/data=!3m1!1e3!4m18!1m9!3m8!1s0xd24812b45ba91bd:0x5e4f17c8a663f756!2sPatinhas+na+Lua!8m2!3d40.4498579!4d-8.029192!9m1!1b1!16s%2Fg%2F11yf_bnm93!3m7!1s0xd24812b45ba91bd:0x5e4f17c8a663f756!8m2!3d40.4498579!4d-8.029192!9m1!1b1!16s%2Fg%2F11yf_bnm93?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D"
               target="_blank"
@@ -124,8 +129,8 @@ export default async function DashboardPage() {
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Meus Pets 🐾</h3>
-                <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">
+                <h3 className="text-lg font-bold text-primary">Meus Pets 🐾</h3>
+                <span className="bg-primary-light text-primary text-xs font-bold px-2 py-1 rounded-full">
                   {dbUser.pets.length}
                 </span>
               </div>
@@ -152,8 +157,9 @@ export default async function DashboardPage() {
               )}
             </div>
 
-            <Link href="/dashboard/pets" className="mt-6 block">
-              <button className="w-full border-2 border-blue-100 text-blue-600 font-bold py-2 rounded-lg hover:bg-blue-50 transition">
+            <Link href="/dashboard/pets" className="mt-6 block text-center md:text-left">
+              <button className="bg-primary text-white font-bold py-1.5 px-6 rounded-lg hover:bg-primary-hover transition shadow-sm text-sm flex items-center gap-2 mx-auto md:mx-0">
+                <PawPrint className="w-4 h-4" />
                 Gerir Meus Animais
               </button>
             </Link>
@@ -162,8 +168,8 @@ export default async function DashboardPage() {
           {/* CARD 4: UPCOMING APPOINTMENTS */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-4">
-               <h3 className="text-lg font-bold text-gray-800">Próximas Visitas 🗓️</h3>
-               <Link href="/dashboard/history" className="text-sm font-bold text-blue-600 hover:underline">
+               <h3 className="text-lg font-bold text-primary">Próximas Visitas 🗓️</h3>
+               <Link href="/dashboard/history" className="text-sm font-bold text-primary hover:underline">
                   Ver Histórico →
                </Link>
             </div>

@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect } from "react";
 import { submitBooking, getAvailableSlots } from "./actions";
 import { Pet, Service, ServiceOption } from "@prisma/client";
 import { toast } from "sonner"; // + Import Toast
+import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/app/components/skeleton";
 
 import dynamic from 'next/dynamic';
 const LocationPicker = dynamic(() => import('@/app/components/location-picker'), {
@@ -41,7 +43,7 @@ type SerializedBusinessSettings = Omit<BusinessSettings, 'zone1Fee' | 'zone2Fee'
 };
 
 interface Props {
-  user: { id: string; name: string | null; nif: string | null };
+  user: { id: string; name: string | null; nif: string | null; referredById?: string | null };
   pets: any[];
   services: ServiceWithOptions[];
   initialDate: string;
@@ -207,12 +209,12 @@ export default function BookingWizard({ user, pets, services, initialDate, close
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
 
       {/* HEADER STEPS */}
-      <div className="bg-slate-50 p-4 border-b flex justify-between text-xs font-bold text-gray-400 uppercase tracking-wider overflow-x-auto">
-        <span className={step >= 1 ? "text-blue-600" : ""}>1. Animal</span>
-        <span className={step >= 2 ? "text-blue-600" : ""}>2. Local</span>
-        <span className={step >= 3 ? "text-blue-600" : ""}>3. Serviço</span>
-        <span className={step >= 4 ? "text-blue-600" : ""}>4. Horário</span>
-        <span className={step >= 5 ? "text-blue-600" : ""}>5. Fim</span>
+      <div className="bg-white p-4 border-b flex justify-between text-xs font-bold text-foreground/40 uppercase tracking-wider overflow-x-auto">
+        <span className={step >= 1 ? "text-primary" : ""}>1. Animal</span>
+        <span className={step >= 2 ? "text-primary" : ""}>2. Local</span>
+        <span className={step >= 3 ? "text-primary" : ""}>3. Serviço</span>
+        <span className={step >= 4 ? "text-primary" : ""}>4. Horário</span>
+        <span className={step >= 5 ? "text-primary" : ""}>5. Fim</span>
       </div>
 
       <div className="p-8">
@@ -233,7 +235,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
           {/* STEP 1: SELECT PET */}
           {step === 1 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-800">Selecione o Pet 🐾</h2>
+              <h2 className="text-xl font-bold text-primary">Selecione o Pet 🐾</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {pets.map(pet => {
                   // Check exact rule match: "SPECIES:SIZE"
@@ -248,16 +250,16 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                         isDisabled 
                           ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed" 
                           : selectedPetId === pet.id 
-                            ? "border-blue-600 bg-blue-50 cursor-pointer" 
-                            : "border-gray-100 hover:border-blue-300 cursor-pointer"
+                            ? "border-primary bg-primary-light cursor-pointer" 
+                            : "border-gray-100 hover:border-primary/50 cursor-pointer"
                       }`}
                     >
                       <span className="text-lg" title={pet.species}>
                         {SPECIES_ICON_MAP[pet.species] || "🐾"}
                       </span>
                       <div>
-                        <p className="font-bold text-gray-800">{pet.name}</p>
-                        <p className="text-xs text-gray-500">{pet.breed}</p>
+                        <p className="font-bold text-foreground">{pet.name}</p>
+                        <p className="text-xs text-foreground/60">{pet.breed}</p>
                       </div>
 
                       {isDisabled && (
@@ -275,7 +277,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                 type="button"
                 disabled={!selectedPetId}
                 onClick={() => setStep(2)}
-                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50 mt-4"
+                className="w-full bg-primary text-white font-bold py-3 rounded-xl disabled:opacity-50 mt-4 hover:bg-primary-hover"
               >
                 Continuar
               </button>
@@ -290,20 +292,20 @@ export default function BookingWizard({ user, pets, services, initialDate, close
               <div className="grid grid-cols-2 gap-4">
                 <div
                   onClick={() => { setLocationType("SALON"); setTravelFee(0); }}
-                  className={`p-6 rounded-2xl border-2 cursor-pointer transition text-center ${locationType === "SALON" ? "border-blue-600 bg-blue-50" : "border-gray-100 hover:border-gray-200"}`}
+                  className={`p-6 rounded-2xl border-2 cursor-pointer transition text-center ${locationType === "SALON" ? "border-primary bg-primary-light" : "border-gray-100 hover:border-gray-200"}`}
                 >
                   <div className="text-4xl mb-2">🏢</div>
-                  <h3 className="font-bold text-gray-800">No Salão</h3>
-                  <p className="text-xs text-gray-500">{settings?.baseAddress || "Localização Base"}</p>
+                  <h3 className="font-bold text-primary">No Salão</h3>
+                  <p className="text-xs text-foreground/60">{settings?.baseAddress || "Localização Base"}</p>
                 </div>
 
                 <div
                   onClick={() => setLocationType("MOBILE")}
-                  className={`p-6 rounded-2xl border-2 cursor-pointer transition text-center ${locationType === "MOBILE" ? "border-blue-600 bg-blue-50" : "border-gray-100 hover:border-gray-200"}`}
+                  className={`p-6 rounded-2xl border-2 cursor-pointer transition text-center ${locationType === "MOBILE" ? "border-primary bg-primary-light" : "border-gray-100 hover:border-gray-200"}`}
                 >
                   <div className="text-4xl mb-2">🚐</div>
-                  <h3 className="font-bold text-gray-800">Ao Domicílio</h3>
-                  <p className="text-xs text-gray-500">Vamos até si!</p>
+                  <h3 className="font-bold text-primary">Ao Domicílio</h3>
+                  <p className="text-xs text-foreground/60">Vamos até si!</p>
                 </div>
               </div>
 
@@ -338,7 +340,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                   type="button"
                   disabled={locationType === "MOBILE" && (!mobileAddress || !isAddressValid)}
                   onClick={() => setStep(3)}
-                  className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+                  className="flex-1 bg-primary text-white font-bold py-3 rounded-xl disabled:opacity-50 hover:bg-primary-hover"
                 >
                   Continuar
                 </button>
@@ -358,11 +360,11 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                     <div
                       key={service.id}
                       onClick={() => setSelectedServiceId(service.id)}
-                      className={`p-4 rounded-xl border-2 cursor-pointer transition bg-white ${selectedServiceId === service.id ? "border-blue-600 ring-1 ring-blue-600" : "border-gray-100 hover:border-blue-300"
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition bg-white ${selectedServiceId === service.id ? "border-primary ring-1 ring-primary" : "border-gray-100 hover:border-primary/50"
                         }`}
                     >
-                      <p className="font-bold text-gray-800">{service.name}</p>
-                      {service.description && <p className="text-sm text-gray-500">{service.description}</p>}
+                      <p className="font-bold text-foreground">{service.name}</p>
+                      {service.description && <p className="text-sm text-foreground/60">{service.description}</p>}
                     </div>
                   ))}
 
@@ -382,7 +384,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                   type="button"
                   disabled={!selectedServiceId}
                   onClick={() => setStep(4)}
-                  className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+                  className="flex-1 bg-primary text-white font-bold py-3 rounded-xl disabled:opacity-50 hover:bg-primary-hover"
                 >
                   Continuar
                 </button>
@@ -459,13 +461,17 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                   </label>
 
                   {loadingSlots ? (
-                    <div className="text-blue-500 text-sm animate-pulse p-2 font-bold">Calculando vagas...</div>
+                    <div className="space-y-2">
+                       <Skeleton className="h-12 w-full rounded-lg" />
+                       <Skeleton className="h-12 w-full rounded-lg" />
+                       <Skeleton className="h-12 w-full rounded-lg" />
+                    </div>
                   ) : availableSlots.length === 0 ? (
                     <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg border border-red-100">
                       {!date ? "Selecione uma data primeiro." : "Sem vagas disponíveis."}
                     </div>
                   ) : (
-                    <div className="bg-gray-50 rounded-xl border-2 border-gray-100 p-2">
+                    <div className="bg-white rounded-xl border-2 border-gray-100 p-2">
                       <div className="flex flex-col gap-2 overflow-y-auto h-80 pr-2 custom-scrollbar">
                         {availableSlots.map((slot) => (
                           <button
@@ -474,7 +480,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                             onClick={() => setTime(slot)}
                             className={`w-full py-3 px-4 rounded-lg text-sm font-bold border-2 transition shrink-0 ${time === slot
                               ? "border-green-500 bg-green-50 text-green-700 shadow-sm"
-                              : "border-gray-200 bg-white text-gray-600 hover:border-blue-300"
+                              : "border-gray-200 bg-white text-foreground hover:border-primary/50"
                               }`}
                           >
                             {slot}
@@ -499,7 +505,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                       </label>
                       <p className="text-xs text-purple-700 mt-1">
                         Garante o lugar do {selectedPet?.name} e evita filas de espera.
-                        Agendamos automaticamente para os próximos 6 meses.
+                        Agendamos automaticamente a próxima visita (daqui a 4 semanas).
                       </p>
                     </div>
                   </div>
@@ -513,7 +519,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                   type="button"
                   disabled={!date || !time}
                   onClick={() => setStep(5)}
-                  className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50 shadow-lg"
+                  className="flex-1 bg-primary text-white font-bold py-3 rounded-xl disabled:opacity-50 shadow-lg hover:bg-primary-hover"
                 >
                   Ver Resumo
                 </button>
@@ -529,26 +535,26 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                 <p className="text-gray-500 text-sm">Confirme os detalhes abaixo</p>
               </div>
 
-              <div className="bg-blue-50 border-2 border-blue-100 rounded-xl overflow-hidden p-6 relative">
-                <div className="absolute top-0 left-0 w-full h-1 bg-blue-200"></div>
+              <div className="bg-primary-soft/30 border-2 border-primary/20 rounded-xl overflow-hidden p-6 relative">
+                <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
 
                 <div className="space-y-4">
-                  <div className="flex justify-between items-end border-b border-blue-200 pb-3">
+                  <div className="flex justify-between items-end border-b border-primary/20 pb-3">
                     <div>
-                      <p className="text-xs font-bold text-blue-400 uppercase tracking-wider">Cliente</p>
-                      <p className="text-lg font-bold text-gray-700">{user.name}</p>
+                      <p className="text-xs font-bold text-secondary uppercase tracking-wider">Cliente</p>
+                      <p className="text-lg font-bold text-foreground">{user.name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-bold text-blue-400 uppercase tracking-wider">Animal</p>
-                      <p className="text-lg font-bold text-gray-700">{selectedPet?.name}</p>
+                      <p className="text-xs font-bold text-secondary uppercase tracking-wider">Animal</p>
+                      <p className="text-lg font-bold text-foreground">{selectedPet?.name}</p>
                     </div>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-xs font-bold text-blue-400 uppercase tracking-wider">Serviço</p>
-                      <p className="font-bold text-gray-700">{selectedService?.name}</p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs font-bold text-secondary uppercase tracking-wider">Serviço</p>
+                      <p className="font-bold text-foreground">{selectedService?.name}</p>
+                      <p className="text-xs text-foreground/60 mt-1">
                         {locationType === "MOBILE" ? `🏠 ${mobileAddress}` : "🏢 Salon"}
                       </p>
                     </div>
@@ -562,7 +568,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                       </p>
                       {isRecurring && (
                         <p className="text-xs font-bold text-purple-600 mt-1">
-                          🔄 Repete a cada 4 semanas (6x)
+                          🔄 Inclui agendamento automático para daqui a 4 semanas (Total 2x)
                         </p>
                       )}
                     </div>
@@ -606,7 +612,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                         disabled={isValidatingCoupon || !couponCode}
                         className="bg-gray-800 text-white text-xs font-bold px-4 rounded-lg disabled:opacity-50"
                       >
-                        {isValidatingCoupon ? "..." : "Aplicar"}
+                        {isValidatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
                       </button>
                     </div>
                     {couponMessage && (
@@ -615,9 +621,23 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                       </p>
                     )}
                   </div>
+                  
+                  {/* Referral Indicator */}
+                  {user.referredById && (
+                    <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg text-xs text-blue-800 border border-blue-100">
+                       <span className="text-lg">🤝</span>
+                       <div>
+                         <p className="font-bold">Código de Amigo detetado!</p>
+                         <p className="opacity-90 mt-0.5">
+                            O seu amigo receberá pontos nesta marcação. 
+                            {!couponCode && " Desconto de 5% será aplicado automaticamente se não usar outro cupão."}
+                         </p>
+                       </div>
+                    </div>
+                  )}
 
 
-                  <div className="pt-2 flex justify-between items-center border-t border-blue-200 pt-4 mt-4">
+                  <div className="pt-2 flex justify-between items-center border-t border-primary/20 pt-4 mt-4">
                     <div className="text-sm text-gray-500">
                       <p>Serviço: {priceDetails?.price.toFixed(2)}€</p>
                       {travelFee > 0 && <p>Deslocação: {travelFee.toFixed(2)}€</p>}
@@ -629,7 +649,7 @@ export default function BookingWizard({ user, pets, services, initialDate, close
                           {(priceDetails!.price + travelFee).toFixed(2)}€
                         </span>
                       )}
-                      <span className={`text-3xl font-black ${discount > 0 ? "text-green-600" : "text-blue-600"}`}>
+                      <span className={`text-3xl font-black ${discount > 0 ? "text-green-600" : "text-primary"}`}>
                         {(calculateFinalPrice(priceDetails?.price || 0) + travelFee).toFixed(2)}€
                       </span>
                     </div>
@@ -658,9 +678,16 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-xl transform hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed"
+      className="flex-1 bg-primary text-white font-bold py-3 rounded-xl hover:bg-primary-hover shadow-xl transform hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      {pending ? "A Agendar..." : "Confirmar Agendamento"}
+      {pending ? (
+        <span className="flex items-center justify-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          A Agendar...
+        </span>
+      ) : (
+        "Confirmar Agendamento"
+      )}
     </button>
   );
 }

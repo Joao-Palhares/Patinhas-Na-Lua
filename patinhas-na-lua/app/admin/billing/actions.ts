@@ -112,42 +112,50 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
 
   if (!invoice || !invoice.appointment) throw new Error("Invoice Draft not found");
 
-  // 2. Prepare Payload
+  // 2. Resolve Client ID (New Logic)
+  // @ts-ignore
+  const clientNif = invoice.invoicedNif;
+  const clientId = await resolveFacturalusaClient(
+      clientNif, 
+      invoice.userId, 
+      {
+          name: invoice.invoicedName,
+          email: invoice.invoicedEmail,
+          address: invoice.invoicedAddress
+      }
+  );
+
+  console.log(`Resolved Facturalusa Client ID for NIF ${clientNif}: ${clientId}`);
+
+  // 3. Prepare Payload
   const token = process.env.FACTURALUSA_API_TOKEN;
   if (!token) throw new Error("Facturalusa Token missing");
 
   // Use Snapshot Data
   const payload = {
     document_type: "Factura Recibo",
-    // serie: REMOVED (Let API use default)
+    serie: Number(process.env.FACTURALUSA_SERIES_ID || 58402), 
     vat_type: "IVA incluído",
     issue_date: new Date().toISOString().split('T')[0],
-    client: {
-        // @ts-ignore
-        name: invoice.invoicedName,
-        // @ts-ignore
-        vat: invoice.invoicedNif,
-        // @ts-ignore
-        email: invoice.invoicedEmail,
-        // @ts-ignore
-        address: invoice.invoicedAddress,
-        city: "Cidade",      // Required Default
-        postal_code: "0000-000", // Required Default
-        country: "PT"
-    },
+    
+    // Auth
+    customer: clientId, // User requested strict "customer" key
+    vat_number: clientNif, // Explicitly requesting NIF on Invoice
+
     items: [
         {
-            reference: "SRV",
-            description: invoice.appointment.service.name, // Main Service Name
-            qty: 1,
-            unit_price: Number(invoice.subtotal), // Base Price
+            id: 140539, // HARDCODED Generic Service ID "Serviço"
+            description: invoice.appointment.service.name, // DYNAMIC Description (Overrides default)
+            quantity: 1,
+            price: Number(invoice.subtotal), // DYNAMIC Price
             vat: "0",         // Rate is 0
             vat_exemption: "M10" // Exemption code Art 53
         }
     ],
     status: "Terminado" // Final Status
   };
-  // 3. Call API
+
+  // 4. Call API
   console.log("Issuing Invoice...", payload);
   
   let externalId = "OFFLINE-" + Date.now().toString().slice(-6); // Fallback ID
@@ -172,7 +180,6 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
           const text = await resApi.text();
           console.error(`API HTML Error (Status ${resApi.status}): ${text.substring(0, 100)}...`);
           console.warn("⚠️ Facturalusa API unreachable/misconfigured. Using OFFLINE mode.");
-          // Do not throw, allow fallback
       } else if (resApi.ok) {
           const data = await resApi.json();
           externalId = String(data.id);
@@ -181,14 +188,12 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
       } else {
           const errText = await resApi.text();
           console.error("❌ Facturalusa API Refused:", errText);
-          // Fallback
       }
   } catch (e) {
       console.error("⚠️ Facturalusa Network/Config Error:", e);
-      // Fallback proceeds
   }
 
-  // 4. Update Database
+  // 5. Update Database
   await db.invoice.update({
     where: { id: invoice.id },
     data: {
@@ -200,7 +205,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
     }
   });
 
-  // 5. Complete Appointment
+  // 6. Complete Appointment
   await db.appointment.update({
     where: { id: appointmentId },
     data: {
@@ -211,5 +216,162 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
     }
   });
 
+  // 7. CHECK REFERRAL REWARD (If First Paid Appointment)
+  const userStats = await db.appointment.count({
+    where: { 
+        userId: invoice.userId!,
+        isPaid: true
+    }
+  });
+
+  // If this is the FIRST paid appointment (count === 1)
+  if (userStats === 1) {
+    const user = await db.user.findUnique({ 
+        where: { id: invoice.userId! },
+        select: { referredById: true } 
+    });
+
+    if (user && user.referredById) {
+        console.log(`[Referral] First Payment! Rewarding Referrer ${user.referredById}...`);
+        await db.user.update({
+            where: { id: user.referredById },
+            data: { loyaltyPoints: { increment: 5 } } // Reward: 5 Points
+        });
+    }
+  }
+
   revalidatePath("/admin/appointments");
+}
+
+
+// --- HELPER --
+async function resolveFacturalusaClient(draftNif: string, userId: string | null, snapshot: any) {
+    const GENERIC_ID = 114354; // Consumidor Final
+    let nif = draftNif;
+
+    console.log(`[ResolveClient] Starting. DraftNIF: '${draftNif}', UserID: ${userId}`);
+
+    // PRE-CHECK: Fetch Fresh User NIF (Fix Stale Drafts)
+    let user = null;
+    if (userId) {
+        user = await db.user.findUnique({ where: { id: userId } });
+        if (user && user.nif) {
+            console.log(`[ResolveClient] Found Fresh User NIF: ${user.nif} (Overriding Draft: ${draftNif})`);
+            nif = user.nif;
+        }
+    }
+
+    // CASE A: No NIF or Generic
+    if (!nif || nif.replace(/\s/g, "") === "999999990") {
+        console.log("[ResolveClient] NIF is Generic (999999990). Using Consumidor Final.");
+        return GENERIC_ID;
+    }
+
+    const token = process.env.FACTURALUSA_API_TOKEN;
+    if (!token) {
+        console.error("[ResolveClient] Missing Token!");
+        return GENERIC_ID;
+    }
+
+    const cleanNif = nif.replace(/\s/g, "");
+
+    // CASE B: Specific NIF
+    
+    // Step 1: Check Local DB Cache
+    if (user) {
+        // @ts-ignore
+        console.log(`[ResolveClient] Local User Found:`, user ? `Yes (Has FID: ${user.facturalusaId})` : "No");
+        
+        // Check if cached ID is valid for CURRENT NIF
+        const userNifClean = user.nif?.replace(/\s/g, "");
+
+        // @ts-ignore
+        if (user.facturalusaId && userNifClean === cleanNif) {
+            // @ts-ignore
+            console.log("[ResolveClient] Using Cached Local ID:", user.facturalusaId);
+            // @ts-ignore
+            return Number(user.facturalusaId);
+        }
+    }
+
+    // Step 2: Search API (FIXED: Uses POST /customers/find)
+    try {
+        console.log(`[ResolveClient] Searching Facturalusa for NIF ${cleanNif}...`);
+        
+        const searchRes = await fetch(`https://facturalusa.pt/api/v2/customers/find`, {
+             method: "POST",
+             headers: { 
+                 "Authorization": `Bearer ${token}`, 
+                 "Accept": "application/json",
+                 "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                value: cleanNif,
+                search_in: "Vat Number"
+            })
+        });
+        
+        console.log(`[ResolveClient] Search Status: ${searchRes.status}`);
+
+        if (searchRes.ok) {
+            const result = await searchRes.json();
+            // API returns the object directly if found
+            if (result && result.id) {
+                console.log("[ResolveClient] Found Client in API:", result.id);
+                if (userId) {
+                    await db.user.update({ 
+                        where: { id: userId }, 
+                        // @ts-ignore
+                        data: { facturalusaId: String(result.id) }
+                    });
+                }
+                return result.id;
+            }
+        }
+        // If not found, proceed to Step 3 (Create)
+    } catch (e) {
+        console.error("Facturalusa Search Error:", e);
+    }
+
+    // Step 3: Create Client
+    try {
+        console.log("Creating New Client in Facturalusa...");
+        // ENDPOINT CHANGED: /clients -> /customers
+        const createRes = await fetch(`https://facturalusa.pt/api/v2/customers`, {
+             method: "POST",
+             headers: { 
+                 "Authorization": `Bearer ${token}`, 
+                 "Accept": "application/json",
+                 "Content-Type": "application/json"
+             },
+             body: JSON.stringify({
+                 code: cleanNif,
+                 name: snapshot.name || "Cliente sem nome",
+                 vat_number: cleanNif,
+                 type: "Particular"
+             })
+        });
+
+        if (createRes.ok) {
+            const newClient = await createRes.json();
+            console.log("Created Client:", newClient.id);
+            if (userId) {
+                await db.user.update({ 
+                    where: { id: userId }, 
+                    // @ts-ignore
+                    data: { facturalusaId: String(newClient.id) }
+                });
+            }
+            return newClient.id;
+        } else {
+             const err = await createRes.text();
+             console.error("Create Client Failed:", err);
+        }
+    } catch(e) { 
+        console.error("Create Client Error:", e); 
+    }
+
+    // Fallback if creation fails (to allow invoice issuance anyway?)
+    // Using Generic ID might be safer than crashing
+    return GENERIC_ID;
 }

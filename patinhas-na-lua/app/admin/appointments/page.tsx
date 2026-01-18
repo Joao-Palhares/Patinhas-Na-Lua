@@ -42,6 +42,7 @@ export default async function AppointmentsPage(props: {
   const appointments = rawAppointments.map(app => ({
     ...app,
     price: app.price.toNumber(),
+    originalPrice: app.originalPrice ? app.originalPrice.toNumber() : null,
     travelFee: app.travelFee.toNumber(),
     // Convert Invoice Decimals
     invoice: app.invoice ? {

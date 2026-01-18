@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner"; // + Import
+import { Loader2 } from "lucide-react";
 
 export default function ProfileForm({ initialData }: { initialData: any }) {
   const { user } = useUser(); 
@@ -111,7 +112,12 @@ export default function ProfileForm({ initialData }: { initialData: any }) {
                 disabled={isPending}
                 className="w-full bg-slate-900 text-white font-bold h-14 rounded-xl shadow-lg hover:bg-black transition disabled:opacity-50"
             >
-                {isPending ? "A Guardar..." : "Guardar Alterações"}
+                {isPending ? (
+                    <span className="flex items-center justify-center gap-2">
+                         <Loader2 className="w-5 h-5 animate-spin" />
+                         A Guardar...
+                    </span>
+                ) : "Guardar Alterações"}
             </button>
 
         </form>
@@ -136,7 +142,7 @@ export default function ProfileForm({ initialData }: { initialData: any }) {
                             disabled={isDeletePending}
                             className="text-xs bg-white text-red-600 border border-red-200 font-bold py-2 px-4 rounded hover:bg-red-100 transition"
                         >
-                            {isDeletePending ? "A processar..." : "Solicitar Eliminação dos Dados"}
+                            {isDeletePending ? <Loader2 className="w-4 h-4 animate-spin ml-auto mr-auto" /> : "Solicitar Eliminação dos Dados"}
                         </button>
                     </form>
                 )}

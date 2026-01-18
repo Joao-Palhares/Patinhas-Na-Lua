@@ -55,6 +55,7 @@ export default async function ClientsPage(props: {
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="p-4 font-bold text-gray-600">Dono</th>
+              <th className="p-4 font-bold text-gray-600">Código</th>
               <th className="p-4 font-bold text-gray-600">Contacto</th>
               <th className="p-4 font-bold text-gray-600">Pets (Animais)</th>
               <th className="p-4 font-bold text-gray-600 text-right">Ações</th>
@@ -70,12 +71,23 @@ export default async function ClientsPage(props: {
                   <div className="text-xs text-gray-400">{client.email}</div>
                 </td>
 
-                {/* 2. Phone */}
+                {/* 2. Referral Code */}
+                <td className="p-4">
+                    {client.referralCode ? (
+                        <span className="font-mono text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded border border-purple-100 select-all">
+                            {client.referralCode}
+                        </span>
+                    ) : (
+                        <span className="text-gray-300 text-xs">--</span>
+                    )}
+                </td>
+
+                {/* 3. Phone */}
                 <td className="p-4 text-gray-700">
                   {client.phone || "--"}
                 </td>
 
-                {/* 3. PETS COLUMN (With the new + Button) */}
+                {/* 4. PETS COLUMN (With the new + Button) */}
                 <td className="p-4">
                   <div className="flex flex-wrap gap-2 items-center">
 
@@ -95,7 +107,7 @@ export default async function ClientsPage(props: {
                   </div>
                 </td>
 
-                {/* 4. Details Button */}
+                {/* 5. Details Button */}
                 <td className="p-4 text-right">
                   <Link
                     href={`/admin/clients/${client.id}`}
@@ -109,7 +121,7 @@ export default async function ClientsPage(props: {
 
             {users.length === 0 && (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-gray-500 italic">
+                <td colSpan={5} className="p-8 text-center text-gray-500 italic">
                   Nenhum cliente ou animal encontrado com "{query}".
                 </td>
               </tr>

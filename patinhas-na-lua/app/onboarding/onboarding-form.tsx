@@ -4,7 +4,7 @@ import { completeOnboarding } from "@/app/actions";
 import { useState, useRef, useEffect, useMemo, useActionState } from "react";
 import Link from "next/link";
 import { defaultCountries, FlagImage, parseCountry } from 'react-international-phone';
-import { ChevronDown, Search, AlertCircle } from "lucide-react";
+import { ChevronDown, Search, AlertCircle, Loader2 } from "lucide-react";
 
 export default function OnboardingForm({
   defaultName
@@ -155,6 +155,7 @@ export default function OnboardingForm({
                 placeholder="912345678"
                 className="flex-1 h-full border-none outline-none focus:ring-0 text-gray-900 text-base placeholder:text-gray-400 pl-2 min-w-0" // min-w-0 allows flex shrink
                 maxLength={currentMaxLength}
+                minLength={currentMaxLength === 15 ? 7 : currentMaxLength}
               />
             </div>
 
@@ -273,7 +274,12 @@ export default function OnboardingForm({
         disabled={isPending}
         className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition"
       >
-        {isPending ? "A processar..." : "Concluir Registo"}
+        {isPending ? (
+          <span className="flex items-center justify-center gap-2">
+             <Loader2 className="w-5 h-5 animate-spin" />
+             A processar...
+          </span>
+        ) : "Concluir Registo"}
       </button>
     </form>
   );

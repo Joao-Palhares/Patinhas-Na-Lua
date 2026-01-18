@@ -91,6 +91,20 @@ export async function submitBooking(formData: FormData) {
       }
     }
   }
+  
+  // AUTO-APPLY REFERRAL DISCOUNT (If First Booking & No Coupon Used)
+  // If user didn't type a coupon, but WAS referred on registration, give them the 5% automatically on first booking.
+  if (discountPercent === 0 && !couponCode) {
+     const userDb = await db.user.findUnique({ 
+         where: { id: userId },
+         include: { appointments: true } // Check history
+     });
+     
+     if (userDb && userDb.referredById && userDb.appointments.length === 0) {
+         discountPercent = 5;
+         discountNotes = "Desconto de Referência (Automático)";
+     }
+  }
 
   // LINK REFERRAL (Once)
   if (referralIdToLink && referralIdToLink !== userId) {
@@ -110,7 +124,8 @@ export async function submitBooking(formData: FormData) {
   }
 
   // CREATE APPOINTMENTS (Loop)
-  const count = isRecurring ? 6 : 1;
+  // User requested "registers this time and one more only" -> Total 2
+  const count = isRecurring ? 2 : 1;
   let firstAppointmentId = "";
 
   for (let i = 0; i < count; i++) {
@@ -207,6 +222,18 @@ export async function validateCoupon(code: string) {
   });
 
   if (referrer) {
+    // Check if user is NEW (First Booking)
+    // We need userId to check this. Ensure validateCoupon is called with userId.
+    // If we assume this function is called within a context where we can check currentUser:
+    const user = await currentUser();
+    if (user) {
+         const existingApps = await db.appointment.count({
+             where: { userId: user.id }
+         });
+         if (existingApps > 0) {
+             return { valid: false, message: "O código de convite é exclusivo para a primeira marcação." };
+         }
+    }
     return { valid: true, discount: 5, type: "REFERRAL", id: referrer.id };
   }
 

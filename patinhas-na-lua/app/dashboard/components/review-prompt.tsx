@@ -37,15 +37,15 @@ export function ReviewPrompt({ appointmentId, petName, serviceName }: ReviewProm
     if (done) return null; // Disappear when done
 
     return (
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-6 rounded-xl border border-yellow-200 shadow-sm mb-8 animate-in fade-in slide-in-from-top-4">
+        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm mb-8 animate-in fade-in slide-in-from-top-4">
             <div className="flex flex-col md:flex-row gap-6 items-center">
 
                 {/* Left: Text */}
                 <div className="text-center md:text-left flex-1">
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">
+                    <h3 className="text-lg font-bold text-foreground mb-1">
                         Como correu a visita do {petName}? 🐾
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-foreground/70">
                         Dê-nos a sua opinião sobre o serviço <span className="font-medium">"{serviceName}"</span>.
                     </p>
                 </div>
@@ -75,7 +75,7 @@ export function ReviewPrompt({ appointmentId, petName, serviceName }: ReviewProm
                                 value={comment}
                                 onChange={(e) => setComment(e.target.value)}
                                 placeholder="Escreva um comentário (opcional)..."
-                                className="w-full text-sm p-3 rounded-lg border border-yellow-200 focus:border-yellow-400 outline-none resize-none h-20 bg-white"
+                                className="w-full text-sm p-3 rounded-lg border border-gray-200 focus:border-yellow-400 outline-none resize-none h-20 bg-white"
                             />
                             <button
                                 onClick={handleSubmit}

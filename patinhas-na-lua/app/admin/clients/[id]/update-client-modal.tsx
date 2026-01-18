@@ -1,16 +1,41 @@
 "use client";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { createOfflineClientAction } from "./actions";
+import { updateClientAction } from "../actions";
 import { toast } from "sonner";
-import { defaultCountries, FlagImage, parseCountry } from 'react-international-phone';
-import { ChevronDown, Search } from "lucide-react";
+import { defaultCountries, FlagImage, parseCountry, usePhoneInput } from 'react-international-phone';
+import { ChevronDown, Search, Pencil } from "lucide-react";
 
-export default function RegisterClientModal() {
+export default function UpdateClientModal({ client }: { client: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   /* --- PHONE LOGIC --- */
-  const [phoneState, setPhoneState] = useState({ iso2: 'pt', dial: '351', phone: '' });
+  // We need to parse existing phone to extract country and number
+  // Simple heuristic: Assume PT (+351) if strict parsing is hard, or use parsing lib
+  // But let's try to match existing country dial codes.
+  
+  // Initial parsing
+  const initialIso2 = 'pt';
+  const initialDial = '351';
+  const initialPhone = client.phone ? client.phone.replace('+351', '') : ''; 
+  // TODO: Better parsing if multiple countries expected. For now assuming PT default or manual fix.
+
+  const [phoneState, setPhoneState] = useState({ iso2: initialIso2, dial: initialDial, phone: initialPhone });
+  
+  // If client.phone starts with something else, we might want to detect it.
+  useEffect(() => {
+     if (client.phone) {
+         // Simple check for +351
+         if (client.phone.startsWith('+351')) {
+             setPhoneState({ iso2: 'pt', dial: '351', phone: client.phone.replace('+351', '') });
+         } else {
+             // Fallback
+             setPhoneState(prev => ({ ...prev, phone: client.phone }));
+         }
+     }
+  }, [client.phone]);
+
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -65,64 +90,55 @@ export default function RegisterClientModal() {
 
   const fullPhoneSubmission = `+${phoneState.dial}${phoneState.phone}`;
 
-
   async function handleSubmit(formData: FormData) {
     setLoading(true);
-    // Inject full phone manually since we use custom state
+    // Inject full phone
     formData.set("phone", fullPhoneSubmission);
     
-    const res = await createOfflineClientAction(formData);
+    const res = await updateClientAction(formData);
     setLoading(false);
 
     if (res?.error) {
       toast.error(res.error);
     } else {
-      toast.success("Cliente criado com sucesso!");
+      toast.success("Cliente atualizado com sucesso!");
       setIsOpen(false);
-      // Reset State
-      setPhoneState({ iso2: 'pt', dial: '351', phone: '' });
     }
   }
-
-  const handleClose = () => {
-    setIsOpen(false);
-    setPhoneState({ iso2: 'pt', dial: '351', phone: '' });
-  };
 
   return (
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-700 transition shadow-md flex items-center gap-2"
+        className="text-gray-400 hover:text-blue-600 transition"
+        title="Editar Cliente"
       >
-        <span>+</span> Criar Novo Cliente
+        <Pencil className="w-5 h-5" />
       </button>
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div 
             className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
-            onClick={handleClose}
+            onClick={() => setIsOpen(false)}
           />
 
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-800 mb-4">
-              Registar Novo Cliente
+              Editar Cliente
             </h3>
-            <p className="text-sm text-gray-500 mb-6">
-              Use esta opção para adicionar clientes manualmente (ex: telefone ou presencial).
-            </p>
 
             <form action={handleSubmit} className="space-y-4">
-              
+              <input type="hidden" name="id" value={client.id} />
+
               {/* Name */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Nome Completo *</label>
                 <input 
                   name="name" 
                   required 
+                  defaultValue={client.name || ""}
                   className="w-full border p-2 rounded bg-gray-50 text-gray-900 focus:ring-2 focus:ring-purple-500 outline-none" 
-                  placeholder="Ex: Maria dos Santos" 
                 />
               </div>
 
@@ -152,7 +168,6 @@ export default function RegisterClientModal() {
                         required
                         value={phoneState.phone}
                         onChange={handlePhoneChange}
-                        placeholder="912345678"
                          // We don't use 'name' here because we inject fullPhone manually
                         className="flex-1 h-full border-none outline-none focus:ring-0 text-gray-900 text-sm bg-transparent pl-2 min-w-0"
                       />
@@ -204,18 +219,24 @@ export default function RegisterClientModal() {
                   minLength={9}
                   maxLength={9}
                   onInput={handleNifInput}
+                  defaultValue={client.nif || ""}
                   className="w-full border p-2 rounded bg-gray-50 text-gray-900 focus:ring-2 focus:ring-purple-500 outline-none" 
                   placeholder="123456789" 
                 />
               </div>
 
-              {/* Referral Code */}
+              {/* Referral Code (Editable) */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Código Amigo (Opcional)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Código Próprio (Para Partilhar)</label>
                 <div className="relative">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-purple-500">🎁</span>
                     <input 
                     name="referralCode" 
+                    maxLength={15}
+                    defaultValue={client.referralCode || ""}
+                    onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+                    }}
                     className="w-full border p-2 pl-9 rounded bg-gray-50 text-gray-900 focus:ring-2 focus:ring-purple-500 outline-none uppercase tracking-widest placeholder:tracking-normal" 
                     placeholder="JOAO1234" 
                     />
@@ -230,8 +251,8 @@ export default function RegisterClientModal() {
                 <input 
                   name="email" 
                   type="email"
+                  defaultValue={client.email || ""}
                   className="w-full border p-2 rounded bg-gray-50 text-gray-900 focus:ring-2 focus:ring-purple-500 outline-none" 
-                  placeholder="Ex: maria@email.com" 
                 />
               </div>
 
@@ -241,8 +262,8 @@ export default function RegisterClientModal() {
                 <textarea 
                   name="notes" 
                   rows={2}
+                  defaultValue={client.notes || ""}
                   className="w-full border p-2 rounded bg-gray-50 text-gray-900 focus:ring-2 focus:ring-purple-500 outline-none" 
-                  placeholder="Ex: Cliente prefere ser contactada de manhã." 
                 />
               </div>
 
@@ -250,7 +271,7 @@ export default function RegisterClientModal() {
               <div className="flex gap-3 pt-4 border-t mt-4">
                 <button
                   type="button"
-                  onClick={handleClose}
+                  onClick={() => setIsOpen(false)}
                   className="flex-1 bg-white border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-50 font-bold"
                   disabled={loading}
                 >
@@ -261,7 +282,7 @@ export default function RegisterClientModal() {
                   disabled={loading}
                   className="flex-1 bg-purple-600 text-white font-bold py-2 rounded hover:bg-purple-700 disabled:opacity-70"
                 >
-                  {loading ? "A Criar..." : "Registar Cliente"}
+                  {loading ? "A Guardar..." : "Guardar Alterações"}
                 </button>
               </div>
             </form>

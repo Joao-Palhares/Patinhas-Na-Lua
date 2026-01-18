@@ -42,21 +42,21 @@ export default async function MyPetsPage() {
   if (!dbUser) redirect("/onboarding");
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-background pb-20">
       <div className="max-w-5xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8 pt-8">
 
         {/* LEFT: LIST OF PETS */}
         <div className="space-y-4">
-          <h2 className="font-bold text-gray-800 text-lg">Meus Pets Registados</h2>
+          <h2 className="font-bold text-primary text-lg">Meus Pets Registados</h2>
           {dbUser.pets.map(pet => (
             <div key={pet.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-bold text-lg text-slate-900">{pet.name}</h3>
-                  <p className="text-sm text-gray-600">{pet.breed || "Raça não definida"}</p>
+                  <h3 className="font-bold text-lg text-primary">{pet.name}</h3>
+                  <p className="text-sm text-foreground/60">{pet.breed || "Raça não definida"}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase bg-blue-100 text-blue-800 flex items-center gap-1`}>
+                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase bg-primary-light text-primary flex items-center gap-1`}>
                     <span className="text-lg" title={pet.species}>
                       {SPECIES_ICON_MAP[pet.species] || "🐾"}
                     </span>
@@ -76,13 +76,13 @@ export default async function MyPetsPage() {
                   </DeleteForm>
                 </div>
               </div>
-              <div className="mt-4 text-sm text-gray-700 grid grid-cols-2 gap-3">
-                <div className="bg-slate-100 p-2 rounded border border-slate-200">
-                  <span className="block text-xs text-gray-500 uppercase font-bold mb-1">Tamanho</span>
+              <div className="mt-4 text-sm text-foreground grid grid-cols-2 gap-3">
+                <div className="bg-white p-2 rounded border border-secondary/20">
+                  <span className="block text-xs text-foreground/50 uppercase font-bold mb-1">Tamanho</span>
                   <span className="font-medium">{pet.sizeCategory ? SIZE_LABELS[pet.sizeCategory] : "--"}</span>
                 </div>
-                <div className="bg-slate-100 p-2 rounded border border-slate-200">
-                  <span className="block text-xs text-gray-500 uppercase font-bold mb-1">Pelo</span>
+                <div className="bg-white p-2 rounded border border-secondary/20">
+                  <span className="block text-xs text-foreground/50 uppercase font-bold mb-1">Pelo</span>
                   <span className="font-medium">{pet.coatType ? COAT_LABELS[pet.coatType] : "--"}</span>
                 </div>
               </div>
@@ -97,7 +97,7 @@ export default async function MyPetsPage() {
 
         {/* RIGHT: ADD PET FORM */}
         <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-fit sticky top-20">
-          <h2 className="font-bold text-xl text-blue-700 mb-6 flex items-center gap-2">
+          <h2 className="font-bold text-xl text-primary mb-6 flex items-center gap-2">
             Adicionar Novo Pet <span className="text-2xl">🐾</span>
           </h2>
 
@@ -106,11 +106,11 @@ export default async function MyPetsPage() {
 
             {/* NAME */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Nome do Pet</label>
+              <label className="block text-sm font-bold text-foreground mb-1">Nome do Pet</label>
               <input
                 name="name"
                 required
-                className="w-full border border-gray-300 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 p-3 rounded-lg text-foreground bg-white focus:ring-2 focus:ring-primary focus:border-primary"
                 placeholder="Ex: Bobby"
               />
             </div>
@@ -118,7 +118,7 @@ export default async function MyPetsPage() {
             {/* SPECIES & GENDER */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Espécie</label>
+                <label className="block text-sm font-bold text-foreground mb-1">Espécie</label>
                 <select
                   name="species"
                   className="w-full border border-gray-300 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
@@ -129,7 +129,7 @@ export default async function MyPetsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Sexo</label>
+                <label className="block text-sm font-bold text-foreground mb-1">Sexo</label>
                 <select
                   name="gender"
                   className="w-full border border-gray-300 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
@@ -141,15 +141,15 @@ export default async function MyPetsPage() {
             </div>
 
             {/* SIZE & COAT (Highlight these) */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <p className="text-xs font-bold text-blue-600 uppercase mb-3">Informações para o Preço</p>
+            <div className="bg-primary-soft/30 p-4 rounded-lg border border-primary/20">
+              <p className="text-xs font-bold text-secondary uppercase mb-3">Informações para o Preço</p>
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Tamanho *</label>
+                  <label className="block text-sm font-bold text-foreground mb-1">Tamanho *</label>
                   <select
                     name="sizeCategory"
                     required
-                    className="w-full border border-blue-200 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-primary/20 p-3 rounded-lg text-foreground bg-white focus:ring-2 focus:ring-primary"
                   >
                     <option value="" className="text-gray-400">Selecione o tamanho...</option>
                     {Object.entries(SIZE_LABELS).map(([key, label]) => (
@@ -158,11 +158,11 @@ export default async function MyPetsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Tipo de pelo *</label>
+                  <label className="block text-sm font-bold text-foreground mb-1">Tipo de pelo *</label>
                   <select
                     name="coatType"
                     required
-                    className="w-full border border-blue-200 p-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-primary/20 p-3 rounded-lg text-foreground bg-white focus:ring-2 focus:ring-primary"
                   >
                     <option value="" className="text-gray-400">Selecione o pelo...</option>
                     {Object.entries(COAT_LABELS).map(([key, label]) => (
@@ -175,13 +175,13 @@ export default async function MyPetsPage() {
 
             {/* BREED (OPTIONAL) */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Raça (Opcional)</label>
+              <label className="block text-sm font-bold text-foreground mb-1">Raça (Opcional)</label>
 
               <div className="relative">
 
                 <input
                   name="breed"
-                  className="w-full border border-gray-300 p-3 pr-10 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border border-gray-300 p-3 pr-10 rounded-lg text-foreground bg-white focus:ring-2 focus:ring-primary focus:border-primary"
                   placeholder="Ex: Caniche"
                 />
 
@@ -197,7 +197,7 @@ export default async function MyPetsPage() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-gray-400 hover:text-blue-600 transition-colors"
+                    className="text-gray-400 hover:text-primary transition-colors"
                   >
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -228,7 +228,7 @@ export default async function MyPetsPage() {
               />
             </div>
 
-            <button className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg mt-2 text-lg">
+            <button className="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primary-hover transition shadow-lg mt-2 text-lg">
               Guardar Animal
             </button>
           </form>

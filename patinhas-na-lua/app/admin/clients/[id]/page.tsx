@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Species } from "@prisma/client";
 import DeleteForm from "../../components/delete-form"; // Use the component we made earlier
+import UpdateClientModal from "./update-client-modal";
 
 // FIX: Next.js 15 params are Promises
 export default async function ClientDetailsPage(props: {
@@ -18,13 +19,14 @@ export default async function ClientDetailsPage(props: {
       appointments: {
         orderBy: { date: 'desc' },
         take: 5 // Last 5 appointments
-      }
+      },
+      referredBy: true, // Fetch Referrer
     }
   });
 
   if (!client) redirect("/admin/clients");
+  
 
-  // --- ACTION: ADD PET ---
   async function createPet(formData: FormData) {
     "use server";
 
@@ -78,9 +80,21 @@ export default async function ClientDetailsPage(props: {
           {/* 1. CLIENT INFO CARD */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              👤 Dados Pessoais
-            </h2>
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                👤 Dados Pessoais
+              </h2>
+              <UpdateClientModal client={{
+                  id: client.id,
+                  name: client.name,
+                  phone: client.phone,
+                  email: client.email,
+                  nif: client.nif,
+                  notes: client.notes,
+                  address: client.address,
+                  referralCode: client.referralCode
+              }} />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <p className="text-xs text-gray-400 uppercase font-bold">Nome</p>
@@ -102,6 +116,23 @@ export default async function ClientDetailsPage(props: {
                 <p className="text-xs text-gray-400 uppercase font-bold">Morada</p>
                 <p className="text-lg font-medium text-gray-600">{client.address || "--"}</p>
               </div>
+
+              <div className="md:col-span-2 mt-2">
+                 <p className="text-xs text-gray-400 uppercase font-bold mb-1">Notas Internas</p>
+                 <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-sm text-gray-700 whitespace-pre-wrap">
+                    {client.notes || "Sem notas."}
+                 </div>
+              </div>
+
+               {/* Referrer Info */}
+               {client.referredBy && (
+                  <div className="md:col-span-2 mt-3 bg-purple-50 p-3 rounded-lg border border-purple-100 flex items-center gap-2">
+                      <span className="text-xs font-bold text-purple-700 uppercase">Referenciado Por:</span>
+                      <span className="text-sm font-medium text-purple-900">
+                         {client.referredBy.name} ({client.referredBy.referralCode || "Sem código"})
+                      </span>
+                  </div>
+               )}
             </div>
           </div>
 

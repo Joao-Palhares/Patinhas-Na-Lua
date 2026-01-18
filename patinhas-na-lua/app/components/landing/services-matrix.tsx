@@ -98,86 +98,131 @@ export default function ServicesMatrix({ services }: { services: ServiceWithData
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
+    <div className="w-full max-w-5xl mx-auto space-y-8">
       
-      {/* CATEGORY TABS */}
-      <div className="flex justify-center gap-4 mb-6 flex-wrap">
-        {Object.keys(CATEGORY_LABELS).map((cat) => {
-           if (!services.some(s => s.category === cat)) return null;
-           
-           return (
-            <button
-              key={cat}
-              onClick={() => { setActiveCategory(cat as ServiceCategory); setManualActiveServiceId(""); }}
-              className={`px-6 py-2 rounded-full font-bold text-sm uppercase tracking-wider border-2 transition-all
-                ${activeCategory === cat 
-                  ? "bg-[#5A4633] text-white border-[#5A4633]" 
-                  : "bg-transparent text-[#5A4633] border-[#5A4633] hover:bg-[#EBE5CE]"
-                }`}
-            >
-              {CATEGORY_LABELS[cat as ServiceCategory]}
-            </button>
-           )
-        })}
+      {/* 1. CATEGORY TABS (Segmented Control Style) */}
+      <div className="flex justify-center">
+        <div className="inline-flex bg-slate-100 p-1.5 rounded-2xl shadow-inner scrollbar-hide max-w-full overflow-x-auto">
+          {Object.keys(CATEGORY_LABELS).map((cat) => {
+             if (!services.some(s => s.category === cat)) return null;
+             const isActive = activeCategory === cat;
+             
+             return (
+              <button
+                key={cat}
+                onClick={() => { setActiveCategory(cat as ServiceCategory); setManualActiveServiceId(""); }}
+                className={`
+                  px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap
+                  ${isActive 
+                    ? "bg-white text-slate-900 shadow-sm ring-1 ring-black/5" 
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                  }
+                `}
+              >
+                {CATEGORY_LABELS[cat as ServiceCategory]}
+              </button>
+             )
+          })}
+        </div>
       </div>
 
-      {/* SERVICE TABS */}
-      <div className="flex flex-wrap border-2 border-black bg-white">
-        {filteredServices.map((service) => (
-          <button
-            key={service.id}
-            onClick={() => setManualActiveServiceId(service.id)}
-            className={`flex-1 py-3 px-4 font-bold text-xs md:text-sm uppercase tracking-wide transition-colors whitespace-nowrap
-              ${activeServiceId === service.id 
-                ? "bg-[#a6c4f5] text-black" 
-                : "bg-white text-gray-500 hover:bg-gray-100"
-              } border-r last:border-r-0 border-black`}
-          >
-            {service.name}
-          </button>
-        ))}
+      {/* 2. SERVICE SELECTOR (Pill Tabs) - Flex Wrap */}
+      <div className="relative group">
+        <div className="flex flex-wrap gap-3 justify-center py-4 px-2">
+          {filteredServices.map((service) => {
+            const isActive = activeServiceId === service.id;
+            return (
+              <button
+                key={service.id}
+                onClick={() => setManualActiveServiceId(service.id)}
+                className={`
+                  px-5 py-2.5 rounded-full border text-sm font-bold transition-all duration-200
+                  ${isActive 
+                    ? "bg-primary border-primary text-white shadow-lg shadow-primary/30 scale-105" 
+                    : "bg-white border-slate-200 text-slate-600 hover:border-primary/50 hover:text-primary"
+                  }
+                `}
+              >
+                {service.name}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      {/* MATRIX TABLE */}
-      <div className="border-2 border-t-0 border-black bg-white overflow-hidden">
+      {/* 3. PRICING TABLE CARD */}
+      <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        
         {filteredServices.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 italic">Sem serviços nesta categoria.</div>
+           <div className="p-12 text-center text-gray-400 italic">
+             Sem serviços disponíveis nesta categoria.
+           </div>
         ) : (
-          <table className="w-full text-center border-collapse">
-            <thead>
-              <tr className="bg-[#d1d5db]">
-                <th className="p-3 border-b border-r border-black text-left pl-6 text-gray-900 font-bold">
-                  Peso <span className="font-normal text-xs block text-gray-600">(Tamanho)</span>
-                </th>
-                {visibleCoats.map(coat => (
-                  <th key={coat} className="p-3 border-b border-l border-black text-gray-900 font-bold">
-                    {COAT_LABELS[coat]}
+          <div className="overflow-x-auto scrollbar-hide relative">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-200">
+                   {/* Top Left Corner */}
+                  <th className="p-4 pl-6 text-xs font-bold text-slate-500 uppercase tracking-widest w-1/4">
+                    Peso
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {visibleSizes.map((size, index) => (
-                <tr key={size} className={index % 2 === 0 ? "bg-[#f3f4f6]" : "bg-white"}>
-                  <td className="p-3 border-t border-r border-black text-left pl-6 font-bold text-gray-800">
-                    {SIZE_LABELS[size]}
-                  </td>
+                  {/* Columns (Coats) */}
                   {visibleCoats.map(coat => (
-                    <td key={coat} className="p-3 border-t border-l border-black font-medium text-gray-900">
-                      {getPrice(size, coat)}
-                    </td>
+                    <th key={coat} className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-center">
+                      {COAT_LABELS[coat]}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        
-        {activeService?.description && (
-          <div className="p-4 bg-yellow-50 border-t border-black text-sm text-gray-700 italic border-l-4 border-l-yellow-400">
-            * {activeService.description}
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {visibleSizes.map((size) => (
+                  <tr key={size} className="group hover:bg-slate-50/50 transition-colors">
+                    {/* Size Row Header */}
+                    <td className="p-4 pl-6 bg-white group-hover:bg-slate-50/50 transition-colors">
+                      <div className="flex flex-col">
+                         <span className="font-bold text-slate-800 text-sm">{SIZE_LABELS[size]}</span>
+                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{size}</span>
+                      </div>
+                    </td>
+                    
+                    {/* Price Cells */}
+                    {visibleCoats.map(coat => {
+                       const priceStr = getPrice(size, coat);
+                       const isDash = priceStr === '-';
+                       return (
+                        <td key={coat} className="p-4 text-center">
+                           <span className={`inline-block py-1.5 px-3 rounded-lg text-base font-extrabold table-nums
+                             ${isDash 
+                               ? "text-slate-300 bg-slate-50 font-normal" 
+                               : "text-primary bg-primary-light group-hover:bg-primary/20 group-hover:text-primary-hover"
+                             } transition-colors`}>
+                              {priceStr}
+                           </span>
+                        </td>
+                       );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
+
+        {/* Table Description/Footer (Moved to Bottom) */}
+        {activeService?.description && (
+          <div className="bg-primary-light/50 border-t border-primary/20 px-6 py-4 flex gap-3 items-start">
+            <span className="text-primary text-lg">💡</span>
+            <p className="text-sm text-primary-hover leading-relaxed font-medium">
+              {activeService.description}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="text-center">
+         <p className="text-xs text-slate-400">
+           * Valores sujeitos a avaliação presencial consoante o comportamento e estado do pelo. IVA incluído.
+         </p>
       </div>
     </div>
   );

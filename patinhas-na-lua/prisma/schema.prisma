@@ -25,6 +25,8 @@ model User {
   isOfflineUser Boolean @default(false) // Created by Admin (No Login)
   notes     String?  // Internal Admin Notes (e.g. "Bad payer")
   createdAt DateTime @default(now())
+
+  facturalusaId String? // External Client ID from Facturalusa
   
   invoices  Invoice[]
 

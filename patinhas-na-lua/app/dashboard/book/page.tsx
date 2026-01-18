@@ -23,7 +23,7 @@ export default async function BookingPage(props: {
   // 1. Fetch Raw Services from Database
   const rawServices = await db.service.findMany({
     include: { options: true },
-    orderBy: { category: "asc" }
+    orderBy: { name: "asc" }
   });
 
   // 2. CRITICAL FIX: Convert Decimal to Number
@@ -85,7 +85,8 @@ export default async function BookingPage(props: {
             user={{
               id: dbUser.id,
               name: dbUser.name,
-              nif: dbUser.nif
+              nif: dbUser.nif,
+              referredById: dbUser.referredById
             }}
             pets={dbUser.pets}
             services={services}
