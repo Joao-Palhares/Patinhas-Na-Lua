@@ -181,7 +181,7 @@ export default function ServicesMatrix({ services }: { services: ServiceWithData
                     <td className="p-4 pl-6 bg-white group-hover:bg-slate-50/50 transition-colors">
                       <div className="flex flex-col">
                          <span className="font-bold text-slate-800 text-sm">{SIZE_LABELS[size]}</span>
-                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{size}</span>
+                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{size}</span>
                       </div>
                     </td>
                     
@@ -220,7 +220,7 @@ export default function ServicesMatrix({ services }: { services: ServiceWithData
       </div>
 
       <div className="text-center">
-         <p className="text-xs text-slate-400">
+         <p className="text-xs text-slate-500">
            * Valores sujeitos a avaliação presencial consoante o comportamento e estado do pelo. IVA incluído.
          </p>
       </div>

@@ -54,6 +54,7 @@ export default function PortfolioFan({ images = [] }: Props) {
                         src={img.url} 
                         alt={`Portfolio ${index + 1}`} 
                         fill
+                        sizes="(max-width: 768px) 100vw, 450px"
                         className="object-cover"
                         priority={index === 0}
                     />
@@ -80,18 +81,22 @@ export default function PortfolioFan({ images = [] }: Props) {
         </div>
 
         {/* INDICATORS */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 z-20">
             {displayImages.map((_, i) => (
                 <button
                     key={i}
                     onClick={() => setActiveIndex(i)}
                     aria-label={`Ver imagem ${i + 1}`}
-                    className={`nav-dot transition-all duration-300 rounded-full shadow-sm border border-white/20 ${
-                        i === activeIndex 
-                            ? "w-6 h-1.5 bg-white" 
-                            : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
-                    }`}
-                />
+                    className="w-11 h-11 flex items-center justify-center rounded-full active:scale-95 transition"
+                >
+                    <span 
+                        className={`nav-dot transition-all duration-300 rounded-full shadow-sm border border-white/20 ${
+                            i === activeIndex 
+                                ? "w-6 h-1.5 bg-white" 
+                                : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
+                        }`} 
+                    />
+                </button>
             ))}
         </div>
 

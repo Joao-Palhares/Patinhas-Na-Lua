@@ -82,7 +82,7 @@ export default async function ServicesPage() {
 
                             <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
                                 <div>
-                                    <span className="block text-xs text-gray-400 uppercase font-bold">Preço</span>
+                                    <span className="block text-xs text-gray-500 uppercase font-bold">Preço</span>
                                     <span className="text-2xl font-black text-blue-600">{priceDisplay}</span>
                                 </div>
                                 <Link href={`/dashboard/book?serviceId=${service.id}`}>
