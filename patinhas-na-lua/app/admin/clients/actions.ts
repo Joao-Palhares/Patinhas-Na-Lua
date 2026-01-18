@@ -145,7 +145,7 @@ export async function createOfflineClientAction(formData: FormData) {
          name,
          phone,
          email,
-         nif,
+         nif: nif || null,
          notes,
          referralCode: newReferralCode,
          referredById,
@@ -181,7 +181,7 @@ export async function updateClientAction(formData: FormData) {
          name,
          phone,
          email: email || undefined,
-         nif,
+         nif: nif || null,
          notes,
          referralCode: formData.get("referralCode") as string || undefined
        }

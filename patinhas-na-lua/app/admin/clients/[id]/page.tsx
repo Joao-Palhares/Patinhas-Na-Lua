@@ -110,7 +110,14 @@ export default async function ClientDetailsPage(props: {
               </div>
               <div>
                 <p className="text-xs text-gray-400 uppercase font-bold">NIF</p>
-                <p className="text-lg font-medium text-gray-600">{client.nif || "--"}</p>
+                <p className="text-lg font-medium text-gray-600 flex items-center gap-2">
+                    {client.nif || (
+                        <span className="text-amber-500 flex items-center gap-1 text-sm bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                             Em Falta
+                        </span>
+                    )}
+                </p>
               </div>
               <div className="md:col-span-2">
                 <p className="text-xs text-gray-400 uppercase font-bold">Morada</p>
