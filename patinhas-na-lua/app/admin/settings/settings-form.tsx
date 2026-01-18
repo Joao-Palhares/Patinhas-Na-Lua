@@ -35,7 +35,7 @@ export default function SettingsForm({ settings }: Props) {
                                 type="text"
                                 name="baseAddress"
                                 defaultValue={settings.baseAddress || ""}
-                                placeholder="Ex: Rua das Flores nº 123, Tondela"
+                                placeholder="Ex: Rua das Flores nº 123, Castelo Branco"
                                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-gray-900"
                             />
                     </div>
@@ -62,7 +62,7 @@ export default function SettingsForm({ settings }: Props) {
                         />
                     </div>
                     <div className="md:col-span-2 text-xs text-gray-500">
-                        * Use coordenadas decimais (ex: 40.5489, -8.0815). Pode obter no Google Maps.
+                        * Use coordenadas decimais (ex: 39.8236, -7.4919). Pode obter no Google Maps.
                     </div>
                 </div>
             </div>

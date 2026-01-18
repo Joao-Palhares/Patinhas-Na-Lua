@@ -81,7 +81,7 @@ export async function sendBookingConfirmation({
           <p>Adicionámos um convite de calendário a este email para facilitar!</p>
 
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-          <p style="font-size: 12px; color: #888;">Patinhas na Lua 🌙<br>Tondela</p>
+          <p style="font-size: 12px; color: #888;">Patinhas na Lua 🌙<br>Castelo Branco</p>
         </div>
       `
         };
@@ -93,7 +93,7 @@ export async function sendBookingConfirmation({
                 durationMinutes,
                 summary: `Patinhas na Lua: ${petName} (${serviceName})`,
                 description: `Serviço de Grooming/Banho para ${petName}.\nServiço: ${serviceName}`,
-                location: 'Patinhas na Lua, Tondela',
+                location: 'Patinhas na Lua, Castelo Branco',
                 uid: appointmentId || `appt-${Date.now()}@patinhasnalua.pt`
             });
 
@@ -141,7 +141,7 @@ export async function sendAppointmentReminder({
           <p>Até amanhã!</p>
           
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-          <p style="font-size: 12px; color: #888;">Patinhas na Lua 🌙<br>Tondela</p>
+          <p style="font-size: 12px; color: #888;">Patinhas na Lua 🌙<br>Castelo Branco</p>
         </div>
       `
         });
@@ -187,7 +187,7 @@ export async function sendAppointmentCancellation({
           <p>Pedimos desculpa pelo incómodo.</p>
           
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-          <p style="font-size: 12px; color: #888;">Patinhas na Lua 🌙<br>Tondela</p>
+          <p style="font-size: 12px; color: #888;">Patinhas na Lua 🌙<br>Castelo Branco</p>
         </div>
       `
         });

@@ -130,7 +130,7 @@ export default function LocationPicker({ settings, onLocationSelect }: LocationP
                 mapRef.current?.setView([latNum, lonNum], 15);
                 // We don't auto-select, user must click to confirm exact house
             } else {
-                toast.warning("Morada não encontrada.", { description: "Tente ser mais específico (Ex: Rua X, Tondela)" });
+                toast.warning("Morada não encontrada.", { description: "Tente ser mais específico (Ex: Rua X, Castelo Branco)" });
             }
         } catch (e) {
             toast.error("Erro na pesquisa.");

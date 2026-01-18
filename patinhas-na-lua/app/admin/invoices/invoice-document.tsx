@@ -54,7 +54,7 @@ export const InvoiceDocument = ({ invoice }: { invoice: any }) => {
           <View>
             <Text style={styles.companyTitle}>Patinhas na Lua</Text>
             <Text style={styles.companySub}>Estética Animal & Spa</Text>
-            <Text style={styles.companySub}>Rua dos Animais Felizes, 123, Lisboa</Text>
+            <Text style={styles.companySub}>R. Dra. Maria de Fátima Delgado Domingos Farinha Lote 237 Loja 3, 6000-410 Castelo Branco</Text>
             <Text style={styles.companySub}>NIF: 123 456 789</Text>
           </View>
           <View>

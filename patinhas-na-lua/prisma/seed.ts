@@ -103,9 +103,9 @@ async function main() {
         await prisma.businessSettings.create({
             data: {
                 id: "default",
-                baseLatitude: 40.5489,
-                baseLongitude: -8.0815,
-                baseAddress: "Tondela, Portugal",
+                baseLatitude: 39.8236,
+                baseLongitude: -7.4919,
+                baseAddress: "R. Dra. Maria de Fátima Delgado Domingos Farinha Lote 237 Loja 3, 6000-410 Castelo Branco",
                 zone1RadiusKm: 5,
                 zone1Fee: 5,
                 zone2RadiusKm: 10,

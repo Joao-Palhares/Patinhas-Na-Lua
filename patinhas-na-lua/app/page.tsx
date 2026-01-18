@@ -137,7 +137,7 @@ export default async function LandingPage() {
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-serif font-bold mb-4 text-primary">Menu de Serviços</h2>
-              <p className="text-gray-400">Transparência total nos nossos preços.</p>
+              <p className="text-gray-600">Transparência total nos nossos preços.</p>
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-2xl shadow-gray-100/50 overflow-hidden p-2">
@@ -193,7 +193,7 @@ export default async function LandingPage() {
           <p className="text-sm text-gray-500 mt-2">{settings.baseAddress}</p>
         )}
 
-        <div className="flex gap-4 justify-center text-xs text-gray-400 mt-4">
+        <div className="flex gap-4 justify-center text-xs text-gray-500 mt-4">
           <p>© 2025. Todos os direitos reservados.</p>
           <Link href="/terms" className="hover:underline">Termos e Condições</Link>
         </div>

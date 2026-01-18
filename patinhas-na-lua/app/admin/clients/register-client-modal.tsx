@@ -197,10 +197,9 @@ export default function RegisterClientModal() {
 
                {/* NIF */}
                <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">NIF *</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">NIF (Opcional)</label>
                 <input 
                   name="nif" 
-                  required 
                   minLength={9}
                   maxLength={9}
                   onInput={handleNifInput}

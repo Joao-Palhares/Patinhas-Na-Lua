@@ -27,7 +27,7 @@ body {
   --color-primary-light: #FCEFEF; /* Very Light Pink for subtle backgrounds */
   --color-primary-soft: #FFE4E4;  /* Fresher Light Pink */
   
-  --color-secondary: #8D766E;     /* Taupe (Darker for Visibility) */
+  --color-secondary: #6B564F;     /* Taupe (Darker for Contrast) */
   
   /* ADMIN AREA (System Identity) - Default: Purple-600 */
   --color-admin: #9333ea;
