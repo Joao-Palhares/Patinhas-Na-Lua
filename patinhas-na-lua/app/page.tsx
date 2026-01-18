@@ -63,7 +63,7 @@ export default async function LandingPage() {
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo.png" alt="Patinhas na Lua Logo" width={40} height={40} className="rounded-lg" />
+            <Image src="/logo.png" alt="Patinhas na Lua Logo" width={40} height={40} className="rounded-lg" priority />
             <span className="font-serif font-bold text-lg tracking-tight text-primary">Patinhas na Lua</span>
           </div>
 

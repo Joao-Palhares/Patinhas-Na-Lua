@@ -65,13 +65,15 @@ export default function PortfolioFan({ images = [] }: Props) {
         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
              <button 
                 onClick={prevSlide}
-                className="bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 shadow-lg backdrop-blur transition"
+                className="bg-white/80 hover:bg-white text-gray-800 rounded-full p-3 shadow-lg backdrop-blur transition"
+                aria-label="Imagem Anterior"
             >
                 <ChevronLeft className="w-6 h-6" />
             </button>
             <button 
                 onClick={nextSlide}
-                className="bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 shadow-lg backdrop-blur transition"
+                className="bg-white/80 hover:bg-white text-gray-800 rounded-full p-3 shadow-lg backdrop-blur transition"
+                aria-label="Próxima Imagem"
             >
                 <ChevronRight className="w-6 h-6" />
             </button>
@@ -83,6 +85,7 @@ export default function PortfolioFan({ images = [] }: Props) {
                 <button
                     key={i}
                     onClick={() => setActiveIndex(i)}
+                    aria-label={`Ver imagem ${i + 1}`}
                     className={`nav-dot transition-all duration-300 rounded-full shadow-sm border border-white/20 ${
                         i === activeIndex 
                             ? "w-6 h-1.5 bg-white" 

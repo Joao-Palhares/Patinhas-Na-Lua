@@ -83,9 +83,9 @@ export default function BookingCalendar({ isLoggedIn, closedDays, absenceRanges 
       {/* --- CALENDAR UI (Same as before) --- */}
       <div className="w-full max-w-3xl mx-auto bg-white border border-gray-100 p-6 shadow-xl rounded-xl relative z-10">
         <div className="flex justify-between items-center mb-6">
-          <button onClick={() => changeMonth(-1)} disabled={loading} className="text-2xl font-bold hover:bg-gray-100 w-10 h-10 rounded-full disabled:opacity-30">◀</button>
+          <button onClick={() => changeMonth(-1)} disabled={loading} className="text-2xl font-bold hover:bg-gray-100 w-10 h-10 rounded-full disabled:opacity-30" aria-label="Mês Anterior">◀</button>
           <span className="font-serif font-bold uppercase tracking-widest text-xl text-gray-800">{monthName}</span>
-          <button onClick={() => changeMonth(1)} disabled={loading} className="text-2xl font-bold hover:bg-gray-100 w-10 h-10 rounded-full disabled:opacity-30">▶</button>
+          <button onClick={() => changeMonth(1)} disabled={loading} className="text-2xl font-bold hover:bg-gray-100 w-10 h-10 rounded-full disabled:opacity-30" aria-label="Próximo Mês">▶</button>
         </div>
         <div className="grid grid-cols-7 text-center font-black text-gray-400 mb-2 text-sm uppercase">
           <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>

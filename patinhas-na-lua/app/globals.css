@@ -22,12 +22,12 @@ body {
 
 @theme {
   /* CLIENT AREA (Brand Identity) */
-  --color-primary: #8C6A5D;       /* Terracotta (CTA, Titles) */
-  --color-primary-hover: #755549; /* Darker Terracotta */
+  --color-primary: #7A5A4D;       /* Terracotta (Darker for Contrast) */
+  --color-primary-hover: #64463C; /* Darker Terracotta */
   --color-primary-light: #FCEFEF; /* Very Light Pink for subtle backgrounds */
   --color-primary-soft: #FFE4E4;  /* Fresher Light Pink */
   
-  --color-secondary: #A89088;     /* Taupe (Borders/Decor) */
+  --color-secondary: #8D766E;     /* Taupe (Darker for Visibility) */
   
   /* ADMIN AREA (System Identity) - Default: Purple-600 */
   --color-admin: #9333ea;

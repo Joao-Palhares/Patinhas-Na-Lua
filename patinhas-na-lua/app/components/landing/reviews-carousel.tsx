@@ -100,8 +100,8 @@ export function ReviewsCarousel() {
 
          {/* Mobile Controls (Keep bottom for small screens) */}
          <div className="flex md:hidden gap-3 mt-6 justify-center">
-             <button onClick={handlePrev} className="p-3 rounded-full bg-white/60 shadow-sm"><ChevronLeft className="w-5 h-5"/></button>
-             <button onClick={handleNext} className="p-3 rounded-full bg-white/60 shadow-sm"><ChevronRight className="w-5 h-5"/></button>
+             <button onClick={handlePrev} className="p-3 rounded-full bg-white/60 shadow-sm" aria-label="Review Anterior"><ChevronLeft className="w-5 h-5"/></button>
+             <button onClick={handleNext} className="p-3 rounded-full bg-white/60 shadow-sm" aria-label="Próximo Review"><ChevronRight className="w-5 h-5"/></button>
          </div>
       </>
     </div>
