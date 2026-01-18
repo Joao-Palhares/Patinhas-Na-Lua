@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Serviços e Preços | Patinhas na Lua",
+  title: "Serviços e Preços",
   description: "Consulte a nossa tabela de preços para Banhos, Tosquias e Serviços de Spa para cães e gatos."
 };
 

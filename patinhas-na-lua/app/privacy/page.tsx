@@ -1,3 +1,10 @@
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Política de Privacidade',
+  description: 'Política de Privacidade e Proteção de Dados da Patinhas na Lua.',
+}
+
 export default function PrivacyPage() {
     return (
         <div className="max-w-4xl mx-auto py-16 px-4">

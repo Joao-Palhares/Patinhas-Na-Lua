@@ -1,3 +1,10 @@
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Termos e Condições',
+  description: 'Termos e condições de utilização dos serviços da Patinhas na Lua.',
+}
+
 export default function TermsPage() {
     return (
         <div className="max-w-4xl mx-auto py-20 px-4 prose prose-blue">
