@@ -47,7 +47,7 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
   const [nif, setNif] = useState(appointment.user.nif || "");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
 
-  const total = basePrice + selectedFees.reduce((acc, curr) => acc + curr.price, 0);
+  const total = Number(basePrice) + selectedFees.reduce((acc, curr) => acc + Number(curr.price), 0);
   const isDraft = appointment.invoice?.status === "DRAFT";
 
   const handleAddFee = (feeId: string) => {
@@ -102,8 +102,8 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
     setLoading(true);
     await saveBillingDraft(
       appointment.id,
-      basePrice,
-      selectedFees.map(f => ({ id: f.id, price: f.price })),
+      Number(basePrice),
+      selectedFees.map(f => ({ id: f.id, price: Number(f.price) })),
       notes
     );
     setLoading(false);

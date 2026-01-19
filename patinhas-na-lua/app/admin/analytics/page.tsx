@@ -24,7 +24,8 @@ export default async function AnalyticsPage(props: {
         gte: new Date(selectedYear, 0, 1),
         lt: new Date(selectedYear + 1, 0, 1)
       }
-    }
+    },
+    include: { extraFees: true } // Include Extras
   });
 
   const expenses = await db.expense.findMany({
@@ -50,7 +51,7 @@ export default async function AnalyticsPage(props: {
     name: new Date(0, i).toLocaleString('pt-PT', { month: 'short' }),
     income: 0,
     expense: 0,
-    users: 0 // New Field
+    users: 0 
   }));
 
   const daysInMonth = new Date(selectedYear, currentMonth + 1, 0).getDate();
@@ -64,7 +65,11 @@ export default async function AnalyticsPage(props: {
   appointments.forEach(app => {
     const month = app.date.getMonth();
     const day = app.date.getDate() - 1;
-    const val = Number(app.price);
+    
+    // Revenue = Base Price + Extra Fees
+    const extras = app.extraFees.reduce((acc, curr) => acc + Number(curr.appliedPrice), 0);
+    const val = Number(app.price) + extras;
+
     yearlyData[month].income += val;
     
     if (selectedYear === now.getFullYear() && month === currentMonth) {
