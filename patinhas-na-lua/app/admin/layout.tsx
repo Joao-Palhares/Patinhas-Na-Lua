@@ -81,6 +81,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <SidebarLink href="/admin/portfolio" icon="🖼️" label="Portfólio (Site)" />
           <SidebarLink href="/admin/reviews" icon="⭐" label="Moderação Reviews" />
 
+          {dbUser?.isSuperAdmin && (
+             <SidebarLink href="/admin/logs" icon="📜" label="Logs do Sistema" />
+          )}
+
           <AdminNotifications appointments={appointmentsSafe} />
         </nav>
 

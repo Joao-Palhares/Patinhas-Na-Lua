@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { Species, PetSize, CoatType } from "@prisma/client";
+import { logAudit } from "@/lib/audit";
 
 export async function createPetAction(formData: FormData) {
   const userId = formData.get("userId") as string;
@@ -19,7 +20,7 @@ export async function createPetAction(formData: FormData) {
   const medicalNotes = formData.get("medicalNotes") as string;
   const birthDateString = formData.get("birthDate") as string;
 
-  await db.pet.create({
+  const pet = await db.pet.create({
     data: {
       userId,
       name,
@@ -34,6 +35,8 @@ export async function createPetAction(formData: FormData) {
       birthDate: birthDateString ? new Date(birthDateString) : null,
     }
   });
+
+  await logAudit("CREATE", "Pet", pet.id, `Created Pet ${name} for User ${userId}`);
 
   // Refresh both the list and the details page
   revalidatePath("/admin/clients");
@@ -66,6 +69,8 @@ export async function updatePetAction(formData: FormData) {
       }
     });
 
+    await logAudit("UPDATE", "Pet", id, `Updated Pet Profile`);
+
     revalidatePath("/dashboard/pets");
     return { success: true };
   } catch (error) {
@@ -78,6 +83,7 @@ export async function deletePetAction(formData: FormData) {
   const id = formData.get("id") as string;
   try {
     await db.pet.delete({ where: { id } });
+    await logAudit("DELETE", "Pet", id, "Reason: Manual Admin Delete");
     revalidatePath("/dashboard/pets");
   } catch (error) {
     console.error("Failed to delete pet:", error);
@@ -139,7 +145,7 @@ export async function createOfflineClientAction(formData: FormData) {
      console.log(`[CreateClient] Generated Referral Code: ${newReferralCode}`);
 
 
-     await db.user.create({
+     const user = await db.user.create({
        data: {
          id,
          name,
@@ -152,6 +158,8 @@ export async function createOfflineClientAction(formData: FormData) {
          isOfflineUser: true
        }
      });
+
+     await logAudit("CREATE", "User", user.id, `Created Offline Client: ${name}`);
 
      revalidatePath("/admin/clients");
      return { success: true };
@@ -186,6 +194,8 @@ export async function updateClientAction(formData: FormData) {
          referralCode: formData.get("referralCode") as string || undefined
        }
      });
+
+     await logAudit("UPDATE", "User", id, `Updated Client Profile`);
 
      revalidatePath(`/admin/clients/${id}`);
      revalidatePath("/admin/clients");

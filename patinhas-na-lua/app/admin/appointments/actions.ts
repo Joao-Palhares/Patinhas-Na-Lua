@@ -61,6 +61,10 @@ async function processReferralReward(userId: string) {
 
 import { requireAdmin } from "@/lib/auth";
 
+import { logAudit } from "@/lib/audit";
+
+// ... (existing imports processReferralReward)
+
 // 1. Create Manual Appointment
 export async function createManualAppointment(formData: FormData) {
   await requireAdmin();
@@ -74,7 +78,7 @@ export async function createManualAppointment(formData: FormData) {
   // Combine Date + Time into ISO DateTime
   const finalDate = new Date(`${dateStr}T${timeStr}:00`);
 
-  await db.appointment.create({
+  const app = await db.appointment.create({
     data: {
       userId,
       petId,
@@ -84,6 +88,8 @@ export async function createManualAppointment(formData: FormData) {
       status: "CONFIRMED", // Admin bookings are auto-confirmed
     }
   });
+
+  await logAudit("CREATE", "Appointment", app.id, `Manual Booking for User ${userId}, Pet ${petId}, Price ${price}`);
 
   revalidatePath("/admin/appointments");
 }
@@ -101,6 +107,8 @@ export async function updateAppointmentStatus(formData: FormData) {
     data: { status },
     select: { userId: true } // Need this for referral check
   });
+
+  await logAudit("UPDATE", "Appointment", id, `Status changed to ${status}`);
 
   if (status === "COMPLETED") {
     await processReferralReward(appointment.userId);
@@ -128,6 +136,8 @@ export async function registerPayment(formData: FormData) {
     select: { userId: true }
   });
 
+  await logAudit("UPDATE", "Appointment", id, `Payment Registered: ${amount}€ via ${method}`);
+
   await processReferralReward(appointment.userId);
 
   revalidatePath("/admin/appointments");
@@ -139,6 +149,9 @@ export async function deleteAppointment(formData: FormData) {
   await requireAdmin();
   const id = formData.get("id") as string;
   await db.appointment.delete({ where: { id } });
+  
+  await logAudit("DELETE", "Appointment", id, "Reason: Manual Admin Delete");
+  
   revalidatePath("/admin/appointments");
 }
 
