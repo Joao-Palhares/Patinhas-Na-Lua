@@ -43,8 +43,8 @@ export async function saveBillingDraft(
   }
 
   // 4. Create/Update Invoice as DRAFT
-  const extrasTotal = extraFees.reduce((acc, curr) => acc + curr.price, 0);
-  const total = basePrice + extrasTotal;
+  const extrasTotal = extraFees.reduce((acc, curr) => acc + Number(curr.price), 0);
+  const total = Number(basePrice) + extrasTotal;
 
   // Need User Details for Snapshot (Critical for new Schema)
   const app = await db.appointment.findUnique({ 
@@ -107,7 +107,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   // 1. Get Billing Data
   const invoice = await db.invoice.findUnique({ 
     where: { appointmentId },
-    include: { appointment: { include: { service: true } } }
+    include: { appointment: { include: { service: true, extraFees: { include: { extraFee: true } } } } }
   });
 
   if (!invoice || !invoice.appointment) throw new Error("Invoice Draft not found");
@@ -131,6 +131,35 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   const token = process.env.FACTURALUSA_API_TOKEN;
   if (!token) throw new Error("Facturalusa Token missing");
 
+  // --- ITEMIZATION LOGIC ---
+  const extras = invoice.appointment.extraFees || [];
+  const extrasSum = extras.reduce((acc, curr) => acc + Number(curr.appliedPrice), 0);
+  const baseServicePrice = Number(invoice.subtotal) - extrasSum;
+
+  const items = [];
+
+  // Item 1: Main Service
+  items.push({
+      id: 140539, 
+      description: invoice.appointment.service.name,
+      quantity: 1,
+      price: baseServicePrice, 
+      vat: "0",         
+      vat_exemption: "M10" 
+  });
+
+  // Items 2..N: Extra Fees
+  extras.forEach(fee => {
+      items.push({
+          id: 140539,
+          description: fee.extraFee.name, // e.g. "Taxa Comportamental"
+          quantity: 1,
+          price: Number(fee.appliedPrice),
+          vat: "0",
+          vat_exemption: "M10"
+      });
+  });
+
   // Use Snapshot Data
   const payload = {
     document_type: "Factura Recibo",
@@ -139,24 +168,15 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
     issue_date: new Date().toISOString().split('T')[0],
     
     // Auth
-    customer: clientId, // User requested strict "customer" key
-    vat_number: clientNif, // Explicitly requesting NIF on Invoice
+    customer: clientId, 
+    vat_number: clientNif, 
 
-    items: [
-        {
-            id: 140539, // HARDCODED Generic Service ID "Serviço"
-            description: invoice.appointment.service.name, // DYNAMIC Description (Overrides default)
-            quantity: 1,
-            price: Number(invoice.subtotal), // DYNAMIC Price
-            vat: "0",         // Rate is 0
-            vat_exemption: "M10" // Exemption code Art 53
-        }
-    ],
-    status: "Terminado" // Final Status
+    items: items, // Use the detailed list
+    status: "Terminado" 
   };
 
   // 4. Call API
-  console.log("Issuing Invoice...", payload);
+  console.log("Issuing Invoice...", JSON.stringify(payload));
   
   let externalId = "OFFLINE-" + Date.now().toString().slice(-6); // Fallback ID
   let pdfUrl = null;
@@ -179,7 +199,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
       if (contentType && contentType.includes("text/html")) {
           const text = await resApi.text();
           console.error(`API HTML Error (Status ${resApi.status}): ${text.substring(0, 100)}...`);
-          console.warn("⚠️ Facturalusa API unreachable/misconfigured. Using OFFLINE mode.");
+          // console.warn("⚠️ Facturalusa API unreachable/misconfigured. Using OFFLINE mode.");
       } else if (resApi.ok) {
           const data = await resApi.json();
           externalId = String(data.id);
