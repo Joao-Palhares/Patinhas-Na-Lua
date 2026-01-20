@@ -17,13 +17,22 @@ export default async function DashboardLayout({
   console.log("--- DEBUG LOGIN ---");
   console.log("Clerk User ID:", user.id);
 
-  // Optional: Check if user exists in DB to prevent errors
-  const dbUser = await db.user.findUnique({ where: { id: user.id } });
+  // Check if user exists in DB
+  let dbUser = await db.user.findUnique({ where: { id: user.id } });
 
-  console.log("DB User Found:", !!dbUser);
-  console.log("-------------------");
-
-  if (!dbUser) redirect("/onboarding");
+  // MIGRATION CHECK:
+  // If user NOT found by Clerk ID, check if they exist by EMAIL (e.g., Invited/Offline user)
+  if (!dbUser) {
+    const email = user.emailAddresses[0]?.emailAddress;
+    if (email) {
+       const existingByEmail = await db.user.findUnique({ where: { email } });
+       if (existingByEmail) {
+          console.log("[DashboardLayout] User found by email but ID mismatch. Redirecting to Onboarding for migration.");
+       }
+    }
+    // In both cases (New User OR Migration needed), send to Onboarding
+    redirect("/onboarding");
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -100,17 +100,33 @@ export async function createOfflineClientAction(formData: FormData) {
 
   if (!name || !phone) return { error: "Nome e Telemóvel são obrigatórios." };
 
-  // Generate dummy email if missing
-  if (!email) {
+  // --- LOGIC SPLIT: ONLINE INVITE vs OFFLINE CLIENT ---
+  const isInvite = !!email && email.trim() !== "";
+  
+  // If Offline, generate dummy email
+  if (!isInvite) {
      const safePhone = phone.replace(/\D/g, ""); 
      email = `${safePhone}_offline@patinhas.pt`; 
   }
 
   try {
      const { randomUUID } = await import('crypto');
-     const id = `offline_${randomUUID()}`;
+     // IMPORTANT: For invites, we use a CUID for the DB ID (to be standard), 
+     // but for offline we used `offline_...`. Let's standardise to CUID for invites.
+     // Actually, let's use the same ID generation or auto-generation.
+     // To avoid conflicts, if it's an invite, let Prisma auto-generate (CUID).
+     // IF it's offline, we might want to keep the 'offline_' prefix for clarity, OR just use CUID for all.
+     // Let's use the provided 'offline_' ID only if IS OFFLINE. If Invite, we'll let Prisma/CUID handle it or generate a clean CUID.
+     // NOTE: The previous code laid out a manual ID.
+     
+     let id: string;
+     if (!isInvite) {
+        id = `offline_${randomUUID()}`;
+     } else {
+        id = randomUUID(); // Explicit ID for Invite too
+     }
 
-     // Handl Referral
+     // Handle Referral
      let referredById = null;
      if (referralInput) {
         const referrer = await db.user.findUnique({
@@ -120,8 +136,6 @@ export async function createOfflineClientAction(formData: FormData) {
      }
 
      // Generate a Referral Code for this new user
-     // MATCHING ONBOARDING LOGIC
-     // Logic: First 3 letters of name + 4 random digits. Check uniqueness loop.
      let newReferralCode = "";
      let isUnique = false;
      const namePrefix = name.replace(/[^a-zA-Z]/g, "").slice(0, 3).toUpperCase() || "PAT";
@@ -142,12 +156,11 @@ export async function createOfflineClientAction(formData: FormData) {
         newReferralCode = `PAT${Date.now().toString().slice(-6)}`;
      }
 
-     console.log(`[CreateClient] Generated Referral Code: ${newReferralCode}`);
-
+     console.log(`[CreateClient] Generated Referral Code: ${newReferralCode} | Invite Mode: ${isInvite}`);
 
      const user = await db.user.create({
        data: {
-         id,
+         id: id, // undefined (auto) or offline_...
          name,
          phone,
          email,
@@ -155,16 +168,43 @@ export async function createOfflineClientAction(formData: FormData) {
          notes,
          referralCode: newReferralCode,
          referredById,
-         isOfflineUser: true
+         isOfflineUser: !isInvite,
+         // @ts-ignore
+         status: isInvite ? "INVITED" : "ACTIVE" 
        }
      });
 
-     await logAudit("CREATE", "User", user.id, `Created Offline Client: ${name}`);
+     await logAudit("CREATE", "User", user.id, `Created ${isInvite ? 'Invited' : 'Offline'} Client: ${name}`);
+
+     // --- SEND CLERK INVITE ---
+     if (isInvite) {
+         try {
+            const { clerkClient } = await import("@clerk/nextjs/server");
+            const redirectUrl = process.env.NEXT_PUBLIC_APP_URL 
+                ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard` 
+                : "http://localhost:3000/dashboard";
+
+            const client = await clerkClient();
+            await client.invitations.createInvitation({
+                emailAddress: email,
+                redirectUrl: redirectUrl,
+                publicMetadata: {
+                    internalUserId: user.id, // Link for Webhook
+                },
+                ignoreExisting: true,
+            });
+            console.log(`[CreateClient] Invitation sent to ${email}`);
+         } catch (invErr) {
+             console.error("Clerk Invite Failed:", invErr);
+             // We generally DON'T fail the whole request, but we should notify.
+             // Ideally we might return a specific warning, but for now successful DB creation is priority.
+         }
+     }
 
      revalidatePath("/admin/clients");
      return { success: true };
   } catch (error) {
-    console.error("Failed to create offline client:", error);
+    console.error("Failed to create client:", error);
     // Helper to detect unique constraint violations
     // @ts-ignore
     if (error.code === 'P2002') return { error: "Erro: Email, Telefone ou NIF já registados." };
