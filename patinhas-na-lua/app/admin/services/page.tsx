@@ -45,7 +45,7 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
   const rawServices = await db.service.findMany({
     where: {
       name: { contains: query, mode: "insensitive" },
-      isActive: true, // Only show active services (Soft Delete)
+      deletedAt: null, // Only show active services (Soft Delete)
     } as any, // Cast to any to bypass outdated types
     include: { options: true },
     orderBy: { name: "asc" } // Changed from category to name

@@ -36,7 +36,7 @@ export default async function MyPetsPage() {
 
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
-    include: { pets: true }
+    include: { pets: { where: { deletedAt: null } } }
   });
 
   if (!dbUser) redirect("/onboarding");

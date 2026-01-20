@@ -47,7 +47,7 @@ export default function DeleteForm({ id, action, className, children }: DeleteFo
             <div className="text-center">
               <h3 className="text-lg font-bold text-gray-900">Tem a certeza?</h3>
               <p className="text-sm text-gray-500 mt-2">
-                Esta ação vai eliminar o registo permanentemente. Não é possível recuperar depois.
+                Esta ação vai mover o registo para a reciclagem. Pode ser recuperado por um Administrador.
               </p>
             </div>
 

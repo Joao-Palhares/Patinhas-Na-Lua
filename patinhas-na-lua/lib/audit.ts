@@ -9,22 +9,19 @@ export async function logAudit(
   entity: string, 
   entityId: string | null = null, 
   details: string | object | null = null,
-  forceUserId?: string
+  oldValue: any = null,
+  newValue: any = null
 ) {
   try {
-    let userId = forceUserId;
+    let userId = "SYSTEM";
     let ipAddress = "unknown";
     let userAgent = "unknown";
 
-    // If no user forced, try to get from Clerk
-    if (!userId) {
-       try {
-         const user = await currentUser();
-         if (user) userId = user.id;
-       } catch (e) {
-         // Might run in a context where auth is not available (e.g. webhooks)
-       }
-    }
+    // Try to get from Clerk
+    try {
+        const user = await currentUser();
+        if (user) userId = user.id;
+    } catch (e) {}
 
     // Try to get headers
     try {
@@ -43,6 +40,8 @@ export async function logAudit(
         entity,
         entityId,
         details: detailsString,
+        oldValue: oldValue ? JSON.parse(JSON.stringify(oldValue)) : undefined,
+        newValue: newValue ? JSON.parse(JSON.stringify(newValue)) : undefined,
         userId,
         ipAddress,
         userAgent

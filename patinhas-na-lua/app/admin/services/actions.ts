@@ -3,9 +3,11 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { ServiceCategory, PetSize, CoatType } from "@prisma/client";
+import { logAudit } from "@/lib/audit";
 
 import { requireAdmin } from "@/lib/auth";
 
+// --- CREATE ---
 // --- CREATE ---
 export async function createService(formData: FormData) {
   await requireAdmin();
@@ -14,16 +16,43 @@ export async function createService(formData: FormData) {
   const category = formData.get("category") as ServiceCategory;
   const isMobileAvailable = formData.get("isMobileAvailable") === "on";
 
-  // FIX: Removed 'price' and 'durationMin' because they don't exist on Service anymore
-  await db.service.create({
-    data: {
-      name,
-      description,
-      category,
-      isMobileAvailable,
-      isTimeBased: formData.get("isTimeBased") === "on",
-    } as any,
+  // Check for Soft-Deleted Service
+  const existingDeleted = await db.service.findFirst({
+      where: { 
+          name: { equals: name, mode: "insensitive" }, // Case-insensitive check
+          deletedAt: { not: null }
+      }
   });
+
+  if (existingDeleted) {
+      // RESTORE
+      await db.service.update({
+          where: { id: existingDeleted.id },
+          data: {
+              description,
+              category,
+              isMobileAvailable,
+              isActive: true, // Re-activate
+              deletedAt: null // Restore
+          } as any
+      });
+      await logAudit("UPDATE", "Service", existingDeleted.id, `Restored Service: ${name}`);
+
+  } else {
+      // CREATE
+      // FIX: Removed 'price' and 'durationMin' because they don't exist on Service anymore
+      const service = await db.service.create({
+        data: {
+          name,
+          description,
+          category,
+          isMobileAvailable,
+          isTimeBased: formData.get("isTimeBased") === "on",
+        } as any,
+      });
+      await logAudit("CREATE", "Service", service.id, `Created service: ${name}`);
+  }
+
   revalidatePath("/admin/services");
 }
 
@@ -47,6 +76,8 @@ export async function addPriceOption(formData: FormData) {
       durationMax: durationMax || null,
     },
   });
+  
+  await logAudit("UPDATE", "Service", serviceId, "Added Price Option");
   revalidatePath("/admin/services");
 }
 
@@ -69,6 +100,8 @@ export async function updateService(formData: FormData) {
       isTimeBased: formData.get("isTimeBased") === "on",
     } as any,
   });
+
+  await logAudit("UPDATE", "Service", id, `Updated service details: ${name}`);
   revalidatePath("/admin/services");
 }
 
@@ -91,26 +124,23 @@ export async function updateServiceOption(formData: FormData) {
       durationMax: durationMax || null,
     },
   });
+  
+  // Find service ID for logging?
+  await logAudit("UPDATE", "ServiceOption", id, "Updated Price Option");
   revalidatePath("/admin/services");
 }
 
 export async function deleteService(formData: FormData) {
   await requireAdmin();
   const id = formData.get("id") as string;
-  try {
-    // Attempt Hard Delete first (Cleanest)
-    await db.service.delete({ where: { id } });
-  } catch (error) {
-    // Fallback: Soft Delete (Archive)
-    // This allows removing services even if they have old appointments linked
-    console.log(
-      "Hard delete failed (FK constraints). Switching to Soft Delete."
-    );
-    await db.service.update({
-      where: { id },
-      data: { isActive: false } as any, // Using 'any' as quickfix for type lag
-    });
-  }
+  
+  // Soft Delete
+  await db.service.update({
+    where: { id },
+    data: { deletedAt: new Date(), isActive: false } as any,
+  });
+  
+  await logAudit("DELETE", "Service", id, "Soft deleted service");
   revalidatePath("/admin/services");
 }
 
@@ -118,5 +148,6 @@ export async function deleteOption(formData: FormData) {
   await requireAdmin();
   const id = formData.get("id") as string;
   await db.serviceOption.delete({ where: { id } });
+  await logAudit("DELETE", "ServiceOption", id, "Deleted Price Option");
   revalidatePath("/admin/services");
 }

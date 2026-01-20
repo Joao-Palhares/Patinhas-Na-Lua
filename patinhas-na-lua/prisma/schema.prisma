@@ -47,6 +47,8 @@ model User {
   referrals    User[]   @relation("UserReferrals")
   pushSubscriptions PushSubscription[]
   auditLogs    AuditLog[] // Relation to logs created by this user
+  
+  deletedAt    DateTime? // Soft Delete
 
   @@index([email])
   @@index([phone])
@@ -63,7 +65,11 @@ model AuditLog {
   entity    String   // "Appointment", "User", "Service", "Settings"
   entityId  String?  // The specific ID of the item affected
   
-  details   String?  @db.Text // JSON or Text description of what changed
+
+  
+  oldValue  Json?    // Previous state
+  newValue  Json?    // New state
+  details   String?  @db.Text // Text description of what changed
   
   userId    String?  // Who did it (Optional, maybe system)
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -119,6 +125,8 @@ model Pet {
   skinIssues      String?   @db.Text
   heartIssues     String?   @db.Text
   medicalNotes    String?   @db.Text 
+  
+  deletedAt       DateTime? // Soft Delete 
 
   userId          String
   user            User     @relation(fields: [userId], references: [id])
@@ -135,6 +143,7 @@ model Service {
   allowsAddOns Boolean @default(false)
   isMobileAvailable Boolean @default(false) // NEW: Available for mobile service
   isActive         Boolean @default(true)   // NEW: For Soft Deletes
+  deletedAt        DateTime? // Soft Delete
   isTimeBased      Boolean @default(false)  // NEW: Hourly Pricing
   taxRate          Int     @default(0)      // VAT Exempt (Art 53)
 
@@ -272,6 +281,8 @@ model Appointment {
   // REVIEWS & MEDIA
   review            Review?
   images            AppointmentImage[]
+  
+  deletedAt         DateTime? // Soft Delete
 
   @@index([date])
   @@index([status])

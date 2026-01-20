@@ -1,5 +1,7 @@
 "use server";
 
+
+import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -35,6 +37,7 @@ export async function inviteClient(data: InviteClientProps) {
   // Note: The 'id' field satisfies the @id requirement.
   const newUser = await db.user.create({
     data: {
+      id: randomUUID(),
       email,
       name,
       nif,

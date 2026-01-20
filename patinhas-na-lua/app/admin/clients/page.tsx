@@ -21,13 +21,14 @@ export default async function ClientsPage(props: {
       { name: { contains: query, mode: "insensitive" } },
       { phone: { contains: query, mode: "insensitive" } },
       { pets: { some: { name: { contains: query, mode: "insensitive" } } } }
-    ]
+    ],
+    deletedAt: null,
   };
 
   const [users, totalCount] = await Promise.all([
     db.user.findMany({
       where,
-      include: { pets: true },
+      include: { pets: { where: { deletedAt: null } } },
       orderBy: { createdAt: "desc" },
       take: ITEMS_PER_PAGE,
       skip: skip

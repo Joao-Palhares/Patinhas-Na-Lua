@@ -24,7 +24,8 @@ export default async function AppointmentsPage(props: {
   // 2. FETCH APPOINTMENTS (With Invoice & Extra Fees)
   const rawAppointments = await db.appointment.findMany({
     where: {
-      date: { gte: startOfDay, lte: endOfDay }
+      date: { gte: startOfDay, lte: endOfDay },
+      deletedAt: null
     },
     include: {
       user: true,
@@ -70,9 +71,14 @@ export default async function AppointmentsPage(props: {
   }));
 
   // Fetch Clients & Services (For New Appointment Modal)
-  const clients = await db.user.findMany({ include: { pets: true }, orderBy: { name: "asc" } });
+  const clients = await db.user.findMany({ 
+    where: { deletedAt: null },
+    include: { pets: { where: { deletedAt: null } } }, 
+    orderBy: { name: "asc" } 
+  });
 
   const rawServices = await db.service.findMany({
+    where: { deletedAt: null },
     include: { options: true },
     orderBy: { name: "asc" }
   });

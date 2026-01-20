@@ -148,9 +148,14 @@ export async function registerPayment(formData: FormData) {
 export async function deleteAppointment(formData: FormData) {
   await requireAdmin();
   const id = formData.get("id") as string;
-  await db.appointment.delete({ where: { id } });
   
-  await logAudit("DELETE", "Appointment", id, "Reason: Manual Admin Delete");
+  // Soft Delete
+  await db.appointment.update({
+    where: { id },
+    data: { deletedAt: new Date(), status: "CANCELLED" }
+  });
+  
+  await logAudit("DELETE", "Appointment", id, "Soft deleted appointment");
   
   revalidatePath("/admin/appointments");
 }
@@ -185,6 +190,7 @@ export async function startAppointment(formData: FormData) {
     where: { id },
     data: { actualStartTime: new Date() }
   });
+  await logAudit("UPDATE", "Appointment", id, "Started Timer");
   revalidatePath("/admin/appointments");
 }
 
@@ -195,5 +201,6 @@ export async function finishAppointment(formData: FormData) {
     where: { id },
     data: { finishedAt: new Date() }
   });
+  await logAudit("UPDATE", "Appointment", id, "Finished Timer");
   revalidatePath("/admin/appointments");
 }

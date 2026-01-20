@@ -7,6 +7,7 @@ import { addMinutes, format, isBefore, isAfter, setHours, setMinutes, parseISO, 
 import * as crypto from "crypto";
 
 import { currentUser } from "@clerk/nextjs/server";
+import { logAudit } from "@/lib/audit";
 
 // 1. SUBMIT BOOKING
 export async function submitBooking(formData: FormData) {
@@ -139,6 +140,7 @@ export async function submitBooking(formData: FormData) {
       finalPrice = price - (price * (discountPercent / 100));
     }
 
+
     const newApp = await db.appointment.create({
       data: {
         userId,
@@ -159,6 +161,8 @@ export async function submitBooking(formData: FormData) {
         recurrenceGroupId: recurrenceGroupId
       } as any
     });
+
+    await logAudit("CREATE", "Appointment", newApp.id, `Client Booking: ${isRecurring ? 'Recurring ' : ''}${date} ${time}`);
 
     if (i === 0) firstAppointmentId = newApp.id;
   }
