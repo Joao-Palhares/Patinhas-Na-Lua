@@ -13,6 +13,7 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [successData, setSuccessData] = useState<{ invoiceId: string; pdfUrl: string } | null>(null);
   
   // HOURLY LOGIC
   const isTimeBased = (appointment.service as any).isTimeBased;
@@ -112,12 +113,23 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
   const handleFinish = async () => {
     setLoading(true);
     if (nif !== appointment.user.nif) await updateClientNif(appointment.user.id, nif);
-    await issueInvoice(appointment.id, paymentMethod);
+    
+    try {
+      // @ts-ignore
+      const res = await issueInvoice(appointment.id, paymentMethod);
+      if (res && res.success) {
+        setSuccessData({ invoiceId: res.invoiceId, pdfUrl: res.pdfUrl });
+        setStep(5); // Move to Success Screen
+      } else {
+          setIsOpen(false); // Fallback if old valid void return
+      }
+    } catch (e) {
+        console.error("Error issuing invoice:", e);
+    }
     setLoading(false);
-    setIsOpen(false);
   };
 
-  if (appointment.status === "COMPLETED") return null;
+  if (appointment.status === "COMPLETED" && !successData) return null;
 
   return (
     <>
@@ -340,35 +352,90 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
                 </div>
               )}
 
+              {/* STEP 5: SUCCESS & PRINT */}
+              {step === 5 && successData && (
+                <div className="flex flex-col items-center justify-center h-full space-y-6 text-center">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                    <span className="text-4xl">✅</span>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-2xl font-black text-gray-900 mb-2">Fatura Emitida!</h3>
+                    <p className="text-gray-500">ID: {successData.invoiceId}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 w-full max-w-xs">
+                    <button
+                      // @ts-ignore
+                      onClick={async () => {
+                         // Print via Blob Proxy to bypass CORS
+                         const proxyUrl = `/api/proxy-pdf?url=${encodeURIComponent(successData.pdfUrl)}`;
+                         const win = window.open(proxyUrl, '_blank');
+                         if (win) {
+                            win.focus();
+                            win.print();
+                         }
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center gap-2 transform transition hover:scale-105"
+                    >
+                      <span className="text-xl">🖨️</span>
+                      Imprimir Fatura
+                    </button>
+
+                    <a
+                      // @ts-ignore
+                      href={`/api/proxy-pdf?url=${encodeURIComponent(successData.pdfUrl)}`}
+                      download={`Fatura-${successData.invoiceId}.pdf`} 
+                      target="_blank"
+                      className="bg-white border-2 border-gray-200 hover:border-gray-400 text-gray-700 font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition"
+                    >
+                       💾 Download PDF
+                    </a>
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* FOOTER ACTIONS */}
             <div className="p-4 border-t bg-white flex justify-between items-center">
-              {step === 1 ? (
-                <button onClick={() => setIsOpen(false)} className="text-red-500 font-bold px-4 hover:bg-red-50 py-2 rounded">Cancelar</button>
+              {step === 5 ? (
+                 <button onClick={() => {
+                    setIsOpen(false);
+                    // Force refresh to update calendar/list to COMPLETED status
+                    window.location.reload(); 
+                 }} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition">
+                   Fechar e Voltar ao Calendário
+                 </button>
               ) : (
-                <button onClick={() => setStep(step - 1)} className="text-gray-600 font-bold px-4 hover:bg-gray-100 py-2 rounded">Voltar</button>
-              )}
+                <>
+                  {step === 1 ? (
+                    <button onClick={() => setIsOpen(false)} className="text-red-500 font-bold px-4 hover:bg-red-50 py-2 rounded">Cancelar</button>
+                  ) : (
+                    <button onClick={() => setStep(step - 1)} className="text-gray-600 font-bold px-4 hover:bg-gray-100 py-2 rounded">Voltar</button>
+                  )}
 
-              {step < 4 ? (
-                <button
-                  onClick={async () => {
-                    if (step === 1) await saveProgress();
-                    setStep(step + 1);
-                  }}
-                  disabled={loading}
-                  className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition shadow-lg"
-                >
-                  {loading ? "A guardar..." : "Próximo →"}
-                </button>
-              ) : (
-                <button
-                  onClick={handleFinish}
-                  disabled={loading}
-                  className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 disabled:opacity-50 transition shadow-lg flex items-center gap-2"
-                >
-                  {loading ? "A emitir..." : "🧾 Emitir Fatura"}
-                </button>
+                  {step < 4 ? (
+                    <button
+                      onClick={async () => {
+                        if (step === 1) await saveProgress();
+                        setStep(step + 1);
+                      }}
+                      disabled={loading}
+                      className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition shadow-lg"
+                    >
+                      {loading ? "A guardar..." : "Próximo →"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleFinish}
+                      disabled={loading}
+                      className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 disabled:opacity-50 transition shadow-lg flex items-center gap-2"
+                    >
+                      {loading ? "A emitir..." : "🧾 Emitir Fatura"}
+                    </button>
+                  )}
+                </>
               )}
             </div>
 

@@ -26,6 +26,9 @@ model User {
   isSuperAdmin Boolean @default(false) // NEW: Only SuperAdmins see logs
   isBlacklisted Boolean @default(false) 
   isOfflineUser Boolean @default(false) 
+  
+  status    UserStatus @default(ACTIVE) // NEW: Invite System
+
   notes     String?  
   createdAt DateTime @default(now())
 
@@ -402,6 +405,13 @@ enum StressLevel {
   LOW
   MEDIUM
   HIGH
+}
+
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  BANNED
 }
 
 enum LocationType {

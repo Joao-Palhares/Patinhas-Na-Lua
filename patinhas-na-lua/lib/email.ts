@@ -196,3 +196,56 @@ export async function sendAppointmentCancellation({
         console.error("❌ Failed to send cancellation email:", error);
     }
 }
+
+export async function sendInvoiceEmail({
+    to,
+    userName,
+    invoiceNumber,
+    pdfUrl,
+    totalAmount
+}: { 
+    to: string, 
+    userName: string, 
+    invoiceNumber: string, 
+    pdfUrl: string,
+    totalAmount: string
+}) {
+
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
+        console.warn("⚠️ GMAIL_USER or GMAIL_PASS missing. Invoice email not sent.");
+        return;
+    }
+
+    try {
+        await transporter.sendMail({
+            from: `"Patinhas na Lua" <${process.env.GMAIL_USER}>`,
+            to: to,
+            subject: `📄 Fatura-Recibo #${invoiceNumber} - Patinhas na Lua`,
+            html: `
+        <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #2563eb;">Olá ${userName}! 👋</h1>
+          <p>Obrigado pela sua visita. Aqui está a sua fatura-recibo referente aos serviços prestados.</p>
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>🧾 Fatura Nº:</strong> ${invoiceNumber}</p>
+            <p style="margin: 5px 0;"><strong>💰 Total:</strong> ${totalAmount}€</p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${pdfUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                📥 Descarregar Fatura (PDF)
+            </a>
+          </div>
+
+          <p>Se tiver alguma dúvida, não hesite em contactar-nos.</p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+          <p style="font-size: 12px; color: #888;">Patinhas na Lua 🌙<br>Castelo Branco</p>
+        </div>
+      `
+        });
+        console.log("✅ Invoice email sent successfully to:", to);
+    } catch (error) {
+        console.error("❌ Failed to send invoice email:", error);
+    }
+}

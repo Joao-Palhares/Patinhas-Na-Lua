@@ -5,8 +5,24 @@ import { revalidatePath } from "next/cache";
 import { InvoiceStatus, PaymentMethod } from "@prisma/client";
 
 import { requireAdmin } from "@/lib/auth";
+import { sendInvoiceEmail } from "@/lib/email";
 
-// STEP 1: UPDATE OR CREATE DRAFT
+// --- CONFIGURATION & ENV VARIABLES ---
+const FACTURALUSA_SERIES_ID = process.env.FACTURALUSA_SERIES_ID ? Number(process.env.FACTURALUSA_SERIES_ID) : null;
+const FACTURALUSA_GENERIC_CLIENT_ID = process.env.FACTURALUSA_GENERIC_CLIENT_ID ? Number(process.env.FACTURALUSA_GENERIC_CLIENT_ID) : 114354;
+const FACTURALUSA_GENERIC_SERVICE_ID = process.env.FACTURALUSA_GENERIC_SERVICE_ID ? Number(process.env.FACTURALUSA_GENERIC_SERVICE_ID) : null;
+const FACTURALUSA_API_TOKEN = process.env.FACTURALUSA_API_TOKEN;
+
+// Validation (Log Warning/Error mainly for dev awareness, but allow app to start)
+if (!process.env.FACTURALUSA_GENERIC_CLIENT_ID) {
+    console.warn("⚠️ WARNING: FACTURALUSA_GENERIC_CLIENT_ID is missing in .env. Using fallback ID 114354.");
+}
+
+// Helper to enforce Lisbon Timezone for API
+function getLisbonDate() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Lisbon' });
+}
+
 // STEP 1: UPDATE OR CREATE DRAFT
 export async function saveBillingDraft(
   appointmentId: string, 
@@ -104,7 +120,12 @@ export async function updateClientNif(userId: string, nif: string) {
 export async function issueInvoice(appointmentId: string, paymentMethod: PaymentMethod) {
   await requireAdmin();
   
-  // 1. Get Billing Data
+  // 1. Env Validation & Config
+  if (!FACTURALUSA_SERIES_ID || !FACTURALUSA_GENERIC_CLIENT_ID || !FACTURALUSA_GENERIC_SERVICE_ID || !FACTURALUSA_API_TOKEN) {
+      throw new Error("Missing Facturalusa Env Variables (CHECK: SERIES_ID, GENERIC_CLIENT_ID, GENERIC_SERVICE_ID, API_TOKEN)");
+  }
+
+  // 2. Get Billing Data
   const invoice = await db.invoice.findUnique({ 
     where: { appointmentId },
     include: { appointment: { include: { service: true, extraFees: { include: { extraFee: true } } } } }
@@ -112,10 +133,10 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
 
   if (!invoice || !invoice.appointment) throw new Error("Invoice Draft not found");
 
-  // 2. Resolve Client ID (New Logic)
+  // 3. Resolve Client ID
   // @ts-ignore
   const clientNif = invoice.invoicedNif;
-  const clientId = await resolveFacturalusaClient(
+  const resolvedClientId = await resolveFacturalusaClient(
       clientNif, 
       invoice.userId, 
       {
@@ -125,23 +146,19 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
       }
   );
 
-  console.log(`Resolved Facturalusa Client ID for NIF ${clientNif}: ${clientId}`);
+  const finalClientId = resolvedClientId || FACTURALUSA_GENERIC_CLIENT_ID;
 
-  // 3. Prepare Payload
-  const token = process.env.FACTURALUSA_API_TOKEN;
-  if (!token) throw new Error("Facturalusa Token missing");
-
-  // --- ITEMIZATION LOGIC ---
+  // 4. Map Items (All to GENERIC_SERVICE_ID, but with custom description)
+  const items = [];
   const extras = invoice.appointment.extraFees || [];
   const extrasSum = extras.reduce((acc, curr) => acc + Number(curr.appliedPrice), 0);
   const baseServicePrice = Number(invoice.subtotal) - extrasSum;
 
-  const items = [];
-
   // Item 1: Main Service
   items.push({
-      id: 140539, 
+      id: FACTURALUSA_GENERIC_SERVICE_ID, 
       description: invoice.appointment.service.name,
+      details: invoice.appointment.service.name, // Ensure visible on PDF
       quantity: 1,
       price: baseServicePrice, 
       vat: "0",         
@@ -151,8 +168,9 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   // Items 2..N: Extra Fees
   extras.forEach(fee => {
       items.push({
-          id: 140539,
-          description: fee.extraFee.name, // e.g. "Taxa Comportamental"
+          id: FACTURALUSA_GENERIC_SERVICE_ID,
+          description: fee.extraFee.name,
+          details: fee.extraFee.name, // Ensure visible on PDF
           quantity: 1,
           price: Number(fee.appliedPrice),
           vat: "0",
@@ -160,72 +178,84 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
       });
   });
 
-  // Use Snapshot Data
+  // 5. Construct Payload
   const payload = {
     document_type: "Factura Recibo",
-    serie: Number(process.env.FACTURALUSA_SERIES_ID || 58402), 
+    serie: FACTURALUSA_SERIES_ID, 
     vat_type: "IVA incluído",
-    issue_date: new Date().toISOString().split('T')[0],
+    issue_date: getLisbonDate(), // Production Date Logic
     
     // Auth
-    customer: clientId, 
-    vat_number: clientNif, 
-
-    items: items, // Use the detailed list
-    status: "Terminado" 
+    customer: finalClientId, 
+    vat_number: clientNif || "999999990", 
+    
+    items: items, 
+    status: "Terminado",
+    force_print: true,     // Generate PDF
+    force_send_email: false // DISABLE external email (we send our own)
   };
 
-  // 4. Call API
-  console.log("Issuing Invoice...", JSON.stringify(payload));
+  console.log("Issuing Invoice Payload:", JSON.stringify(payload));
   
   let externalId = "OFFLINE-" + Date.now().toString().slice(-6); // Fallback ID
   let pdfUrl = null;
 
   try {
-      // Reverting to Non-WWW (Correct SSL) with Accept header (Correct content negotiation)
       const resApi = await fetch("https://facturalusa.pt/api/v2/sales", {
           method: "POST",
           headers: {
               "Content-Type": "application/json",
-              "Accept": "application/json", // MANDATORY
-              "Authorization": `Bearer ${token}`,
+              "Accept": "application/json",
+              "Authorization": `Bearer ${FACTURALUSA_API_TOKEN}`,
               "User-Agent": "PatinhasApp/1.0"
           },
           body: JSON.stringify(payload)
       });
 
-      const contentType = resApi.headers.get("content-type");
-
-      if (contentType && contentType.includes("text/html")) {
-          const text = await resApi.text();
-          console.error(`API HTML Error (Status ${resApi.status}): ${text.substring(0, 100)}...`);
-          // console.warn("⚠️ Facturalusa API unreachable/misconfigured. Using OFFLINE mode.");
-      } else if (resApi.ok) {
+      if (resApi.ok) {
           const data = await resApi.json();
           externalId = String(data.id);
-          pdfUrl = data.permalink;
-          console.log("✅ Invoice Issued:", externalId);
+          pdfUrl = data.url_file; // Fix: API returns 'url_file', not 'permalink'
+          console.log("✅ Invoice Issued:", externalId, "PDF:", pdfUrl);
+          
+          // --- CUSTOM EMAIL LOGIC (Fire and Forget) ---
+          // @ts-ignore
+          if (invoice.invoicedEmail && pdfUrl) {
+              console.log("📧 Triggering Invoice Email...");
+              sendInvoiceEmail({
+                  // @ts-ignore
+                  to: invoice.invoicedEmail,
+                  userName: invoice.invoicedName || "Cliente",
+                  invoiceNumber: externalId,
+                  pdfUrl: pdfUrl,
+                  totalAmount: String(invoice.totalAmount)
+              });
+          }
+
       } else {
           const errText = await resApi.text();
           console.error("❌ Facturalusa API Refused:", errText);
+          throw new Error(`Facturalusa Error: ${errText}`);
       }
   } catch (e) {
-      console.error("⚠️ Facturalusa Network/Config Error:", e);
+      console.error("⚠️ Facturalusa Execution Error:", e);
+      // CRITICAL FIX: Stop execution here. Do not let it proceed to DB updates.
+      throw e; 
   }
 
-  // 5. Update Database
+  // 6. Update Database
   await db.invoice.update({
     where: { id: invoice.id },
     data: {
-      status: "ISSUED", // Mark as Issued even if Offline
+      status: "ISSUED",
       invoiceNumber: externalId,
       externalId: externalId,
-      pdfUrl: pdfUrl,
+      pdfUrl: pdfUrl, // Save the permalink
       date: new Date(),
     }
   });
 
-  // 6. Complete Appointment
+  // 7. Complete Appointment
   await db.appointment.update({
     where: { id: appointmentId },
     data: {
@@ -236,7 +266,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
     }
   });
 
-  // 7. CHECK REFERRAL REWARD (If First Paid Appointment)
+  // 8. CHECK REFERRAL REWARD (If First Paid Appointment)
   const userStats = await db.appointment.count({
     where: { 
         userId: invoice.userId!,
@@ -244,7 +274,6 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
     }
   });
 
-  // If this is the FIRST paid appointment (count === 1)
   if (userStats === 1) {
     const user = await db.user.findUnique({ 
         where: { id: invoice.userId! },
@@ -261,12 +290,20 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   }
 
   revalidatePath("/admin/appointments");
+
+  return {
+    success: true,
+    invoiceId: externalId,
+    pdfUrl: pdfUrl
+  };
 }
 
 
 // --- HELPER --
 async function resolveFacturalusaClient(draftNif: string, userId: string | null, snapshot: any) {
-    const GENERIC_ID = 114354; // Consumidor Final
+    // Uses Global Constant with Fallback
+    const GENERIC_ID = FACTURALUSA_GENERIC_CLIENT_ID; 
+
     let nif = draftNif;
 
     console.log(`[ResolveClient] Starting. DraftNIF: '${draftNif}', UserID: ${userId}`);
@@ -287,8 +324,7 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
         return GENERIC_ID;
     }
 
-    const token = process.env.FACTURALUSA_API_TOKEN;
-    if (!token) {
+    if (!FACTURALUSA_API_TOKEN) {
         console.error("[ResolveClient] Missing Token!");
         return GENERIC_ID;
     }
@@ -321,7 +357,7 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
         const searchRes = await fetch(`https://facturalusa.pt/api/v2/customers/find`, {
              method: "POST",
              headers: { 
-                 "Authorization": `Bearer ${token}`, 
+                 "Authorization": `Bearer ${FACTURALUSA_API_TOKEN}`, 
                  "Accept": "application/json",
                  "Content-Type": "application/json"
             },
@@ -360,7 +396,7 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
         const createRes = await fetch(`https://facturalusa.pt/api/v2/customers`, {
              method: "POST",
              headers: { 
-                 "Authorization": `Bearer ${token}`, 
+                 "Authorization": `Bearer ${FACTURALUSA_API_TOKEN}`, 
                  "Accept": "application/json",
                  "Content-Type": "application/json"
              },
