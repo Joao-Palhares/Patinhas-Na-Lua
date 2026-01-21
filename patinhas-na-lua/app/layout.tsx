@@ -4,6 +4,7 @@ import { ptPT } from '@clerk/localizations'
 import CookieConsent from './components/cookie-consent'
 import { Toaster } from 'sonner';
 import './globals.css'
+import AuthGuard from './components/auth-guard'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://patinhasnalua.com'),
@@ -65,7 +66,9 @@ export default function RootLayout({
     <ClerkProvider localization={ptPT}>
       <html lang="pt" suppressHydrationWarning>
         <body suppressHydrationWarning>
-          {children}
+          <AuthGuard>
+            {children}
+          </AuthGuard>
           <CookieConsent />
           <Toaster richColors position="top-center" />
         </body>
