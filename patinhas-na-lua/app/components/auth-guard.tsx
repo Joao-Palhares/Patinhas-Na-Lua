@@ -3,7 +3,16 @@ import { auth } from "@clerk/nextjs/server";
 import ForceSignOutOverlay from "./force-sign-out-overlay";
 
 export default async function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { userId } = await auth();
+  let userId: string | null = null;
+  
+  try {
+     const session = await auth();
+     userId = session.userId;
+  } catch (error) {
+    // This happens if middleware is skipped (e.g. 404 on static asset)
+    // We can safely allow access because there is no sensitive data to protect in that context
+    return <>{children}</>;
+  }
 
   // 1. If public (no session), allow access
   if (!userId) {

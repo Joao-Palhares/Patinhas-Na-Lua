@@ -103,7 +103,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
 
         {/* MOBILE NAVIGATION (Top Bar + Sidebar) */}
-        <AdminMobileNav>
+        <AdminMobileNav isSuperAdmin={dbUser?.isSuperAdmin}>
           <div className="border-t border-slate-700 mt-2 pt-2">
             <AdminNotifications appointments={appointmentsSafe} />
           </div>

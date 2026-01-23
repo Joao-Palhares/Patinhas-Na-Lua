@@ -5,7 +5,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-export default function AdminMobileNav({ children }: { children?: React.ReactNode }) {
+interface Props {
+    children?: React.ReactNode;
+    isSuperAdmin?: boolean;
+}
+
+export default function AdminMobileNav({ children, isSuperAdmin = false }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
 
@@ -22,8 +27,11 @@ export default function AdminMobileNav({ children }: { children?: React.ReactNod
         { href: "/admin/invoices", icon: "🧾", label: "Faturas" },
         { href: "/admin/settings", icon: "⚙️", label: "Configuração" },
         { href: "/admin/vacations", icon: "🏖️", label: "Férias" },
-        { href: "/admin/marketing", icon: "✨", label: "Estúdio Criativo (Novo)" },
+        { href: "/admin/marketing", icon: "✨", label: "Estúdio Criativo" },
+        { href: "/admin/portfolio", icon: "🖼️", label: "Portfólio (Site)" },
+        { href: "/admin/reviews", icon: "⭐", label: "Moderação Reviews" },
     ];
+
 
     return (
         <div className="md:hidden">
@@ -80,6 +88,19 @@ export default function AdminMobileNav({ children }: { children?: React.ReactNod
                             </Link>
                         );
                     })}
+                    
+                    {/* SuperAdmin Only - Logs */}
+                    {isSuperAdmin && (
+                        <Link
+                            href="/admin/logs"
+                            onClick={() => setIsOpen(false)}
+                            className={`flex items-center gap-3 p-3 rounded-lg transition ${pathname === "/admin/logs" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}
+                        >
+                            <span className="text-xl">📜</span>
+                            <span className="font-medium text-sm">Logs do Sistema</span>
+                        </Link>
+                    )}
+                    
                     {children}
                 </nav>
 

@@ -4,11 +4,14 @@ export default function robots(): MetadataRoute.Robots {
   const baseUrl = 'https://patinhasnalua.com'
 
   return {
-    rules: {
-      userAgent: '*',
-      allow: ['/', '/services'],
-      disallow: ['/admin/', '/dashboard/'],
-    },
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: ['/admin/', '/dashboard/', '/api/', '/sign-in', '/sign-up'],
+      },
+    ],
     sitemap: `${baseUrl}/sitemap.xml`,
+    host: baseUrl,
   }
 }

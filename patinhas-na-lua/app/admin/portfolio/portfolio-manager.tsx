@@ -35,7 +35,6 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
         const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
 
         if (!cloudName || !apiKey) {
-            console.error("❌ MISSING VARS:", { cloudName, apiKey });
             throw new Error("Cloudinary Environment Variables are missing!");
         }
 
@@ -59,12 +58,6 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
 
         const data = await response.json();
 
-        if (!response.ok) {
-            console.error("Cloudinary Error:", data);
-            throw new Error(data.error?.message || "Upload failed");
-        }
-
-        console.log("✅ Uploaded:", data.secure_url);
         return data.secure_url;
     };
 
@@ -72,11 +65,9 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
-        console.log("📁 File selected:", file.name, (file.size / 1024 / 1024).toFixed(2), "MB");
         
         setPendingFile(file);
-        setPreviewUrl(URL.createObjectURL(file)); // Local preview only
+        setPreviewUrl(URL.createObjectURL(file));
         toast.success("Imagem selecionada!");
     };
 
@@ -89,9 +80,8 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
             if (item.type.startsWith('image/')) {
                 const file = item.getAsFile();
                 if (file) {
-                    console.log("📋 Pasted:", file.name, (file.size / 1024 / 1024).toFixed(2), "MB");
                     setPendingFile(file);
-                    setPreviewUrl(URL.createObjectURL(file)); // Local preview only
+                    setPreviewUrl(URL.createObjectURL(file));
                     toast.success("Imagem colada!");
                 }
                 break;
@@ -137,7 +127,6 @@ export default function PortfolioManager({ initialImages }: { initialImages: Por
         } catch (error) {
             toast.dismiss();
             toast.error("Erro ao guardar imagem");
-            console.error(error);
         } finally {
             setUploading(false);
         }

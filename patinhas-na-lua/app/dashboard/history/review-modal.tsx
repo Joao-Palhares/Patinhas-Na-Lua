@@ -18,36 +18,26 @@ export default function ReviewModal({ appointmentId }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // --- DEBUGGER UPLOAD FUNCTION (TEMPORARY) ---
-  const debugUpload = async (file: File) => {
-    console.log("--- DEBUG START ---");
-    
+  // --- CLOUDINARY UPLOAD FUNCTION ---
+  const uploadToCloudinary = async (file: File) => {
     // 1. Check Variables
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    // Must use NEXT_PUBLIC_ prefix so browser can access it
     const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY; 
     
-    console.log("Cloud Name:", cloudName || "MISSING");
-    console.log("API Key:", apiKey || "MISSING");
-    
     if (!cloudName || !apiKey) {
-      toast.error("STOP: Missing Env Vars. Check .env.local");
+      toast.error("Erro de configuração. Contacte o suporte.");
       throw new Error("Missing Env Vars");
     }
 
     // 2. Get Signature
-    console.log("Fetching signature...");
     const signRes = await fetch('/api/sign-cloudinary', { method: 'POST' });
     if (!signRes.ok) {
-        const err = await signRes.text();
-        console.error("Sign API Error:", err);
         throw new Error("Sign API failed");
     }
     const signData = await signRes.json();
-    console.log("Signature Data:", signData);
     
     if (!signData.signature) {
-        toast.error("ERROR: Backend did not return a signature!");
+        toast.error("Erro ao preparar upload.");
         throw new Error("Missing Signature from Backend");
     }
 
@@ -57,26 +47,21 @@ export default function ReviewModal({ appointmentId }: Props) {
     formData.append("api_key", apiKey);
     formData.append("timestamp", signData.timestamp);
     formData.append("signature", signData.signature);
-    formData.append("folder", "patinhas-reviews"); // Must match backend signing!
+    formData.append("folder", "patinhas-reviews");
 
     // 4. Send
-    console.log("Sending to Cloudinary...");
     const response = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         { method: "POST", body: formData }
     );
 
-    // 5. READ THE ERROR
+    // 5. Handle Response
     const result = await response.json();
     if (!response.ok) {
-        console.error("🔥 CLOUDINARY REJECTED:", result);
-        // Toast the EXACT error message from Cloudinary
-        toast.error(`UPLOAD ERROR: ${result.error?.message}`);
+        toast.error(`Erro no upload: ${result.error?.message}`);
         throw new Error(result.error?.message || "Upload failed");
-    } else {
-        console.log("✅ SUCCESS:", result.secure_url);
-        return result.secure_url;
     }
+    return result.secure_url;
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,14 +75,11 @@ export default function ReviewModal({ appointmentId }: Props) {
   const handleSubmit = async (formData: FormData) => {
     setLoading(true);
     try {
-      // 1. Upload Image Client-Side if exists
       let uploadedUrl = "";
       if (file) {
           try {
-             // toast.info("A carregar foto...");
-             uploadedUrl = await debugUpload(file);
+             uploadedUrl = await uploadToCloudinary(file);
           } catch (err: any) {
-             console.error("Cloudinary Error:", err);
              toast.error(`Erro no upload: ${err.message}`);
              setLoading(false);
              return;
@@ -124,7 +106,6 @@ export default function ReviewModal({ appointmentId }: Props) {
       setRating(5);
     } catch (error) {
       toast.error("Erro ao enviar avaliação.");
-      console.error(error);
     } finally {
       setLoading(false);
     }

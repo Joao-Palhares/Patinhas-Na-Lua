@@ -14,8 +14,7 @@ export default async function DashboardLayout({
   const user = await currentUser();
   if (!user) redirect("/");
 
-  console.log("--- DEBUG LOGIN ---");
-  console.log("Clerk User ID:", user.id);
+
 
   // Check if user exists in DB
   let dbUser = await db.user.findUnique({ where: { id: user.id } });
@@ -27,7 +26,7 @@ export default async function DashboardLayout({
     if (email) {
        const existingByEmail = await db.user.findUnique({ where: { email } });
        if (existingByEmail) {
-          console.log("[DashboardLayout] User found by email but ID mismatch. Redirecting to Onboarding for migration.");
+          // ID mismatch detected - redirect to onboarding for migration
        }
     }
     // In both cases (New User OR Migration needed), send to Onboarding

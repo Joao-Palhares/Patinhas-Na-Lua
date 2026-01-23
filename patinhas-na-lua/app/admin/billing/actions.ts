@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { InvoiceStatus, PaymentMethod } from "@prisma/client";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, checkAdminRateLimit } from "@/lib/auth";
 import { sendInvoiceEmail } from "@/lib/email";
 
 // --- CONFIGURATION & ENV VARIABLES ---
@@ -13,10 +13,7 @@ const FACTURALUSA_GENERIC_CLIENT_ID = process.env.FACTURALUSA_GENERIC_CLIENT_ID 
 const FACTURALUSA_GENERIC_SERVICE_ID = process.env.FACTURALUSA_GENERIC_SERVICE_ID ? Number(process.env.FACTURALUSA_GENERIC_SERVICE_ID) : null;
 const FACTURALUSA_API_TOKEN = process.env.FACTURALUSA_API_TOKEN;
 
-// Validation (Log Warning/Error mainly for dev awareness, but allow app to start)
-if (!process.env.FACTURALUSA_GENERIC_CLIENT_ID) {
-    console.warn("⚠️ WARNING: FACTURALUSA_GENERIC_CLIENT_ID is missing in .env. Using fallback ID 114354.");
-}
+
 
 // Helper to enforce Lisbon Timezone for API
 function getLisbonDate() {
@@ -120,9 +117,15 @@ export async function updateClientNif(userId: string, nif: string) {
 export async function issueInvoice(appointmentId: string, paymentMethod: PaymentMethod) {
   await requireAdmin();
   
+  // Rate limit invoice issuing (max 20 per 10 min)
+  const rateLimitError = await checkAdminRateLimit('issueInvoice', 20);
+  if (rateLimitError) {
+    return { success: false, error: rateLimitError };
+  }
+  
   // 1. Env Validation & Config
   if (!FACTURALUSA_SERIES_ID || !FACTURALUSA_GENERIC_CLIENT_ID || !FACTURALUSA_GENERIC_SERVICE_ID || !FACTURALUSA_API_TOKEN) {
-      throw new Error("Missing Facturalusa Env Variables (CHECK: SERIES_ID, GENERIC_CLIENT_ID, GENERIC_SERVICE_ID, API_TOKEN)");
+      return { success: false, error: "Configuração Facturalusa em falta. Contacte o suporte." };
   }
 
   // 2. Get Billing Data
@@ -131,7 +134,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
     include: { appointment: { include: { service: true, extraFees: { include: { extraFee: true } } } } }
   });
 
-  if (!invoice || !invoice.appointment) throw new Error("Invoice Draft not found");
+  if (!invoice || !invoice.appointment) return { success: false, error: "Rascunho de fatura não encontrado" };
 
   // 3. Resolve Client ID
   // @ts-ignore
@@ -195,7 +198,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
     force_send_email: false // DISABLE external email (we send our own)
   };
 
-  console.log("Issuing Invoice Payload:", JSON.stringify(payload));
+
   
   let externalId = "OFFLINE-" + Date.now().toString().slice(-6); // Fallback ID
   let pdfUrl = null;
@@ -215,13 +218,11 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
       if (resApi.ok) {
           const data = await resApi.json();
           externalId = String(data.id);
-          pdfUrl = data.url_file; // Fix: API returns 'url_file', not 'permalink'
-          console.log("✅ Invoice Issued:", externalId, "PDF:", pdfUrl);
+          pdfUrl = data.url_file;
           
-          // --- CUSTOM EMAIL LOGIC (Fire and Forget) ---
+          // Send custom email (Fire and Forget)
           // @ts-ignore
           if (invoice.invoicedEmail && pdfUrl) {
-              console.log("📧 Triggering Invoice Email...");
               sendInvoiceEmail({
                   // @ts-ignore
                   to: invoice.invoicedEmail,
@@ -234,13 +235,10 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
 
       } else {
           const errText = await resApi.text();
-          console.error("❌ Facturalusa API Refused:", errText);
-          throw new Error(`Facturalusa Error: ${errText}`);
+          return { success: false, error: `Erro Facturalusa: ${errText}` };
       }
   } catch (e) {
-      console.error("⚠️ Facturalusa Execution Error:", e);
-      // CRITICAL FIX: Stop execution here. Do not let it proceed to DB updates.
-      throw e; 
+      return { success: false, error: "Erro ao comunicar com Facturalusa" }; 
   }
 
   // 6. Update Database
@@ -281,10 +279,9 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
     });
 
     if (user && user.referredById) {
-        console.log(`[Referral] First Payment! Rewarding Referrer ${user.referredById}...`);
         await db.user.update({
             where: { id: user.referredById },
-            data: { loyaltyPoints: { increment: 5 } } // Reward: 5 Points
+            data: { loyaltyPoints: { increment: 5 } }
         });
     }
   }
@@ -298,34 +295,27 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   };
 }
 
-
 // --- HELPER --
 async function resolveFacturalusaClient(draftNif: string, userId: string | null, snapshot: any) {
-    // Uses Global Constant with Fallback
     const GENERIC_ID = FACTURALUSA_GENERIC_CLIENT_ID; 
 
     let nif = draftNif;
-
-    console.log(`[ResolveClient] Starting. DraftNIF: '${draftNif}', UserID: ${userId}`);
 
     // PRE-CHECK: Fetch Fresh User NIF (Fix Stale Drafts)
     let user = null;
     if (userId) {
         user = await db.user.findUnique({ where: { id: userId } });
         if (user && user.nif) {
-            console.log(`[ResolveClient] Found Fresh User NIF: ${user.nif} (Overriding Draft: ${draftNif})`);
             nif = user.nif;
         }
     }
 
     // CASE A: No NIF or Generic
     if (!nif || nif.replace(/\s/g, "") === "999999990") {
-        console.log("[ResolveClient] NIF is Generic (999999990). Using Consumidor Final.");
         return GENERIC_ID;
     }
 
     if (!FACTURALUSA_API_TOKEN) {
-        console.error("[ResolveClient] Missing Token!");
         return GENERIC_ID;
     }
 
@@ -335,25 +325,17 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
     
     // Step 1: Check Local DB Cache
     if (user) {
-        // @ts-ignore
-        console.log(`[ResolveClient] Local User Found:`, user ? `Yes (Has FID: ${user.facturalusaId})` : "No");
-        
-        // Check if cached ID is valid for CURRENT NIF
-        const userNifClean = user.nif?.replace(/\s/g, "");
+        const userNifClean = user.nif?.replace(/\s/g, ""); 
 
         // @ts-ignore
         if (user.facturalusaId && userNifClean === cleanNif) {
-            // @ts-ignore
-            console.log("[ResolveClient] Using Cached Local ID:", user.facturalusaId);
             // @ts-ignore
             return Number(user.facturalusaId);
         }
     }
 
-    // Step 2: Search API (FIXED: Uses POST /customers/find)
+    // Step 2: Search API
     try {
-        console.log(`[ResolveClient] Searching Facturalusa for NIF ${cleanNif}...`);
-        
         const searchRes = await fetch(`https://facturalusa.pt/api/v2/customers/find`, {
              method: "POST",
              headers: { 
@@ -366,14 +348,10 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
                 search_in: "Vat Number"
             })
         });
-        
-        console.log(`[ResolveClient] Search Status: ${searchRes.status}`);
 
         if (searchRes.ok) {
             const result = await searchRes.json();
-            // API returns the object directly if found
             if (result && result.id) {
-                console.log("[ResolveClient] Found Client in API:", result.id);
                 if (userId) {
                     await db.user.update({ 
                         where: { id: userId }, 
@@ -384,15 +362,12 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
                 return result.id;
             }
         }
-        // If not found, proceed to Step 3 (Create)
     } catch (e) {
-        console.error("Facturalusa Search Error:", e);
+        // Silently fail to Step 3
     }
 
     // Step 3: Create Client
     try {
-        console.log("Creating New Client in Facturalusa...");
-        // ENDPOINT CHANGED: /clients -> /customers
         const createRes = await fetch(`https://facturalusa.pt/api/v2/customers`, {
              method: "POST",
              headers: { 
@@ -410,7 +385,6 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
 
         if (createRes.ok) {
             const newClient = await createRes.json();
-            console.log("Created Client:", newClient.id);
             if (userId) {
                 await db.user.update({ 
                     where: { id: userId }, 
@@ -419,15 +393,10 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
                 });
             }
             return newClient.id;
-        } else {
-             const err = await createRes.text();
-             console.error("Create Client Failed:", err);
         }
     } catch(e) { 
-        console.error("Create Client Error:", e); 
+        // Fallback to generic
     }
 
-    // Fallback if creation fails (to allow invoice issuance anyway?)
-    // Using Generic ID might be safer than crashing
     return GENERIC_ID;
 }

@@ -10,10 +10,11 @@ export default async function HistoryPage() {
   const user = await currentUser();
   if (!user) redirect("/");
 
-  // Fetch ALL appointments (Past & Future, but mainly focused on Past)
+  // Fetch ALL appointments (Past & Future, excluding soft deleted)
   const appointments = await db.appointment.findMany({
     where: {
-      userId: user.id
+      userId: user.id,
+      deletedAt: null
     },
     include: {
       service: true,

@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -8,20 +9,20 @@ cloudinary.config({
 });
 
 export async function POST() {
+  // Require authentication to prevent abuse
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const secret = process.env.CLOUDINARY_API_SECRET;
-  
-  console.log("--- SIGNING DEBUG ---");
-  console.log("Secret Available:", !!secret);
-  console.log("Cloud Name:", process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME);
 
   if (!secret) {
-      console.error("❌ CRITICAL: CLOUDINARY_API_SECRET is missing in server environment!");
-      return NextResponse.json({ error: "Server missing API Secret" }, { status: 500 });
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
   const timestamp = Math.round(new Date().getTime() / 1000);
 
-  // We are enforcing the folder 'patinhas-reviews'
   const paramsToSign = {
     timestamp: timestamp,
     folder: 'patinhas-reviews',
@@ -32,10 +33,8 @@ export async function POST() {
         paramsToSign,
         secret
     );
-    console.log("✅ Signature generated:", signature.substring(0, 5) + "...");
     return NextResponse.json({ timestamp, signature });
   } catch (err: any) {
-    console.error("Signing failed:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: "Signing failed" }, { status: 500 });
   }
 }

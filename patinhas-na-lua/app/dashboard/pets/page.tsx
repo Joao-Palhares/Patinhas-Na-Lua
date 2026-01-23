@@ -6,6 +6,7 @@ import { PetSize, CoatType } from "@prisma/client";
 import Link from "next/link";
 import DeleteForm from "@/app/admin/components/delete-form";
 import EditPetModal from "./edit-pet-modal";
+import SubmitButton from "@/app/components/submit-button";
 
 const SPECIES_ICON_MAP: Record<string, string> = {
   DOG: "🐶",
@@ -228,9 +229,12 @@ export default async function MyPetsPage() {
               />
             </div>
 
-            <button className="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primary-hover transition shadow-lg mt-2 text-lg">
+            <SubmitButton 
+              className="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primary-hover transition shadow-lg mt-2 text-lg"
+              loadingText="A guardar..."
+            >
               Guardar Animal
-            </button>
+            </SubmitButton>
           </form>
         </div>
 

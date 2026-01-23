@@ -241,21 +241,18 @@ export async function createOfflineClientAction(formData: FormData) {
                 emailAddress: email,
                 redirectUrl: redirectUrl,
                 publicMetadata: {
-                    internalUserId: userId, // Link for Webhook
+                    internalUserId: userId,
                 },
                 ignoreExisting: true,
             });
-            console.log(`[CreateClient] Invitation sent to ${email}`);
          } catch (invErr) {
-             console.error("Clerk Invite Failed:", invErr);
+             // Invitation failed - client created but not invited
          }
      }
 
      revalidatePath("/admin/clients");
      return { success: true };
   } catch (error) {
-    console.error("Failed to create client:", error);
-    // Helper to detect unique constraint violations
     // @ts-ignore
     if (error.code === 'P2002') return { error: "Erro: Email, Telefone ou NIF já registados." };
     return { error: "Erro ao criar cliente." };

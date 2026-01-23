@@ -49,12 +49,11 @@ async function processReferralReward(userId: string) {
       await db.coupon.create({
         data: {
           code: code,
-          discount: discount, // DYNAMIC DISCOUNT
+          discount: discount,
           active: true,
           userId: user.referredById
         }
       });
-      console.log(`[Referral] Created Coupon ${code} (${discount}%) for referrer ${user.referredById}`);
     }
   }
 }

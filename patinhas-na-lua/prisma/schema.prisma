@@ -131,6 +131,9 @@ model Pet {
   userId          String
   user            User     @relation(fields: [userId], references: [id])
   appointments    Appointment[]
+
+  @@index([userId, deletedAt])
+  @@index([name])
 }
 
 model Service {
@@ -152,6 +155,9 @@ model Service {
   
   appointments Appointment[]
   loyaltyRewards LoyaltyReward[]
+
+  @@index([isActive, deletedAt])
+  @@index([category])
 }
 
 model ServiceOption {
@@ -286,6 +292,8 @@ model Appointment {
 
   @@index([date])
   @@index([status])
+  @@index([userId, deletedAt])
+  @@index([date, status, deletedAt])
 }
 
 model Review {

@@ -15,13 +15,14 @@ export default async function BookingPage(props: {
 
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
-    include: { pets: true }
+    include: { pets: { where: { deletedAt: null } } }
   });
 
   if (!dbUser) redirect("/onboarding");
 
-  // 1. Fetch Raw Services from Database
+  // 1. Fetch Raw Services from Database (only active, non-deleted)
   const rawServices = await db.service.findMany({
+    where: { deletedAt: null, isActive: true },
     include: { options: true },
     orderBy: { name: "asc" }
   });

@@ -5,6 +5,8 @@ import CookieConsent from './components/cookie-consent'
 import { Toaster } from 'sonner';
 import './globals.css'
 import AuthGuard from './components/auth-guard'
+import GoogleAnalytics from './components/google-analytics'
+import JsonLdSchema from './components/json-ld-schema'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://patinhasnalua.com'),
@@ -12,8 +14,8 @@ export const metadata: Metadata = {
     default: 'Patinhas na Lua | Estética Animal & Spa',
     template: '%s | Patinhas na Lua'
   },
-  description: 'Serviços de Grooming, Banhos, Tosquias e Spa para cães e gatos. Produtos naturais e atendimento personalizado.',
-  keywords: ['grooming', 'banhos', 'tosquias', 'spa animal', 'pets', 'cães', 'gatos', 'patinhas na lua'],
+  description: 'Serviços de Grooming, Banhos, Tosquias e Spa para cães e gatos em Castelo Branco. Produtos naturais e atendimento personalizado.',
+  keywords: ['grooming', 'banhos', 'tosquias', 'spa animal', 'pets', 'cães', 'gatos', 'patinhas na lua', 'castelo branco', 'grooming domicilio'],
   robots: {
     index: true,
     follow: true,
@@ -33,7 +35,7 @@ export const metadata: Metadata = {
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-       { url: '/icon-192.png' } // Fallback if no apple specific icon
+       { url: '/icon-192.png' }
     ],
   },
   appleWebApp: {
@@ -43,11 +45,28 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Patinhas na Lua | Estética Animal & Spa',
-    description: 'Cuidamos do seu melhor amigo com amor e consciência. Banhos, tosquias e mimos sem stress.',
+    description: 'Cuidamos do seu melhor amigo com amor e consciência. Banhos, tosquias e mimos sem stress em Castelo Branco.',
     url: 'https://patinhasnalua.com',
     siteName: 'Patinhas na Lua',
     locale: 'pt_PT',
     type: 'website',
+    images: [
+      {
+        url: '/logo.png',
+        width: 512,
+        height: 512,
+        alt: 'Patinhas na Lua - Grooming & Spa',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Patinhas na Lua | Estética Animal & Spa',
+    description: 'Grooming, Banhos e Tosquias para cães e gatos em Castelo Branco.',
+    images: ['/logo.png'],
+  },
+  verification: {
+    google: 'google-site-verification=your-code-here', // Already verified via DNS
   },
 }
 
@@ -65,6 +84,10 @@ export default function RootLayout({
   return (
     <ClerkProvider localization={ptPT}>
       <html lang="pt" suppressHydrationWarning>
+        <head>
+          <JsonLdSchema />
+          <GoogleAnalytics />
+        </head>
         <body suppressHydrationWarning>
           <AuthGuard>
             {children}

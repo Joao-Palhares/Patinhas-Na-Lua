@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     const phone = phone_numbers[0]?.phone_number
 
     if (email) {
-       console.log(`[Clerk Webhook] Processing user.created for ${email} (Clerk ID: ${id})`);
+       // Process user.created event
        
        // 1. Check for Pre-Existing Match
        // We include Soft Deleted users too, just in case they are returning? 
@@ -71,11 +71,10 @@ export async function POST(req: Request) {
        });
 
        if (existingUser) {
-           console.log(`[Clerk Webhook] Found existing match: ${existingUser.id} (Status: ${existingUser.status})`);
+
            
            // If IDs mismatch, we MUST migrate.
            if (existingUser.id !== id) {
-               console.log(`[Clerk Webhook] MIGRATING ID: ${existingUser.id} -> ${id}`);
                
                try {
                   // TRANSACTIONAL MIGRATION (Safe for FK constraints)
