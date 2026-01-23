@@ -27,6 +27,16 @@ SUMMARY:${event.summary}
 DESCRIPTION:${event.description.replace(/\n/g, '\\n')}
 LOCATION:${event.location}
 STATUS:CONFIRMED
+BEGIN:VALARM
+TRIGGER:-PT30M
+ACTION:DISPLAY
+DESCRIPTION:Lembrete: ${event.summary} em 30 minutos!
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:Lembrete: ${event.summary} é amanhã!
+END:VALARM
 END:VEVENT
 END:VCALENDAR`;
 }
