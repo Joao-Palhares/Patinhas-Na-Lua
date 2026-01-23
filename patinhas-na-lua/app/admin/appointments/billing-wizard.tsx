@@ -118,7 +118,7 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
       // @ts-ignore
       const res = await issueInvoice(appointment.id, paymentMethod);
       if (res && res.success) {
-        setSuccessData({ invoiceId: res.invoiceId, pdfUrl: res.pdfUrl });
+        setSuccessData({ invoiceId: res.invoiceId || '', pdfUrl: res.pdfUrl || '' });
         setStep(5); // Move to Success Screen
       } else {
           setIsOpen(false); // Fallback if old valid void return

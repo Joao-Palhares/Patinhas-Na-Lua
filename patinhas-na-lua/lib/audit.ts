@@ -1,8 +1,8 @@
 import { db } from "@/lib/db";
-// import { AuditAction } from "@prisma/client";
-type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGOUT" | "VIEW" | "EXPORT" | "SYSTEM";
+import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
 import { currentUser } from "@clerk/nextjs/server";
+import { AuditAction } from "@prisma/client";
 
 export async function logAudit(
   action: AuditAction, 
@@ -48,7 +48,49 @@ export async function logAudit(
       }
     });
   } catch (error) {
-    console.error("Failed to write Audit Log:", error);
-    // Do not throw, so we don't block the main action
+    // Silently fail - don't block the main action
+    Sentry.captureException(error, { tags: { source: 'auditLog' } });
   }
 }
+
+/**
+ * Log an error to both the AuditLog and Sentry
+ */
+export async function logError(
+  error: Error | unknown,
+  context: string,
+  additionalData?: Record<string, any>
+) {
+  // 1. Send to Sentry (for stack traces and detailed error info)
+  Sentry.captureException(error, {
+    tags: { context },
+    extra: additionalData
+  });
+
+  // 2. Also log to our database for easy viewing in admin
+  const errorMessage = error instanceof Error 
+    ? `${error.name}: ${error.message}` 
+    : String(error);
+  
+  await logAudit(
+    "ERROR",
+    context,
+    null,
+    errorMessage.substring(0, 500), // Limit size
+    additionalData,
+    null
+  );
+}
+
+/**
+ * Log a page view for analytics
+ */
+export async function logPageView(pagePath: string) {
+  await logAudit(
+    "PAGE_VIEW",
+    "Page",
+    null,
+    pagePath
+  );
+}
+

@@ -91,9 +91,11 @@ enum AuditAction {
   DELETE
   LOGIN
   LOGOUT
-  VIEW      // Optional: if strictly needed
+  VIEW
   EXPORT
-  SYSTEM    // System automated tasks
+  SYSTEM
+  ERROR      // Runtime errors caught by Sentry or manually
+  PAGE_VIEW  // Page visits for analytics
 }
 
 model PushSubscription {
