@@ -93,7 +93,7 @@ export async function sendBookingConfirmation({
                 durationMinutes,
                 summary: `Patinhas na Lua: ${petName} (${serviceName})`,
                 description: `Serviço de Grooming/Banho para ${petName}.\nServiço: ${serviceName}`,
-                location: 'Patinhas na Lua, Castelo Branco',
+                location: 'Patinhas na Lua - R. Dra. Maria de Fátima Delgado Domingos Farinha Lote 237 Loja 3, 6000-410 Castelo Branco',
                 uid: appointmentId || `appt-${Date.now()}@patinhasnalua.pt`
             });
 

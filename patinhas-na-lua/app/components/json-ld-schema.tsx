@@ -12,6 +12,8 @@ export default function JsonLdSchema() {
     "priceRange": "€€",
     "address": {
       "@type": "PostalAddress",
+      "streetAddress": "R. Dra. Maria de Fátima Delgado Domingos Farinha Lote 237 Loja 3",
+      "postalCode": "6000-410",
       "addressLocality": "Castelo Branco",
       "addressRegion": "Castelo Branco",
       "addressCountry": "PT"

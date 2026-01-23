@@ -73,7 +73,7 @@ export async function logError(
     : String(error);
   
   await logAudit(
-    "ERROR",
+    "ERROR" as AuditAction,
     context,
     null,
     errorMessage.substring(0, 500), // Limit size
@@ -87,7 +87,7 @@ export async function logError(
  */
 export async function logPageView(pagePath: string) {
   await logAudit(
-    "PAGE_VIEW",
+    "PAGE_VIEW" as AuditAction,
     "Page",
     null,
     pagePath
