@@ -319,7 +319,7 @@ export default function ProductForm({ brands, product }: ProductFormProps) {
                 type="number"
                 value={nutrition[field.key] || ""}
                 onChange={(e) => handleNutritionChange(field.key, e.target.value)}
-                step="0.1"
+                step="0.001"
                 min="0"
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               />
