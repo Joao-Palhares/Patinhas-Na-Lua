@@ -8,7 +8,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function POST() {
+export async function POST(req: Request) {
   // Require authentication to prevent abuse
   const { userId } = await auth();
   if (!userId) {
@@ -21,11 +21,22 @@ export async function POST() {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
+  // Get folder from request body (or use default)
+  let folder = 'patinhas-uploads';
+  try {
+    const body = await req.json();
+    if (body.folder) {
+      folder = body.folder;
+    }
+  } catch {
+    // No body or invalid JSON, use default folder
+  }
+
   const timestamp = Math.round(new Date().getTime() / 1000);
 
   const paramsToSign = {
     timestamp: timestamp,
-    folder: 'patinhas-reviews',
+    folder: folder,
   };
 
   try {
@@ -33,8 +44,9 @@ export async function POST() {
         paramsToSign,
         secret
     );
-    return NextResponse.json({ timestamp, signature });
+    return NextResponse.json({ timestamp, signature, folder });
   } catch (err: any) {
     return NextResponse.json({ error: "Signing failed" }, { status: 500 });
   }
 }
+

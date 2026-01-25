@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
-import { Upload, Link as LinkIcon, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { Upload, Link as LinkIcon, X, Loader2, Clipboard } from "lucide-react";
 import { toast } from "sonner";
 
 type ImageUploaderProps = {
@@ -25,6 +25,7 @@ export default function ImageUploader({
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   // Cloudinary upload function
   const uploadToCloudinary = async (file: File): Promise<string> => {
@@ -35,20 +36,24 @@ export default function ImageUploader({
       throw new Error("Cloudinary não está configurado");
     }
 
-    // Get signature from our API
-    const signRes = await fetch("/api/sign-cloudinary", { method: "POST" });
+    // Get signature from our API - SEND THE FOLDER
+    const signRes = await fetch("/api/sign-cloudinary", { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder })
+    });
     if (!signRes.ok) throw new Error("Erro ao preparar upload");
     const signData = await signRes.json();
 
     if (!signData.signature) throw new Error("Erro de assinatura");
 
-    // Upload to Cloudinary
+    // Upload to Cloudinary - USE THE FOLDER FROM RESPONSE
     const formData = new FormData();
     formData.append("file", file);
     formData.append("api_key", apiKey);
     formData.append("timestamp", signData.timestamp);
     formData.append("signature", signData.signature);
-    formData.append("folder", folder);
+    formData.append("folder", signData.folder); // Use folder from signed response
 
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
@@ -63,7 +68,7 @@ export default function ImageUploader({
     return result.secure_url;
   };
 
-  const handleFileUpload = async (files: FileList | null) => {
+  const handleFileUpload = useCallback(async (files: FileList | File[] | null) => {
     if (!files || files.length === 0) return;
 
     const currentCount = images.length;
@@ -74,7 +79,8 @@ export default function ImageUploader({
       return;
     }
 
-    const filesToUpload = Array.from(files).slice(0, availableSlots);
+    const fileArray = Array.from(files);
+    const filesToUpload = fileArray.slice(0, availableSlots);
     setIsUploading(true);
 
     try {
@@ -103,7 +109,7 @@ export default function ImageUploader({
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [images, single, maxImages, onChange, folder]);
 
   const handleUrlAdd = () => {
     const url = urlInput.trim();
@@ -147,7 +153,48 @@ export default function ImageUploader({
     e.preventDefault();
     setIsDragging(false);
     handleFileUpload(e.dataTransfer.files);
-  }, [images]);
+  }, [handleFileUpload]);
+
+  // CLIPBOARD PASTE HANDLER (Ctrl+V)
+  const handlePaste = useCallback(async (e: ClipboardEvent) => {
+    // Only handle paste when we can add more images
+    const canAdd = single ? images.length === 0 : images.length < maxImages;
+    if (!canAdd) return;
+
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const imageFiles: File[] = [];
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      // Check if it's an image file
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          imageFiles.push(file);
+        }
+      }
+    }
+
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      handleFileUpload(imageFiles);
+    }
+  }, [handleFileUpload, images.length, maxImages, single]);
+
+  // Register paste event listener
+  useEffect(() => {
+    const dropZone = dropZoneRef.current;
+    
+    // Global paste listener
+    document.addEventListener("paste", handlePaste);
+    
+    return () => {
+      document.removeEventListener("paste", handlePaste);
+    };
+  }, [handlePaste]);
 
   const canAddMore = single ? images.length === 0 : images.length < maxImages;
 
@@ -155,7 +202,7 @@ export default function ImageUploader({
     <div className="space-y-4">
       {/* Current Images */}
       {images.length > 0 && (
-        <div className={`grid gap-3 ${single ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-4"}`}>
+        <div className={`grid gap-3 ${single ? "grid-cols-1 max-w-[200px]" : "grid-cols-2 sm:grid-cols-4"}`}>
           {images.map((url, i) => (
             <div key={i} className="relative aspect-square bg-gray-100 rounded-lg group">
               <Image
@@ -210,6 +257,7 @@ export default function ImageUploader({
           {mode === "upload" ? (
             /* Drag & Drop Upload */
             <div
+              ref={dropZoneRef}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -242,8 +290,12 @@ export default function ImageUploader({
                   <p className="font-medium text-gray-700 mb-1">
                     Arraste uma imagem ou clique aqui
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 mb-2">
                     PNG, JPG até 5MB
+                  </p>
+                  <p className="text-xs text-primary font-medium flex items-center justify-center gap-1">
+                    <Clipboard className="w-3 h-3" />
+                    Ou use Ctrl+V para colar
                   </p>
                 </>
               )}

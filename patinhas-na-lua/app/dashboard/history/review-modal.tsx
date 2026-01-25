@@ -29,8 +29,12 @@ export default function ReviewModal({ appointmentId }: Props) {
       throw new Error("Missing Env Vars");
     }
 
-    // 2. Get Signature
-    const signRes = await fetch('/api/sign-cloudinary', { method: 'POST' });
+    // 2. Get Signature - SEND THE FOLDER
+    const signRes = await fetch('/api/sign-cloudinary', { 
+      method: 'POST',
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "patinhas-reviews" })
+    });
     if (!signRes.ok) {
         throw new Error("Sign API failed");
     }
@@ -41,13 +45,13 @@ export default function ReviewModal({ appointmentId }: Props) {
         throw new Error("Missing Signature from Backend");
     }
 
-    // 3. Build Payload
+    // 3. Build Payload - USE FOLDER FROM RESPONSE
     const formData = new FormData();
     formData.append("file", file);
     formData.append("api_key", apiKey);
     formData.append("timestamp", signData.timestamp);
     formData.append("signature", signData.signature);
-    formData.append("folder", "patinhas-reviews");
+    formData.append("folder", signData.folder);
 
     // 4. Send
     const response = await fetch(
