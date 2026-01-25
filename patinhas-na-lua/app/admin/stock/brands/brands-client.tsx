@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ArrowLeft, Plus, Edit, Trash2, Package, X } from "lucide-react";
 import { createBrand, updateBrand, deleteBrand } from "../actions";
 import { toast } from "sonner";
+import ImageUploader from "@/app/components/image-uploader";
 
 type Brand = {
   id: string;
@@ -200,13 +201,12 @@ export default function BrandsClient({ brands }: { brands: Brand[] }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
-                <input
-                  type="text"
-                  value={form.logoUrl}
-                  onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                  placeholder="https://..."
+                <label className="block text-sm font-medium text-gray-700 mb-2">Logo da Marca</label>
+                <ImageUploader
+                  images={form.logoUrl ? [form.logoUrl] : []}
+                  onChange={(urls) => setForm({ ...form, logoUrl: urls[0] || "" })}
+                  single={true}
+                  folder="patinhas-shop-brands"
                 />
               </div>
               <div>
