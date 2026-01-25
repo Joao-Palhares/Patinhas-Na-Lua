@@ -64,6 +64,16 @@ export default function ProductGrid({ products, brands, isLoggedIn }: ProductGri
     ALL: "Todos",
   };
 
+  const nutritionLabels: Record<string, string> = {
+    protein: "Proteína",
+    fat: "Gordura",
+    fiber: "Fibra",
+    ash: "Matéria Inorgânica",
+    moisture: "Humidade",
+    calcium: "Cálcio",
+    phosphorus: "Fósforo",
+  };
+
   return (
     <div>
       {/* FILTERS */}
@@ -255,7 +265,7 @@ export default function ProductGrid({ products, brands, isLoggedIn }: ProductGri
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {Object.entries(selectedProduct.nutritionTable).map(([key, value]) => (
                       <div key={key} className="bg-gray-50 p-3 rounded-lg text-center">
-                        <p className="text-xs text-gray-500 capitalize">{key}</p>
+                        <p className="text-xs text-gray-500">{nutritionLabels[key] || key}</p>
                         <p className="font-bold text-gray-800">{String(value)}%</p>
                       </div>
                     ))}

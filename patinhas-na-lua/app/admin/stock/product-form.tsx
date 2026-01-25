@@ -41,7 +41,7 @@ const nutritionFields = [
   { key: "protein", label: "Proteína (%)" },
   { key: "fat", label: "Gordura (%)" },
   { key: "fiber", label: "Fibra (%)" },
-  { key: "ash", label: "Cinza (%)" },
+  { key: "ash", label: "Matéria Inorgânica (%)" },
   { key: "moisture", label: "Humidade (%)" },
   { key: "calcium", label: "Cálcio (%)" },
   { key: "phosphorus", label: "Fósforo (%)" },
@@ -262,7 +262,7 @@ export default function ProductForm({ brands, product }: ProductFormProps) {
               name="weightKg"
               value={form.weightKg}
               onChange={handleChange}
-              step="0.1"
+              step="0.001"
               min="0"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
