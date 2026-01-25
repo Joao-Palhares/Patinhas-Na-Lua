@@ -56,6 +56,9 @@ export default async function DashboardLayout({
             <Link href="/dashboard/book" className="hover:text-primary transition">
               Agendar
             </Link>
+            <Link href="/dashboard/loja" className="hover:text-primary transition">
+              Loja
+            </Link>
             <Link href="/dashboard/pricing" className="hover:text-primary transition">
               Preçário
             </Link>

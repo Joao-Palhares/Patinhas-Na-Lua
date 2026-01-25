@@ -69,6 +69,7 @@ export default async function LandingPage() {
 
           <div className="hidden md:flex gap-8 text-sm font-medium text-foreground">
             <a href="#servicos" className="hover:text-primary transition">Serviços</a>
+            <Link href="/loja" className="hover:text-primary transition">Loja</Link>
             <a href="#reviews" className="hover:text-primary transition">Clientes</a>
             <a href="#agendar" className="hover:text-primary transition">Agendar</a>
             {isAdmin && (

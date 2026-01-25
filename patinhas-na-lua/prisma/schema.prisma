@@ -47,6 +47,7 @@ model User {
   referrals    User[]   @relation("UserReferrals")
   pushSubscriptions PushSubscription[]
   auditLogs    AuditLog[] // Relation to logs created by this user
+  dogFoodOrders DogFoodOrder[] // Shop orders
   
   deletedAt    DateTime? // Soft Delete
 
@@ -532,4 +533,131 @@ model PetSizeRule {
   updatedAt DateTime @updatedAt
 
   @@unique([size, species]) // Allow separate rules for Dog vs Cat
+}
+
+// ==========================================
+// DOG FOOD SHOP SYSTEM
+// ==========================================
+
+model DogFoodBrand {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g., "Ownat", "Royal Canin"
+  logoUrl     String?  // Brand logo (Cloudinary)
+  description String?  @db.Text
+  website     String?
+  
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  products    DogFood[]
+}
+
+model DogFood {
+  id          String   @id @default(cuid())
+  
+  // Basic Info
+  name        String   // e.g., "Dog Junior Classic"
+  description String?  @db.Text // Main product description
+  ingredients String?  @db.Text // Ingredient list
+  
+  // Pricing & Stock
+  price       Decimal  // Current selling price
+  comparePrice Decimal? // Original price (for showing discounts)
+  stockQty    Int      @default(0)
+  sku         String?  @unique // Stock Keeping Unit
+  
+  // Product Details
+  weightKg    Decimal? // Package weight in kg
+  targetAge   DogFoodAge? // PUPPY, ADULT, SENIOR, ALL
+  targetSize  DogFoodTargetSize? // SMALL, MEDIUM, LARGE, ALL
+  
+  // Nutritional Info (JSON for flexibility)
+  // Structure: { protein: 28, fat: 16, fiber: 3, ash: 7, moisture: 8, ... }
+  nutritionTable Json?
+  
+  // Media (multiple images stored as JSON array of URLs)
+  images      String[] // Cloudinary URLs
+  
+  // Relations
+  brandId     String
+  brand       DogFoodBrand @relation(fields: [brandId], references: [id])
+  
+  // Status
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false) // Show on homepage
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  orderItems  DogFoodOrderItem[]
+  
+  @@index([brandId])
+  @@index([isActive, isFeatured])
+  @@index([targetAge, targetSize])
+}
+
+enum DogFoodAge {
+  PUPPY
+  ADULT
+  SENIOR
+  ALL
+}
+
+enum DogFoodTargetSize {
+  SMALL  // Small breeds
+  MEDIUM
+  LARGE  // Large breeds
+  GIANT
+  ALL
+}
+
+model DogFoodOrder {
+  id          String   @id @default(cuid())
+  
+  orderNumber String   @unique // e.g., "PNL-2025-0001"
+  
+  // Customer Info
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  // Order Details
+  status      DogFoodOrderStatus @default(PENDING)
+  totalAmount Decimal
+  notes       String?  @db.Text // Customer notes
+  
+  // Fulfillment
+  pickedUpAt  DateTime? // When customer collected the order
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  items       DogFoodOrderItem[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model DogFoodOrderItem {
+  id          String   @id @default(cuid())
+  
+  orderId     String
+  order       DogFoodOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId   String
+  product     DogFood  @relation(fields: [productId], references: [id])
+  
+  quantity    Int
+  unitPrice   Decimal  // Price at time of order (snapshot)
+  
+  @@index([orderId])
+  @@index([productId])
+}
+
+enum DogFoodOrderStatus {
+  PENDING     // Just placed
+  CONFIRMED   // Admin confirmed, preparing
+  READY       // Ready for pickup
+  COMPLETED   // Picked up
+  CANCELLED
 }

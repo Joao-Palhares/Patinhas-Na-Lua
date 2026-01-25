@@ -65,6 +65,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <SidebarLink href="/admin/analytics" icon="📈" label="Relatórios & Lucro" />
           <SidebarLink href="/admin/fees" icon="🏷️" label="Taxas Extras" />
           <SidebarLink href="/admin/invoices" icon="🧾" label="Faturas" />
+          <SidebarLink href="/admin/stock" icon="🛒" label="Loja / Stock" />
           <SidebarLink href="/admin/coupons" icon="🎟️" label="Prémios & Cupões" />
           <SidebarLink href="/admin/settings" icon="⚙️" label="Configuração" />
           <SidebarLink href="/admin/vacations" icon="🏖️" label="Férias" />
