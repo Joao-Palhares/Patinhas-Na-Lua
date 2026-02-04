@@ -14,6 +14,7 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [successData, setSuccessData] = useState<{ invoiceId: string; pdfUrl: string } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // HOURLY LOGIC
   const isTimeBased = (appointment.service as any).isTimeBased;
@@ -112,6 +113,7 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
 
   const handleFinish = async () => {
     setLoading(true);
+    setErrorMessage(null); // Clear any previous error
     if (nif !== appointment.user.nif) await updateClientNif(appointment.user.id, nif);
     
     try {
@@ -120,11 +122,19 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
       if (res && res.success) {
         setSuccessData({ invoiceId: res.invoiceId || '', pdfUrl: res.pdfUrl || '' });
         setStep(5); // Move to Success Screen
+      } else if (res && res.error) {
+        // Show the actual error message from the server
+        setErrorMessage(res.error);
+        alert(`❌ Erro ao emitir fatura:\n\n${res.error}`);
       } else {
-          setIsOpen(false); // Fallback if old valid void return
+        setErrorMessage("Erro desconhecido ao emitir fatura");
+        alert("❌ Erro desconhecido ao emitir fatura. Por favor tente novamente.");
       }
-    } catch (e) {
-        console.error("Error issuing invoice:", e);
+    } catch (e: any) {
+      const errorMsg = e?.message || "Erro de rede ou servidor indisponível";
+      setErrorMessage(errorMsg);
+      alert(`❌ Erro ao emitir fatura:\n\n${errorMsg}`);
+      console.error("Error issuing invoice:", e);
     }
     setLoading(false);
   };
@@ -329,6 +339,20 @@ export default function BillingWizard({ appointment, extraFeeOptions }: Props) {
               {step === 4 && (
                 <div className="bg-white p-6 rounded-xl border-2 border-dashed border-gray-300">
                   <h4 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2">Resumo Final</h4>
+                  
+                  {/* Error Display */}
+                  {errorMessage && (
+                    <div className="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">❌</span>
+                        <div>
+                          <p className="font-bold text-red-800 mb-1">Erro ao emitir fatura:</p>
+                          <p className="text-red-700 text-sm">{errorMessage}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between text-gray-600">
                       <span>Serviço Base</span>
