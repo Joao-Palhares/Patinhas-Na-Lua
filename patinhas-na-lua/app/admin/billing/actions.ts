@@ -128,6 +128,15 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   // 1. Get Config at RUNTIME (not build time)
   const config = getFacturalusaConfig();
   
+  // 🔍 PRODUCTION LOG: Always log config values (masked) for debugging
+  console.log("[INVOICE] Config loaded:", {
+    seriesId: config.seriesId,
+    genericClientId: config.genericClientId,
+    genericServiceId: config.genericServiceId,
+    apiTokenPresent: !!config.apiToken,
+    apiTokenLength: config.apiToken?.length || 0
+  });
+  
   // Detailed validation with specific error messages
   const missingVars = [];
   if (!config.seriesId) missingVars.push("FACTURALUSA_SERIES_ID");
@@ -136,6 +145,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   if (!config.apiToken) missingVars.push("FACTURALUSA_API_TOKEN");
   
   if (missingVars.length > 0) {
+    console.error("[INVOICE] Missing env vars:", missingVars);
     return { 
       success: false, 
       error: `Configuração Facturalusa em falta: ${missingVars.join(", ")}. Verifique as variáveis de ambiente no Vercel.` 
@@ -218,6 +228,15 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   let externalId = "OFFLINE-" + Date.now().toString().slice(-6);
   let pdfUrl = null;
 
+  // 🔍 PRODUCTION LOG: Log the payload being sent (no sensitive data)
+  console.log("[INVOICE] Sending to Facturalusa:", {
+    serie: payload.serie,
+    customer: payload.customer,
+    vat_number: payload.vat_number,
+    itemsCount: payload.items.length,
+    status: payload.status
+  });
+
   try {
       const resApi = await fetch("https://facturalusa.pt/api/v2/sales", {
           method: "POST",
@@ -230,8 +249,11 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
           body: JSON.stringify(payload)
       });
 
+      console.log("[INVOICE] API Response:", resApi.status, resApi.statusText);
+
       if (resApi.ok) {
           const data = await resApi.json();
+          console.log("[INVOICE] SUCCESS! Invoice ID:", data.id, "PDF:", data.url_file);
           externalId = String(data.id);
           pdfUrl = data.url_file;
           
@@ -250,9 +272,12 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
 
       } else {
           const errText = await resApi.text();
+          console.error("[INVOICE] API ERROR:", errText);
+          console.error("[INVOICE] Payload was:", JSON.stringify(payload, null, 2));
           return { success: false, error: `Erro Facturalusa: ${errText}` };
       }
-  } catch (e) {
+  } catch (e: any) {
+      console.error("[INVOICE] Network/Server error:", e?.message || e);
       return { success: false, error: "Erro ao comunicar com Facturalusa" }; 
   }
 
