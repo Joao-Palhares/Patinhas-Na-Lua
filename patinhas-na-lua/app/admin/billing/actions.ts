@@ -7,17 +7,19 @@ import { InvoiceStatus, PaymentMethod } from "@prisma/client";
 import { requireAdmin, checkAdminRateLimit } from "@/lib/auth";
 import { sendInvoiceEmail } from "@/lib/email";
 
-// --- CONFIGURATION & ENV VARIABLES ---
-const FACTURALUSA_SERIES_ID = process.env.FACTURALUSA_SERIES_ID ? Number(process.env.FACTURALUSA_SERIES_ID) : null;
-const FACTURALUSA_GENERIC_CLIENT_ID = process.env.FACTURALUSA_GENERIC_CLIENT_ID ? Number(process.env.FACTURALUSA_GENERIC_CLIENT_ID) : 114354;
-const FACTURALUSA_GENERIC_SERVICE_ID = process.env.FACTURALUSA_GENERIC_SERVICE_ID ? Number(process.env.FACTURALUSA_GENERIC_SERVICE_ID) : null;
-const FACTURALUSA_API_TOKEN = process.env.FACTURALUSA_API_TOKEN;
-
-
-
 // Helper to enforce Lisbon Timezone for API
 function getLisbonDate() {
     return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Lisbon' });
+}
+
+// Helper to get Facturalusa config at runtime (not build time!)
+function getFacturalusaConfig() {
+  const seriesId = process.env.FACTURALUSA_SERIES_ID ? Number(process.env.FACTURALUSA_SERIES_ID) : null;
+  const genericClientId = process.env.FACTURALUSA_GENERIC_CLIENT_ID ? Number(process.env.FACTURALUSA_GENERIC_CLIENT_ID) : 114354;
+  const genericServiceId = process.env.FACTURALUSA_GENERIC_SERVICE_ID ? Number(process.env.FACTURALUSA_GENERIC_SERVICE_ID) : null;
+  const apiToken = process.env.FACTURALUSA_API_TOKEN;
+  
+  return { seriesId, genericClientId, genericServiceId, apiToken };
 }
 
 // STEP 1: UPDATE OR CREATE DRAFT
@@ -123,9 +125,21 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
     return { success: false, error: rateLimitError };
   }
   
-  // 1. Env Validation & Config
-  if (!FACTURALUSA_SERIES_ID || !FACTURALUSA_GENERIC_CLIENT_ID || !FACTURALUSA_GENERIC_SERVICE_ID || !FACTURALUSA_API_TOKEN) {
-      return { success: false, error: "Configuração Facturalusa em falta. Contacte o suporte." };
+  // 1. Get Config at RUNTIME (not build time)
+  const config = getFacturalusaConfig();
+  
+  // Detailed validation with specific error messages
+  const missingVars = [];
+  if (!config.seriesId) missingVars.push("FACTURALUSA_SERIES_ID");
+  if (!config.genericClientId) missingVars.push("FACTURALUSA_GENERIC_CLIENT_ID");
+  if (!config.genericServiceId) missingVars.push("FACTURALUSA_GENERIC_SERVICE_ID");
+  if (!config.apiToken) missingVars.push("FACTURALUSA_API_TOKEN");
+  
+  if (missingVars.length > 0) {
+    return { 
+      success: false, 
+      error: `Configuração Facturalusa em falta: ${missingVars.join(", ")}. Verifique as variáveis de ambiente no Vercel.` 
+    };
   }
 
   // 2. Get Billing Data
@@ -146,10 +160,11 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
           name: invoice.invoicedName,
           email: invoice.invoicedEmail,
           address: invoice.invoicedAddress
-      }
+      },
+      config
   );
 
-  const finalClientId = resolvedClientId || FACTURALUSA_GENERIC_CLIENT_ID;
+  const finalClientId = resolvedClientId || config.genericClientId;
 
   // 4. Map Items (All to GENERIC_SERVICE_ID, but with custom description)
   const items = [];
@@ -159,7 +174,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
 
   // Item 1: Main Service
   items.push({
-      id: FACTURALUSA_GENERIC_SERVICE_ID, 
+      id: config.genericServiceId, 
       description: invoice.appointment.service.name,
       details: invoice.appointment.service.name, // Ensure visible on PDF
       quantity: 1,
@@ -171,7 +186,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   // Items 2..N: Extra Fees
   extras.forEach(fee => {
       items.push({
-          id: FACTURALUSA_GENERIC_SERVICE_ID,
+          id: config.genericServiceId,
           description: fee.extraFee.name,
           details: fee.extraFee.name, // Ensure visible on PDF
           quantity: 1,
@@ -184,7 +199,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   // 5. Construct Payload
   const payload = {
     document_type: "Factura Recibo",
-    serie: FACTURALUSA_SERIES_ID, 
+    serie: config.seriesId, 
     vat_type: "IVA incluído",
     issue_date: getLisbonDate(), // Production Date Logic
     
@@ -209,7 +224,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
           headers: {
               "Content-Type": "application/json",
               "Accept": "application/json",
-              "Authorization": `Bearer ${FACTURALUSA_API_TOKEN}`,
+              "Authorization": `Bearer ${config.apiToken}`,
               "User-Agent": "PatinhasApp/1.0"
           },
           body: JSON.stringify(payload)
@@ -296,8 +311,13 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
 }
 
 // --- HELPER --
-async function resolveFacturalusaClient(draftNif: string, userId: string | null, snapshot: any) {
-    const GENERIC_ID = FACTURALUSA_GENERIC_CLIENT_ID; 
+async function resolveFacturalusaClient(
+    draftNif: string, 
+    userId: string | null, 
+    snapshot: any,
+    config: { genericClientId: number; apiToken: string | undefined }
+) {
+    const GENERIC_ID = config.genericClientId; 
 
     let nif = draftNif;
 
@@ -315,7 +335,7 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
         return GENERIC_ID;
     }
 
-    if (!FACTURALUSA_API_TOKEN) {
+    if (!config.apiToken) {
         return GENERIC_ID;
     }
 
@@ -339,7 +359,7 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
         const searchRes = await fetch(`https://facturalusa.pt/api/v2/customers/find`, {
              method: "POST",
              headers: { 
-                 "Authorization": `Bearer ${FACTURALUSA_API_TOKEN}`, 
+                 "Authorization": `Bearer ${config.apiToken}`, 
                  "Accept": "application/json",
                  "Content-Type": "application/json"
             },
@@ -371,7 +391,7 @@ async function resolveFacturalusaClient(draftNif: string, userId: string | null,
         const createRes = await fetch(`https://facturalusa.pt/api/v2/customers`, {
              method: "POST",
              headers: { 
-                 "Authorization": `Bearer ${FACTURALUSA_API_TOKEN}`, 
+                 "Authorization": `Bearer ${config.apiToken}`, 
                  "Accept": "application/json",
                  "Content-Type": "application/json"
              },
