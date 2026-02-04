@@ -201,21 +201,21 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
     document_type: "Factura Recibo",
     serie: config.seriesId, 
     vat_type: "IVA incluído",
-    issue_date: getLisbonDate(), // Production Date Logic
+    issue_date: getLisbonDate(),
     
-    // Auth
+    // Customer (ID or code)
     customer: finalClientId, 
-    vat_number: clientNif || "999999990", 
+    vat_number: clientNif || "999999990",
     
     items: items, 
     status: "Terminado",
-    force_print: true,     // Generate PDF
-    force_send_email: false // DISABLE external email (we send our own)
+    force_print: true,
+    force_send_email: false
   };
 
 
   
-  let externalId = "OFFLINE-" + Date.now().toString().slice(-6); // Fallback ID
+  let externalId = "OFFLINE-" + Date.now().toString().slice(-6);
   let pdfUrl = null;
 
   try {
@@ -310,7 +310,7 @@ export async function issueInvoice(appointmentId: string, paymentMethod: Payment
   };
 }
 
-// --- HELPER --
+// --- HELPER: Resolve or Create Facturalusa Client --
 async function resolveFacturalusaClient(
     draftNif: string, 
     userId: string | null, 
@@ -330,7 +330,7 @@ async function resolveFacturalusaClient(
         }
     }
 
-    // CASE A: No NIF or Generic
+    // CASE A: No NIF or Generic NIF → Use generic client
     if (!nif || nif.replace(/\s/g, "") === "999999990") {
         return GENERIC_ID;
     }
@@ -346,7 +346,6 @@ async function resolveFacturalusaClient(
     // Step 1: Check Local DB Cache
     if (user) {
         const userNifClean = user.nif?.replace(/\s/g, ""); 
-
         // @ts-ignore
         if (user.facturalusaId && userNifClean === cleanNif) {
             // @ts-ignore
@@ -354,7 +353,7 @@ async function resolveFacturalusaClient(
         }
     }
 
-    // Step 2: Search API
+    // Step 2: Search Facturalusa API for existing client
     try {
         const searchRes = await fetch(`https://facturalusa.pt/api/v2/customers/find`, {
              method: "POST",
@@ -368,10 +367,11 @@ async function resolveFacturalusaClient(
                 search_in: "Vat Number"
             })
         });
-
+        
         if (searchRes.ok) {
             const result = await searchRes.json();
             if (result && result.id) {
+                // Cache the ID for future use
                 if (userId) {
                     await db.user.update({ 
                         where: { id: userId }, 
@@ -383,10 +383,10 @@ async function resolveFacturalusaClient(
             }
         }
     } catch (e) {
-        // Silently fail to Step 3
+        // Silently fail to Step 3 (create new client)
     }
 
-    // Step 3: Create Client
+    // Step 3: Create new client in Facturalusa
     try {
         const createRes = await fetch(`https://facturalusa.pt/api/v2/customers`, {
              method: "POST",
@@ -402,9 +402,10 @@ async function resolveFacturalusaClient(
                  type: "Particular"
              })
         });
-
+        
         if (createRes.ok) {
             const newClient = await createRes.json();
+            // Cache the ID for future use
             if (userId) {
                 await db.user.update({ 
                     where: { id: userId }, 
