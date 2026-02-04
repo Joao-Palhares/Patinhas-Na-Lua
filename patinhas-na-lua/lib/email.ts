@@ -1,5 +1,18 @@
 import nodemailer from 'nodemailer';
 
+// ==========================================
+// 🚫 DEV MODE: Block all emails in development
+// ==========================================
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+function shouldBlockEmail(): boolean {
+  if (isDevelopment) {
+    console.log("📧 [DEV MODE] Email blocked - would have sent in production");
+    return true;
+  }
+  return false;
+}
+
 // Configure Nodemailer for Gmail
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -66,6 +79,9 @@ export async function sendBookingConfirmation({
     appointmentId
 }: EmailParams) {
 
+    // Block emails in development
+    if (shouldBlockEmail()) return;
+
     if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
         console.warn("⚠️ GMAIL_USER or GMAIL_PASS missing. Email not sent.");
         return;
@@ -129,6 +145,9 @@ export async function sendAppointmentReminder({
     timeStr
 }: Omit<EmailParams, "serviceName">) {
 
+    // Block emails in development
+    if (shouldBlockEmail()) return;
+
     if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) return;
 
     try {
@@ -170,6 +189,9 @@ export async function sendAppointmentCancellation({
     timeStr,
     reason
 }: EmailParams & { reason: string }) {
+
+    // Block emails in development
+    if (shouldBlockEmail()) return;
 
     if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
         console.log("No GMAIL Interface - skipping cancellation email to " + to);
@@ -220,6 +242,9 @@ export async function sendInvoiceEmail({
     pdfUrl: string,
     totalAmount: string
 }) {
+
+    // Block emails in development
+    if (shouldBlockEmail()) return;
 
     if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
         console.warn("⚠️ GMAIL_USER or GMAIL_PASS missing. Invoice email not sent.");
